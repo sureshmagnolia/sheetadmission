@@ -69,7 +69,24 @@ Follow these step-by-step instructions to configure your Google Sheets, Google F
 
 ---
 
-## System Usage Notes
-
 - **Password**: The password changes daily. It is today's date in `ddmmyyyy` format (for example, if today is June 23rd, 2026, the password is `23062026`).
 - **Authentication Persistence**: Once logged in, your session is stored locally. Click **Logout** to clear the session and return to the login interface.
+
+---
+
+## Step 6: Git Push to GitHub & Git Pages Setup
+
+To push this project to GitHub:
+1. Create a new repository on GitHub (e.g. `college-erp`).
+2. Run the following commands in your terminal to link and push your changes:
+   ```bash
+   git remote add origin https://github.com/YOUR_USERNAME/YOUR_REPO_NAME.git
+   git branch -M main
+   git push -u origin main
+   ```
+3. To host static pages on GitHub Pages:
+   - Go to your repository **Settings** > **Pages**.
+   - Under **Build and deployment**, set Source to **Deploy from a branch** and select **main** (or `/root` directory).
+   - Click **Save**. Your site will be live shortly!
+   - *Note*: If hosting the frontend on Git Pages, rename `Index.html` to `index.html`. Keep in mind that calling `google.script.run` requires the HTML to be hosted inside Google Apps Script. If you host it on Git Pages, you will need to adapt the communication logic to make HTTP `fetch()` requests targeting your Google Apps Script Web App URL.
+
