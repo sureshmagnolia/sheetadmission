@@ -729,6 +729,102 @@
       transform: translateY(0);
       opacity: 1;
     }
+
+    /* Print Balance Sheet Styles */
+    .balance-sheet-card {
+      width: 100%;
+      color: #000;
+      background: #fff;
+      font-family: sans-serif;
+    }
+    .balance-sheet-header {
+      text-align: center;
+      margin-bottom: 20px;
+      border-bottom: 2px solid #000;
+      padding-bottom: 10px;
+    }
+    .balance-sheet-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 15px;
+    }
+    .balance-sheet-table th, .balance-sheet-table td {
+      border: 1px solid #000;
+      padding: 8px;
+      text-align: left;
+      font-size: 10pt;
+    }
+    .balance-sheet-table th {
+      background-color: #f2f2f2;
+    }
+
+    /* Mobile Responsive Custom Overrides */
+    @media (max-width: 768px) {
+      body {
+        padding: 0;
+      }
+      header {
+        padding: 0.75rem 1rem;
+        flex-direction: column;
+        gap: 10px;
+        align-items: stretch;
+      }
+      .logo-container {
+        justify-content: center;
+      }
+      .user-info-bar {
+        justify-content: space-between;
+        width: 100%;
+      }
+      main {
+        padding: 1rem;
+      }
+      .dashboard-header {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 10px;
+      }
+      .controls-container {
+        flex-direction: column;
+        align-items: stretch;
+        width: 100%;
+        gap: 10px;
+      }
+      #central-dept-selector {
+        width: 100%;
+        display: flex;
+        flex-direction: column;
+      }
+      #central-dept-selector select {
+        width: 100% !important;
+        margin-top: 5px;
+      }
+      .search-box {
+        min-width: 100%;
+      }
+      .profile-layout {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+      }
+      .photo-box {
+        max-width: 180px;
+        margin: 0 auto 10px auto;
+      }
+      .fields-grid {
+        grid-template-columns: 1fr;
+      }
+      .remarks-history {
+        grid-template-columns: 1fr;
+        gap: 10px;
+      }
+      .modal {
+        max-height: 95vh;
+        width: 95%;
+      }
+      .modal-body {
+        padding: 1rem;
+      }
+    }
   </style>
 </head>
 <body>
@@ -814,6 +910,7 @@
           </div>
           
           <input type="text" class="form-control search-box" id="search-bar" placeholder="Search by CAPID, Email, or Name..." onkeyup="filterTable()">
+          <button class="btn btn-success" id="btn-pta-balance" style="display: none;" onclick="generateDailyBalanceSheet()">Balance Sheet</button>
           <button class="btn btn-secondary" onclick="loadDepartmentData()">Refresh</button>
         </div>
       </div>
@@ -911,10 +1008,39 @@
                   <textarea class="form-control" id="wf-nodal-remarks" rows="2" placeholder="Input nodal verification notes... (Required for revert)"></textarea>
                 </div>
 
-                <!-- PTA Fee input -->
+                <!-- PTA Fee input with Calculator -->
                 <div class="form-group" id="group-pta-input" style="display: none;">
-                  <label for="wf-pta-amount">PTA Fund Amount Collected (INR)</label>
-                  <input type="number" class="form-control" id="wf-pta-amount" placeholder="Enter collection amount">
+                  <label>PTA Fee Calculator</label>
+                  <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px;">
+                    <div>
+                      <label for="pta-prog-fee" style="font-size: 0.75rem;">Admission Programme</label>
+                      <select class="form-control" id="pta-prog-fee" onchange="calculatePTAFee()">
+                        <option value="5000">Computer Science (5000)</option>
+                        <option value="4500">Physics (4500)</option>
+                        <option value="4200">Chemistry (4200)</option>
+                        <option value="4000">Mathematics (4000)</option>
+                        <option value="3500">Commerce (3500)</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label for="pta-cat-fee" style="font-size: 0.75rem;">Admitted Category</label>
+                      <select class="form-control" id="pta-cat-fee" onchange="calculatePTAFee()">
+                        <option value="1000">General (+1000)</option>
+                        <option value="500">OBC (+500)</option>
+                        <option value="0">SC/ST (+0)</option>
+                      </select>
+                    </div>
+                  </div>
+                  <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px;">
+                    <div>
+                      <label for="pta-custom-fee" style="font-size: 0.75rem;">Custom Value Adjustment (INR)</label>
+                      <input type="number" class="form-control" id="pta-custom-fee" value="0" oninput="calculatePTAFee()">
+                    </div>
+                    <div>
+                      <label for="wf-pta-amount" style="font-size: 0.75rem; font-weight: bold; color: #10b981;">Total PTA Fee (INR)</label>
+                      <input type="number" class="form-control" id="wf-pta-amount" style="font-weight: bold; color: #10b981;" readonly>
+                    </div>
+                  </div>
                 </div>
 
                 <!-- Principal Remarks & Admission Number input -->
@@ -1080,6 +1206,14 @@
       
       // Central Roles switcher
       var viewDeptSelector = document.getElementById("central-dept-selector");
+      var balanceBtn = document.getElementById("btn-pta-balance");
+      
+      if (userRole === "PTA") {
+        balanceBtn.style.display = "inline-block";
+      } else {
+        balanceBtn.style.display = "none";
+      }
+
       if (userRole === "Nodal Officer" || userRole === "PTA" || userRole === "Principal") {
         viewDeptSelector.style.display = "block";
         loadDepartmentsDropdown();
@@ -1321,6 +1455,36 @@
         document.getElementById("group-nodal-input").style.display = "block";
       } else if (userRole === "PTA") {
         document.getElementById("group-pta-input").style.display = "block";
+        
+        // Dynamic PTA Calculator initialization
+        var progSelect = document.getElementById("pta-prog-fee");
+        for (var i = 0; i < progSelect.options.length; i++) {
+          if (progSelect.options[i].text.toLowerCase().indexOf(currentSelectedDept.toLowerCase()) > -1) {
+            progSelect.selectedIndex = i;
+            break;
+          }
+        }
+        
+        var catSelect = document.getElementById("pta-cat-fee");
+        var studentCat = (student["Actual Category"] || student["Reservation Category"] || "General").trim().toUpperCase();
+        if (studentCat.indexOf("OBC") > -1 || studentCat.indexOf("OEC") > -1) {
+          catSelect.value = "500";
+        } else if (studentCat.indexOf("SC") > -1 || studentCat.indexOf("ST") > -1) {
+          catSelect.value = "0";
+        } else {
+          catSelect.value = "1000"; // General
+        }
+        
+        if (student["PTA_Amount"]) {
+          var paid = parseFloat(student["PTA_Amount"]) || 0;
+          var prog = parseFloat(progSelect.value) || 0;
+          var cat = parseFloat(catSelect.value) || 0;
+          document.getElementById("pta-custom-fee").value = paid - (prog + cat);
+        } else {
+          document.getElementById("pta-custom-fee").value = 0;
+        }
+        
+        calculatePTAFee();
       } else if (userRole === "Principal") {
         document.getElementById("group-principal-input").style.display = "block";
       }
@@ -1749,6 +1913,87 @@
           renderSingleTC() +
         "</div>";
 
+      var printArea = document.getElementById("print-area");
+      printArea.innerHTML = printContent;
+      window.print();
+    }
+
+    // Dynamic PTA Fee Calculation
+    function calculatePTAFee() {
+      var progFee = parseFloat(document.getElementById("pta-prog-fee").value) || 0;
+      var catFee = parseFloat(document.getElementById("pta-cat-fee").value) || 0;
+      var customFee = parseFloat(document.getElementById("pta-custom-fee").value) || 0;
+      document.getElementById("wf-pta-amount").value = progFee + catFee + customFee;
+    }
+
+    // Print Daily PTA Collection Balance Sheet
+    function generateDailyBalanceSheet() {
+      if (!allStudents || allStudents.length === 0) {
+        showToast("No student data available to generate a balance sheet.", true);
+        return;
+      }
+      
+      var ptaList = allStudents.filter(function(s) {
+        return s["PTA_Amount"] && parseFloat(s["PTA_Amount"]) > 0;
+      });
+      
+      if (ptaList.length === 0) {
+        showToast("No PTA fee collections recorded for this department today.", true);
+        return;
+      }
+      
+      var totalSum = 0;
+      var tableRowsHtml = "";
+      
+      ptaList.forEach(function(s, index) {
+        var name = s["Name"] || "N/A";
+        var capid = s["CAPID"] || "N/A";
+        var category = s["Actual Category"] || s["Reservation Category"] || "N/A";
+        var amount = parseFloat(s["PTA_Amount"]) || 0;
+        totalSum += amount;
+        
+        tableRowsHtml += "<tr>" +
+          "<td>" + (index + 1) + "</td>" +
+          "<td>" + capid + "</td>" +
+          "<td>" + name.toUpperCase() + "</td>" +
+          "<td>" + currentSelectedDept + "</td>" +
+          "<td>" + category + "</td>" +
+          "<td>INR " + amount + "/-</td>" +
+        "</tr>";
+      });
+      
+      var printContent = 
+        "<div class='balance-sheet-card'>" +
+          "<div class='balance-sheet-header'>" +
+            "<h2>GOVERNMENT COLLEGE, PALAKKAD</h2>" +
+            "<h3>DAILY PTA FUND BALANCE SHEET</h3>" +
+            "<p>Department: <strong>" + currentSelectedDept + "</strong> | Date: " + new Date().toLocaleDateString() + "</p>" +
+          "</div>" +
+          "<table class='balance-sheet-table'>" +
+            "<thead>" +
+              "<tr>" +
+                "<th>Sl. No</th>" +
+                "<th>CAPID</th>" +
+                "<th>Student Name</th>" +
+                "<th>Programme / Department</th>" +
+                "<th>Category</th>" +
+                "<th>PTA Fee Collected</th>" +
+              "</tr>" +
+            "</thead>" +
+            "<tbody>" +
+              tableRowsHtml +
+              "<tr style='font-weight: bold; background-color: #f2f2f2;'>" +
+                "<td colspan='5' style='text-align: right;'>TOTAL COLLECTION:</td>" +
+                "<td>INR " + totalSum + "/-</td>" +
+              "</tr>" +
+            "</tbody>" +
+          "</table>" +
+          "<div style='margin-top: 50px; display: flex; justify-content: space-between;'>" +
+            "<div><p style='border-top: 1px solid #000; width: 180px; text-align: center; padding-top: 5px; font-weight: bold;'>PTA Account Officer</p></div>" +
+            "<div><p style='border-top: 1px solid #000; width: 180px; text-align: center; padding-top: 5px; font-weight: bold;'>Principal</p></div>" +
+          "</div>" +
+        "</div>";
+        
       var printArea = document.getElementById("print-area");
       printArea.innerHTML = printContent;
       window.print();
