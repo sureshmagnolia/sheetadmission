@@ -1,0 +1,1775 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Government College ERP Portal</title>
+  <!-- Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  
+  <style>
+    :root {
+      --primary: #2563eb;
+      --primary-hover: #1d4ed8;
+      --bg-dark: #0f172a;
+      --card-bg: rgba(30, 41, 59, 0.7);
+      --card-border: rgba(255, 255, 255, 0.08);
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --accent-green: #10b981;
+      --accent-yellow: #f59e0b;
+      --accent-red: #ef4444;
+      --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Outfit', sans-serif;
+    }
+
+    body {
+      background-color: var(--bg-dark);
+      background-image: 
+        radial-gradient(at 0% 0%, rgba(37, 99, 235, 0.15) 0px, transparent 50%),
+        radial-gradient(at 100% 100%, rgba(16, 185, 129, 0.1) 0px, transparent 50%);
+      color: var(--text-main);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow-x: hidden;
+    }
+
+    /* Print styling overrides */
+    @media print {
+      body {
+        background: #fff !important;
+        color: #000 !important;
+      }
+      #app-container, .modal, .toast {
+        display: none !important;
+      }
+      #print-area {
+        display: block !important;
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 210mm;
+        height: 297mm;
+        box-sizing: border-box;
+        margin: 0;
+        padding: 5mm;
+        background: #fff;
+      }
+      .print-page {
+        width: 100%;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        box-sizing: border-box;
+      }
+      .tc-half {
+        height: 135mm;
+        box-sizing: border-box;
+        border: 2px solid #333;
+        padding: 5mm 8mm;
+        display: flex;
+        flex-direction: column;
+        font-size: 8pt;
+        line-height: 1.25;
+        position: relative;
+        background: #fff;
+      }
+      .tc-header {
+        text-align: center;
+        margin-bottom: 3mm;
+        position: relative;
+        padding-right: 20mm; /* Make room for logo on top-right */
+      }
+      .tc-logo {
+        position: absolute;
+        top: 0;
+        right: 0;
+        width: 15mm;
+        height: 15mm;
+        object-fit: contain;
+      }
+      .tc-header h1 {
+        font-size: 13pt;
+        font-weight: 800;
+        margin: 0;
+        letter-spacing: 0.5px;
+      }
+      .tc-header h2 {
+        font-size: 9pt;
+        font-weight: 500;
+        margin: 1px 0;
+      }
+      .tc-header h3 {
+        font-size: 11pt;
+        font-weight: 700;
+        margin: 4px 0 2px 0;
+        text-decoration: underline;
+      }
+      .tc-meta-row {
+        display: flex;
+        justify-content: space-between;
+        font-weight: 600;
+        margin-bottom: 2mm;
+        font-size: 8.5pt;
+        border-bottom: 1px solid #000;
+        padding-bottom: 2px;
+      }
+      .tc-grid {
+        display: grid;
+        grid-template-columns: 1.8fr 1.2fr;
+        row-gap: 1.5mm;
+        column-gap: 2mm;
+      }
+      .tc-grid-item {
+        border-bottom: 1px dashed #ccc;
+        padding: 1px 0;
+      }
+      .tc-grid-label {
+        font-weight: 500;
+      }
+      .tc-grid-val {
+        font-weight: 600;
+        padding-left: 5px;
+      }
+      .tc-footer {
+        margin-top: auto;
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-end;
+        padding-top: 2mm;
+      }
+      .tc-signature {
+        text-align: center;
+        font-size: 8pt;
+      }
+      .tc-signature-space {
+        height: 8mm;
+      }
+      .divider-container {
+        height: 12mm;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        position: relative;
+      }
+      .dotted-line {
+        width: 100%;
+        border-top: 1px dotted #000;
+      }
+      .stamp-seal {
+        position: absolute;
+        width: 25mm;
+        height: 25mm;
+        border: 2px solid #000;
+        border-radius: 50%;
+        background: #fff;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        font-size: 5pt;
+        text-align: center;
+        font-weight: bold;
+        line-height: 1.1;
+        box-shadow: 0 0 0 4px #fff;
+      }
+    }
+
+    #print-area {
+      display: none;
+    }
+
+    /* Header Bar */
+    header {
+      background: rgba(15, 23, 42, 0.8);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--card-border);
+      padding: 1rem 2rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .logo-container {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .logo-img {
+      width: 40px;
+      height: 40px;
+      object-fit: contain;
+    }
+
+    .logo-title {
+      font-size: 1.25rem;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+    }
+
+    .login-logo-container {
+      text-align: center;
+      margin-bottom: 1.25rem;
+    }
+
+    .login-logo {
+      width: 75px;
+      height: 75px;
+      object-fit: contain;
+    }
+
+    .user-info-bar {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+    }
+
+    .role-badge {
+      background: rgba(37, 99, 235, 0.2);
+      border: 1px solid var(--primary);
+      color: #93c5fd;
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 0.85rem;
+      font-weight: 500;
+    }
+
+    .btn-logout {
+      background: rgba(239, 68, 68, 0.1);
+      border: 1px solid rgba(239, 68, 68, 0.4);
+      color: #fca5a5;
+      padding: 6px 14px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: 500;
+      transition: var(--transition);
+    }
+
+    .btn-logout:hover {
+      background: var(--accent-red);
+      color: white;
+    }
+
+    /* Login Screen Container */
+    .login-container {
+      max-width: 450px;
+      width: 90%;
+      margin: auto;
+      padding: 2.5rem;
+      background: var(--card-bg);
+      backdrop-filter: blur(16px);
+      border: 1px solid var(--card-border);
+      border-radius: 16px;
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3);
+      animation: fadeIn 0.5s ease;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .login-title {
+      font-size: 1.75rem;
+      font-weight: 700;
+      margin-bottom: 0.5rem;
+      text-align: center;
+      background: linear-gradient(to right, #60a5fa, #34d399);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .login-subtitle {
+      text-align: center;
+      color: var(--text-muted);
+      margin-bottom: 2rem;
+      font-size: 0.9rem;
+    }
+
+    .form-group {
+      margin-bottom: 1.25rem;
+    }
+
+    .form-group label {
+      display: block;
+      margin-bottom: 0.5rem;
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      font-weight: 500;
+    }
+
+    .form-control {
+      width: 100%;
+      padding: 0.75rem 1rem;
+      background: rgba(15, 23, 42, 0.6);
+      border: 1px solid var(--card-border);
+      border-radius: 8px;
+      color: white;
+      font-size: 0.95rem;
+      outline: none;
+      transition: var(--transition);
+    }
+
+    .form-control:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.25);
+    }
+
+    /* Captcha CSS */
+    .captcha-container {
+      background: rgba(15, 23, 42, 0.4);
+      border: 1px dashed var(--card-border);
+      padding: 10px;
+      border-radius: 8px;
+      margin-bottom: 1.25rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .captcha-label {
+      font-weight: bold;
+      color: var(--accent-yellow);
+      letter-spacing: 1px;
+    }
+
+    .btn-login {
+      width: 100%;
+      padding: 0.75rem;
+      background: var(--primary);
+      border: none;
+      border-radius: 8px;
+      color: white;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: var(--transition);
+    }
+
+    .btn-login:hover {
+      background: var(--primary-hover);
+      transform: translateY(-1px);
+    }
+
+    /* Main Dashboard View */
+    main {
+      flex: 1;
+      padding: 2rem;
+      max-width: 1400px;
+      margin: 0 auto;
+      width: 100%;
+    }
+
+    .dashboard-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 15px;
+      margin-bottom: 2rem;
+    }
+
+    .dashboard-title-area h2 {
+      font-size: 1.75rem;
+      font-weight: 700;
+    }
+
+    .dashboard-title-area p {
+      color: var(--text-muted);
+      font-size: 0.9rem;
+      margin-top: 4px;
+    }
+
+    .controls-container {
+      display: flex;
+      gap: 15px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    /* Table & Search Controls */
+    .card {
+      background: var(--card-bg);
+      backdrop-filter: blur(16px);
+      border: 1px solid var(--card-border);
+      border-radius: 12px;
+      padding: 1.5rem;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+    }
+
+    .search-box {
+      min-width: 300px;
+    }
+
+    /* Modern Table design */
+    .table-responsive {
+      overflow-x: auto;
+      margin-top: 1rem;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+    }
+
+    th {
+      padding: 1rem;
+      background: rgba(15, 23, 42, 0.4);
+      color: var(--text-muted);
+      font-weight: 600;
+      font-size: 0.85rem;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      border-bottom: 2px solid var(--card-border);
+    }
+
+    td {
+      padding: 1rem;
+      border-bottom: 1px solid var(--card-border);
+      font-size: 0.95rem;
+    }
+
+    tr {
+      transition: var(--transition);
+    }
+
+    tr:hover {
+      background: rgba(255, 255, 255, 0.02);
+      cursor: pointer;
+    }
+
+    /* Status Pill Badges */
+    .status-badge {
+      padding: 4px 10px;
+      border-radius: 12px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      display: inline-block;
+    }
+
+    .status-Pending_Faculty { background: rgba(245, 158, 11, 0.15); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.3); }
+    .status-Pending_Nodal { background: rgba(59, 130, 246, 0.15); color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.3); }
+    .status-Pending_PTA { background: rgba(139, 92, 246, 0.15); color: #a78bfa; border: 1px solid rgba(139, 92, 246, 0.3); }
+    .status-Pending_Principal { background: rgba(236, 72, 153, 0.15); color: #f472b6; border: 1px solid rgba(236, 72, 153, 0.3); }
+    .status-Admitted { background: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3); }
+
+    /* Modal Overlay & Card styling */
+    .modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(15, 23, 42, 0.85);
+      backdrop-filter: blur(8px);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      padding: 1.5rem;
+    }
+
+    .modal {
+      background: #1e293b;
+      border: 1px solid var(--card-border);
+      border-radius: 16px;
+      width: 100%;
+      max-width: 950px;
+      max-height: 90vh;
+      overflow-y: auto;
+      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5);
+      animation: fadeIn 0.3s ease;
+    }
+
+    .modal-header {
+      padding: 1.25rem 2rem;
+      border-bottom: 1px solid var(--card-border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      position: sticky;
+      top: 0;
+      background: #1e293b;
+      z-index: 10;
+    }
+
+    .modal-header h3 {
+      font-size: 1.5rem;
+      font-weight: 700;
+    }
+
+    .btn-close {
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      font-size: 1.75rem;
+      cursor: pointer;
+      transition: var(--transition);
+    }
+
+    .btn-close:hover {
+      color: white;
+    }
+
+    .modal-body {
+      padding: 2rem;
+    }
+
+    /* Split layout for Profile */
+    .profile-layout {
+      display: grid;
+      grid-template-columns: 240px 1fr;
+      gap: 2rem;
+    }
+
+    @media (max-width: 768px) {
+      .profile-layout {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .photo-area {
+      text-align: center;
+    }
+
+    .photo-box {
+      width: 100%;
+      aspect-ratio: 3/4;
+      background: rgba(15, 23, 42, 0.6);
+      border: 2px dashed var(--card-border);
+      border-radius: 12px;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 10px;
+    }
+
+    .photo-box img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .no-photo-text {
+      color: var(--text-muted);
+      font-size: 0.85rem;
+      padding: 20px;
+    }
+
+    .fields-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 1.25rem;
+    }
+
+    @media (max-width: 600px) {
+      .fields-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .readonly-field {
+      background: rgba(15, 23, 42, 0.3) !important;
+      color: #cbd5e1 !important;
+      border-color: transparent !important;
+      cursor: not-allowed;
+    }
+
+    /* Workflow Actions Panel */
+    .workflow-panel {
+      margin-top: 2rem;
+      background: rgba(15, 23, 42, 0.4);
+      border: 1px solid var(--card-border);
+      border-radius: 12px;
+      padding: 1.5rem;
+    }
+
+    .workflow-title {
+      font-size: 1.1rem;
+      font-weight: 600;
+      margin-bottom: 1rem;
+      color: var(--accent-yellow);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .workflow-actions {
+      display: flex;
+      gap: 15px;
+      flex-wrap: wrap;
+      margin-top: 1.25rem;
+    }
+
+    .btn {
+      padding: 0.6rem 1.2rem;
+      border-radius: 6px;
+      font-weight: 600;
+      cursor: pointer;
+      border: none;
+      transition: var(--transition);
+      font-size: 0.9rem;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .btn-primary { background: var(--primary); color: white; }
+    .btn-primary:hover { background: var(--primary-hover); }
+    
+    .btn-success { background: var(--accent-green); color: white; }
+    .btn-success:hover { background: #059669; }
+
+    .btn-danger { background: var(--accent-red); color: white; }
+    .btn-danger:hover { background: #dc2626; }
+
+    .btn-secondary { background: rgba(148, 163, 184, 0.2); color: var(--text-main); border: 1px solid var(--card-border); }
+    .btn-secondary:hover { background: rgba(148, 163, 184, 0.3); }
+
+    /* Remarks display history */
+    .remarks-history {
+      margin-top: 1.5rem;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1rem;
+    }
+
+    @media (max-width: 768px) {
+      .remarks-history {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .remark-box {
+      background: rgba(15, 23, 42, 0.6);
+      border-left: 3px solid var(--primary);
+      padding: 10px 14px;
+      border-radius: 0 8px 8px 0;
+    }
+
+    .remark-box.nodal { border-left-color: var(--accent-yellow); }
+    .remark-box.principal { border-left-color: var(--accent-green); }
+
+    .remark-label {
+      font-size: 0.75rem;
+      font-weight: bold;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      margin-bottom: 4px;
+    }
+
+    .remark-val {
+      font-size: 0.85rem;
+      color: #e2e8f0;
+      white-space: pre-wrap;
+    }
+
+    /* Loader component */
+    .loader-container {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(15, 23, 42, 0.7);
+      backdrop-filter: blur(4px);
+      z-index: 2000;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      gap: 15px;
+    }
+
+    .spinner {
+      width: 50px;
+      height: 50px;
+      border: 5px solid rgba(255, 255, 255, 0.1);
+      border-top-color: var(--primary);
+      border-radius: 50%;
+      animation: spin 1s infinite linear;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    /* Toast Notification */
+    .toast {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      padding: 12px 24px;
+      background: #1e293b;
+      border-left: 4px solid var(--primary);
+      border-radius: 8px;
+      box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3);
+      color: white;
+      z-index: 3000;
+      transform: translateY(100px);
+      opacity: 0;
+      transition: var(--transition);
+      font-weight: 500;
+    }
+
+    .toast.show {
+      transform: translateY(0);
+      opacity: 1;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Full Header (Bypassed if not logged in) -->
+  <header id="app-header" style="display: none;">
+    <div class="logo-container">
+      <img src="logo.png" class="logo-img" alt="College Logo" />
+      <div class="logo-title">Govt College Admission Portal</div>
+    </div>
+    <div class="user-info-bar">
+      <span id="user-display" style="font-weight: 600;"></span>
+      <span class="role-badge" id="role-display"></span>
+      <button class="btn-logout" onclick="logout()">Logout</button>
+    </div>
+  </header>
+
+  <!-- Login & Captcha Container -->
+  <div id="login-section" style="margin: auto; display: none;">
+    <div class="login-container">
+      <div class="login-logo-container">
+        <img src="logo.png" class="login-logo" alt="College Logo" />
+      </div>
+      <h1 class="login-title">ERP Login</h1>
+      <p class="login-subtitle">Sign in to Government College ERP System</p>
+      
+      <div class="form-group">
+        <label for="login-role">Select Role</label>
+        <select class="form-control" id="login-role" onchange="toggleDeptSelector()">
+          <option value="Faculty">Faculty Auditor</option>
+          <option value="HOD">HOD</option>
+          <option value="Nodal Officer">Nodal Officer</option>
+          <option value="PTA">PTA Desk</option>
+          <option value="Principal">Principal</option>
+        </select>
+      </div>
+
+      <div class="form-group" id="dept-group">
+        <label for="login-dept">Department</label>
+        <select class="form-control" id="login-dept">
+          <option value="Computer Science">Computer Science</option>
+          <option value="Physics">Physics</option>
+          <option value="Chemistry">Chemistry</option>
+          <option value="Mathematics">Mathematics</option>
+          <option value="Commerce">Commerce</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label for="login-password">Password (ddmmyyyy)</label>
+        <input type="password" class="form-control" id="login-password" placeholder="Today's date ddmmyyyy">
+      </div>
+
+      <!-- Math Captcha -->
+      <div class="captcha-container">
+        <span class="captcha-label" id="captcha-label">What is X + Y?</span>
+        <button class="btn" style="padding: 4px 8px; font-size: 0.75rem;" onclick="generateCaptcha()">Refresh</button>
+      </div>
+      
+      <div class="form-group">
+        <label for="login-captcha">Verify Captcha</label>
+        <input type="text" class="form-control" id="login-captcha" placeholder="Enter result">
+      </div>
+
+      <button class="btn-login" onclick="login()">Authenticate</button>
+    </div>
+  </div>
+
+  <!-- Dashboard Container -->
+  <div id="app-container" style="display: none;">
+    <main>
+      <div class="dashboard-header">
+        <div class="dashboard-title-area">
+          <h2 id="dashboard-welcome">Verification Dashboard</h2>
+          <p id="dashboard-sub">Review and verify student admission profiles</p>
+        </div>
+        
+        <div class="controls-container">
+          <!-- Department dropdown selector for central admin roles -->
+          <div id="central-dept-selector" style="display: none;">
+            <label for="view-dept" style="font-size: 0.85rem; color: var(--text-muted); font-weight: 500; margin-right: 8px;">Switch Department:</label>
+            <select class="form-control" id="view-dept" style="display: inline-block; width: 220px;" onchange="loadDepartmentData()"></select>
+          </div>
+          
+          <input type="text" class="form-control search-box" id="search-bar" placeholder="Search by CAPID, Email, or Name..." onkeyup="filterTable()">
+          <button class="btn btn-secondary" onclick="loadDepartmentData()">Refresh</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="table-responsive">
+          <table>
+            <thead>
+              <tr>
+                <th>Token</th>
+                <th>CAPID</th>
+                <th>Name</th>
+                <th>Email</th>
+                <th>Index Mark</th>
+                <th>Current Status</th>
+                <th>Adm. No</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="student-table-body">
+              <!-- Dynamically populated rows -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- Detailed Modal -->
+  <div class="modal-overlay" id="detail-modal">
+    <div class="modal">
+      <div class="modal-header">
+        <h3 id="modal-title">Student Profile Details</h3>
+        <button class="btn-close" onclick="closeModal()">&times;</button>
+      </div>
+      <div class="modal-body">
+        
+        <!-- Generated Token Info Box displayed right after Faculty Verification -->
+        <div id="token-notif-box" style="display: none; background: rgba(16, 185, 129, 0.15); border: 1px solid var(--accent-green); border-radius: 8px; padding: 15px; margin-bottom: 20px; text-align: center;">
+          <h4 style="color: var(--accent-green); font-size: 1.15rem; font-weight: 700; margin-bottom: 5px;">Student Successfully Verified!</h4>
+          <p style="color: var(--text-main); font-size: 0.95rem;">
+            Generated Token for Nodal Officer verification: <strong style="font-size: 1.35rem; color: var(--accent-yellow);" id="generated-token-text"></strong>
+          </p>
+          <p style="font-size: 0.8rem; color: var(--text-muted); margin-top: 5px;">Please inform the student and write this token on the physical application form.</p>
+        </div>
+
+        <div class="profile-layout">
+          <!-- Photo Column -->
+          <div class="photo-area">
+            <div class="photo-box" id="student-photo-container">
+              <span class="no-photo-text">Loading Photograph...</span>
+            </div>
+            <button class="btn btn-secondary" id="btn-edit-toggle" style="width: 100%; margin-top: 10px;" onclick="toggleEditMode()">Enable Edit</button>
+          </div>
+
+          <!-- Fields Grid -->
+          <div>
+            <div class="fields-grid" id="student-fields-container">
+              <!-- Fields dynamically generated as editable/readonly inputs -->
+            </div>
+            
+            <!-- Remarks History Display -->
+            <div class="remarks-history">
+              <div class="remark-box">
+                <div class="remark-label">Faculty Remarks</div>
+                <div class="remark-val" id="hist-faculty-remarks">N/A</div>
+              </div>
+              <div class="remark-box nodal">
+                <div class="remark-label">Nodal Remarks</div>
+                <div class="remark-val" id="hist-nodal-remarks">N/A</div>
+              </div>
+              <div class="remark-box principal">
+                <div class="remark-label">Principal Remarks</div>
+                <div class="remark-val" id="hist-principal-remarks">N/A</div>
+              </div>
+            </div>
+
+            <!-- Workflow Form Details -->
+            <div class="workflow-panel" id="workflow-panel">
+              <div class="workflow-title">
+                <span>Workflow & State Verification</span>
+              </div>
+              
+              <!-- Dynamic workflow input groups depending on role -->
+              <div id="workflow-inputs">
+                <!-- Faculty Remarks input -->
+                <div class="form-group" id="group-faculty-input" style="display: none;">
+                  <label for="wf-faculty-remarks">Faculty Audit & Verification Remarks</label>
+                  <textarea class="form-control" id="wf-faculty-remarks" rows="2" placeholder="Input eligibility verification notes..."></textarea>
+                </div>
+
+                <!-- Nodal Remarks input -->
+                <div class="form-group" id="group-nodal-input" style="display: none;">
+                  <label for="wf-nodal-remarks">Nodal Officer Remarks</label>
+                  <textarea class="form-control" id="wf-nodal-remarks" rows="2" placeholder="Input nodal verification notes... (Required for revert)"></textarea>
+                </div>
+
+                <!-- PTA Fee input -->
+                <div class="form-group" id="group-pta-input" style="display: none;">
+                  <label for="wf-pta-amount">PTA Fund Amount Collected (INR)</label>
+                  <input type="number" class="form-control" id="wf-pta-amount" placeholder="Enter collection amount">
+                </div>
+
+                <!-- Principal Remarks & Admission Number input -->
+                <div class="form-group" id="group-principal-input" style="display: none;">
+                  <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                    <div>
+                      <label for="wf-admission-number">Admission Number</label>
+                      <input type="text" class="form-control" id="wf-admission-number" placeholder="Assign college admission number">
+                    </div>
+                    <div>
+                      <label for="wf-principal-remarks">Principal Admission Remarks</label>
+                      <input type="text" class="form-control" id="wf-principal-remarks" placeholder="Enter admission notes">
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Action buttons dynamic to state/role -->
+              <div class="workflow-actions" id="workflow-actions-area">
+                <!-- Javascript will load the respective actions -->
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- Print Area Layout (rendered for printing only) -->
+  <div id="print-area"></div>
+
+  <!-- Loader overlay -->
+  <div class="loader-container" id="global-loader">
+    <div class="spinner"></div>
+    <div style="color: white; font-weight: 500;" id="loader-message">Processing...</div>
+  </div>
+
+  <!-- Toast element -->
+  <div class="toast" id="global-toast">Notification message</div>
+
+  <!-- Client-side logic -->
+  <script>
+    // System Config
+    var userRole = "";
+    var userDept = "";
+    var currentSelectedDept = "";
+    var allStudents = [];
+    var activeStudent = null;
+    var editMode = false;
+    var captchaAnswer = null;
+
+    // Load setup
+    window.onload = function() {
+      checkSession();
+    };
+
+    // Check if session exists in localStorage
+    function checkSession() {
+      var savedRole = localStorage.getItem("erp_role");
+      var savedDept = localStorage.getItem("erp_dept");
+      
+      if (savedRole && (savedRole === "Nodal Officer" || savedRole === "PTA" || savedRole === "Principal" || savedDept)) {
+        userRole = savedRole;
+        userDept = savedDept || "";
+        currentSelectedDept = savedDept || "Computer Science";
+        setupDashboardUI();
+      } else {
+        showLoginScreen();
+      }
+    }
+
+    // Toggle department input on login selection
+    function toggleDeptSelector() {
+      var role = document.getElementById("login-role").value;
+      var deptGroup = document.getElementById("dept-group");
+      if (role === "Nodal Officer" || role === "PTA" || role === "Principal") {
+        deptGroup.style.display = "none";
+      } else {
+        deptGroup.style.display = "block";
+      }
+    }
+
+    // Generate math captcha to lock out bots
+    function generateCaptcha() {
+      var num1 = Math.floor(Math.random() * 10) + 1;
+      var num2 = Math.floor(Math.random() * 10) + 1;
+      captchaAnswer = num1 + num2;
+      document.getElementById('captcha-label').innerText = "Solve Captcha: What is " + num1 + " + " + num2 + "?";
+    }
+
+    // Display Login screen
+    function showLoginScreen() {
+      document.getElementById("login-section").style.display = "block";
+      document.getElementById("app-header").style.display = "none";
+      document.getElementById("app-container").style.display = "none";
+      generateCaptcha();
+    }
+
+    // Login logic
+    function login() {
+      var role = document.getElementById("login-role").value;
+      var dept = document.getElementById("login-dept").value;
+      var pass = document.getElementById("login-password").value;
+      var captchaVal = document.getElementById("login-captcha").value;
+
+      // Generate expected dynamic password: ddmmyyyy
+      var today = new Date();
+      var dd = String(today.getDate()).padStart(2, '0');
+      var mm = String(today.getMonth() + 1).padStart(2, '0');
+      var yyyy = today.getFullYear();
+      var expectedPassword = dd + mm + yyyy;
+
+      // Validate credentials
+      if (pass !== expectedPassword) {
+        showToast("Authentication Failed: Invalid password.", true);
+        return;
+      }
+
+      // Validate captcha
+      if (parseInt(captchaVal, 10) !== captchaAnswer) {
+        showToast("Captcha Verification Failed. Please try again.", true);
+        generateCaptcha();
+        return;
+      }
+
+      // Save to localStorage
+      userRole = role;
+      userDept = (role === "Nodal Officer" || role === "PTA" || role === "Principal") ? "" : dept;
+      currentSelectedDept = userDept || "Computer Science";
+
+      localStorage.setItem("erp_role", userRole);
+      localStorage.setItem("erp_dept", userDept);
+
+      showToast("Access Granted");
+      document.getElementById("login-section").style.display = "none";
+      setupDashboardUI();
+    }
+
+    // Logout logic
+    function logout() {
+      localStorage.removeItem("erp_role");
+      localStorage.removeItem("erp_dept");
+      userRole = "";
+      userDept = "";
+      currentSelectedDept = "";
+      showLoginScreen();
+    }
+
+    // Setup dashboard view properties
+    function setupDashboardUI() {
+      document.getElementById("app-header").style.display = "flex";
+      document.getElementById("app-container").style.display = "block";
+      document.getElementById("user-display").innerText = "Welcome back";
+      document.getElementById("role-display").innerText = userRole + (userDept ? " (" + userDept + ")" : "");
+      
+      // Dynamic welcome texts
+      document.getElementById("dashboard-welcome").innerText = userRole + " Portal Dashboard";
+      
+      // Central Roles switcher
+      var viewDeptSelector = document.getElementById("central-dept-selector");
+      if (userRole === "Nodal Officer" || userRole === "PTA" || userRole === "Principal") {
+        viewDeptSelector.style.display = "block";
+        loadDepartmentsDropdown();
+      } else {
+        viewDeptSelector.style.display = "none";
+        loadDepartmentData();
+      }
+    }
+
+    // Fetch lists of all available sheets (departments)
+    function loadDepartmentsDropdown() {
+      showLoader("Loading Departments...");
+      google.script.run
+        .withSuccessHandler(function(responseJson) {
+          hideLoader();
+          var res = JSON.parse(responseJson);
+          if (res.success) {
+            var select = document.getElementById("view-dept");
+            select.innerHTML = "";
+            res.departments.forEach(function(d) {
+              var opt = document.createElement("option");
+              opt.value = d;
+              opt.innerText = d;
+              if (d === currentSelectedDept) {
+                opt.selected = true;
+              }
+              select.appendChild(opt);
+            });
+            loadDepartmentData();
+          } else {
+            showToast("Failed to fetch departments list: " + res.message, true);
+          }
+        })
+        .withFailureHandler(function(err) {
+          hideLoader();
+          showToast(err.toString(), true);
+        })
+        .getDepartmentsList();
+    }
+
+    // Load student records from the currently active department sheet
+    function loadDepartmentData() {
+      if (document.getElementById("view-dept").offsetParent !== null) {
+        currentSelectedDept = document.getElementById("view-dept").value;
+      }
+      
+      showLoader("Fetching Department data for " + currentSelectedDept + "...");
+      google.script.run
+        .withSuccessHandler(function(responseJson) {
+          hideLoader();
+          var res = JSON.parse(responseJson);
+          if (res.success) {
+            allStudents = res.data;
+            populateTable(allStudents);
+          } else {
+            showToast(res.message, true);
+          }
+        })
+        .withFailureHandler(function(err) {
+          hideLoader();
+          showToast(err.toString(), true);
+        })
+        .getDepartmentData(currentSelectedDept);
+    }
+
+    // Populate UI table
+    function populateTable(students) {
+      var tbody = document.getElementById("student-table-body");
+      tbody.innerHTML = "";
+      
+      if (!students || students.length === 0) {
+        tbody.innerHTML = "<tr><td colspan='8' style='text-align: center; color: var(--text-muted);'>No student submissions found.</td></tr>";
+        return;
+      }
+
+      students.forEach(function(s) {
+        var tr = document.createElement("tr");
+        tr.onclick = function() { openStudentDetails(s); };
+        
+        var token = s["Token_Number"] || "-";
+        var capid = s["CAPID"] || "-";
+        var name = s["Name"] || "-";
+        var email = s["Email"] || "-";
+        var indexMark = s["Index Mark"] || "-";
+        var status = s["Current_Status"] || "Pending_Faculty";
+        var admNo = s["Admission_Number"] || "-";
+
+        tr.innerHTML = "<td><strong>" + token + "</strong></td>" +
+                       "<td>" + capid + "</td>" +
+                       "<td>" + name + "</td>" +
+                       "<td>" + email + "</td>" +
+                       "<td>" + indexMark + "</td>" +
+                       "<td><span class='status-badge status-" + status + "'>" + status.replace('_', ' ') + "</span></td>" +
+                       "<td>" + admNo + "</td>" +
+                       "<td><button class='btn btn-secondary' style='padding: 4px 10px; font-size: 0.8rem;'>Verify</button></td>";
+        tbody.appendChild(tr);
+      });
+    }
+
+    // Local filter search
+    function filterTable() {
+      var query = document.getElementById("search-bar").value.toLowerCase();
+      var filtered = allStudents.filter(function(s) {
+        var cap = (s["CAPID"] || "").toString().toLowerCase();
+        var email = (s["Email"] || "").toString().toLowerCase();
+        var name = (s["Name"] || "").toString().toLowerCase();
+        return cap.includes(query) || email.includes(query) || name.includes(query);
+      });
+      populateTable(filtered);
+    }
+
+    // Convert drive link to direct preview/embed link
+    function getPhotoEmbedUrl(driveUrl) {
+      if (!driveUrl) return "";
+      var match = driveUrl.match(/[-\w]{25,}/);
+      if (match) {
+        return "https://drive.google.com/uc?export=view&id=" + match[0];
+      }
+      return "";
+    }
+
+    // Convert date string to standard English words for DOB
+    function convertDateToWords(dateStr) {
+      if (!dateStr) return "";
+      var parts = dateStr.trim().split(/[-/]/);
+      if (parts.length !== 3) return dateStr;
+      var day = parseInt(parts[0], 10);
+      var month = parseInt(parts[1], 10);
+      var year = parseInt(parts[2], 10);
+      if (parts[0].length === 4) {
+        year = parseInt(parts[0], 10);
+        month = parseInt(parts[1], 10);
+        day = parseInt(parts[2], 10);
+      }
+      var months = ["", "January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+      var ones = ["", "One", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight", "Nine", "Ten", 
+                  "Eleven", "Twelve", "Thirteen", "Fourteen", "Fifteen", "Sixteen", "Seventeen", "Eighteen", "Nineteen"];
+      var tens = ["", "", "Twenty", "Thirty", "Forty", "Fifty", "Sixty", "Seventy", "Eighty", "Ninety"];
+      var ordinalDays = ["", "First", "Second", "Third", "Fourth", "Fifth", "Sixth", "Seventh", "Eighth", "Ninth", "Tenth",
+                         "Eleventh", "Twelfth", "Thirteenth", "Fourteenth", "Fifteenth", "Sixteenth", "Seventeenth", "Eighteenth", "Nineteenth",
+                         "Twentieth", "Twenty First", "Twenty Second", "Twenty Third", "Twenty Fourth", "Twenty Fifth", "Twenty Sixth", "Twenty Seventh", "Twenty Eighth", "Twenty Ninth",
+                         "Thirtieth", "Thirty First"];
+      
+      function numToWords(n) {
+        if (n < 20) return ones[n];
+        if (n < 100) return tens[Math.floor(n / 10)] + (n % 10 !== 0 ? " " + ones[n % 10] : "");
+        if (n < 1000) return ones[Math.floor(n / 100)] + " Hundred" + (n % 100 !== 0 ? " " + numToWords(n % 100) : "");
+        return "";
+      }
+      
+      var dayWord = ordinalDays[day] || day.toString();
+      var monthWord = months[month] || "";
+      var yearWord = "";
+      if (year >= 2000 && year < 2100) {
+        yearWord = "Two Thousand " + numToWords(year - 2000);
+      } else if (year >= 1900 && year < 2000) {
+        yearWord = "Nineteen " + numToWords(year - 1900);
+      } else {
+        yearWord = numToWords(year);
+      }
+      return dayWord + " " + monthWord + " " + yearWord;
+    }
+
+    // Open detailed profile modal
+    function openStudentDetails(student) {
+      activeStudent = student;
+      editMode = false;
+      document.getElementById("btn-edit-toggle").innerText = "Enable Edit";
+      document.getElementById("token-notif-box").style.display = "none";
+      
+      // Load photo
+      var photoBox = document.getElementById("student-photo-container");
+      var imgUrl = getPhotoEmbedUrl(student["Photograph Drive URL"]);
+      if (imgUrl) {
+        photoBox.innerHTML = "<img src='" + imgUrl + "' alt='Student Photo' onerror='photoLoadError(this)' />";
+      } else {
+        photoBox.innerHTML = "<div class='no-photo-text'>No Valid Photo URL Available</div>";
+      }
+
+      // Generate student details fields dynamically
+      var container = document.getElementById("student-fields-container");
+      container.innerHTML = "";
+      
+      // Fields we want to show
+      var displayFields = [
+        { key: "Name", label: "Full Name" },
+        { key: "Email", label: "Email Address" },
+        { key: "CAPID", label: "CAPID" },
+        { key: "Index Mark", label: "Index Mark" },
+        { key: "Reservation Category", label: "Reservation Category" },
+        { key: "Actual Category", label: "Actual Category" },
+        { key: "Religion", label: "Religion" },
+        { key: "Caste", label: "Caste" },
+        { key: "Annual Income", label: "Annual Income" },
+        { key: "Additional Languages", label: "Additional Languages" },
+        { key: "DOB", label: "Date of Birth (DD/MM/YYYY)" },
+        { key: "Joined_Semester", label: "Joined Semester (e.g. I Semester)" },
+        { key: "Leaving_Semester", label: "Leaving Semester (e.g. VI Semester)" },
+        { key: "Promotion_Status", label: "Promotion Status (e.g. Course Completed)" },
+        { key: "Dues_Status", label: "Dues Discharged? (e.g. yes)" },
+        { key: "Leaving_Date", label: "Date of leaving college (DD/MM/YYYY)" },
+        { key: "Application_Date", label: "Date of application for TC (DD/MM/YYYY)" },
+        { key: "Issue_Date", label: "Date of issue of TC (DD/MM/YYYY)" },
+        { key: "Conduct", label: "Character and Conduct (e.g. Good)" }
+      ];
+
+      displayFields.forEach(function(f) {
+        var group = document.createElement("div");
+        group.className = "form-group";
+        
+        var val = student[f.key] !== undefined ? student[f.key] : "";
+        group.innerHTML = "<label>" + f.label + "</label>" +
+                          "<input type='text' class='form-control readonly-field' data-field='" + f.key + "' value='" + val + "' readonly />";
+        container.appendChild(group);
+      });
+
+      // Load Remarks display fields
+      document.getElementById("hist-faculty-remarks").innerText = student["Faculty_Remarks"] || "N/A";
+      document.getElementById("hist-nodal-remarks").innerText = student["Nodal_Remarks"] || "N/A";
+      document.getElementById("hist-principal-remarks").innerText = student["Principal_Remarks"] || "N/A";
+
+      // Setup inputs depending on user role
+      document.getElementById("wf-faculty-remarks").value = student["Faculty_Remarks"] || "";
+      document.getElementById("wf-nodal-remarks").value = student["Nodal_Remarks"] || "";
+      document.getElementById("wf-pta-amount").value = student["PTA_Amount"] || "";
+      document.getElementById("wf-admission-number").value = student["Admission_Number"] || "";
+      document.getElementById("wf-principal-remarks").value = student["Principal_Remarks"] || "";
+
+      // Hide all input elements first
+      document.getElementById("group-faculty-input").style.display = "none";
+      document.getElementById("group-nodal-input").style.display = "none";
+      document.getElementById("group-pta-input").style.display = "none";
+      document.getElementById("group-principal-input").style.display = "none";
+
+      // Display role-specific inputs
+      if (userRole === "Faculty" || userRole === "HOD") {
+        document.getElementById("group-faculty-input").style.display = "block";
+      } else if (userRole === "Nodal Officer") {
+        document.getElementById("group-nodal-input").style.display = "block";
+      } else if (userRole === "PTA") {
+        document.getElementById("group-pta-input").style.display = "block";
+      } else if (userRole === "Principal") {
+        document.getElementById("group-principal-input").style.display = "block";
+      }
+
+      setupWorkflowButtons(student);
+
+      document.getElementById("detail-modal").style.display = "flex";
+    }
+
+    function photoLoadError(img) {
+      img.parentNode.innerHTML = "<div class='no-photo-text'>Failed to Load Image from Drive. Please check sharing permissions.</div>";
+    }
+
+    function toggleEditMode() {
+      editMode = !editMode;
+      var inputs = document.querySelectorAll("#student-fields-container input");
+      var btn = document.getElementById("btn-edit-toggle");
+      
+      inputs.forEach(function(inp) {
+        if (editMode) {
+          inp.removeAttribute("readonly");
+          inp.classList.remove("readonly-field");
+        } else {
+          inp.setAttribute("readonly", true);
+          inp.classList.add("readonly-field");
+        }
+      });
+      
+      btn.innerText = editMode ? "Lock Fields" : "Enable Edit";
+    }
+
+    // Configure verify/revert button controls depending on state & role
+    function setupWorkflowButtons(student) {
+      var container = document.getElementById("workflow-actions-area");
+      container.innerHTML = "";
+      
+      var status = student["Current_Status"] || "Pending_Faculty";
+
+      // If Admitted, provide a close option and print TC
+      if (status === "Admitted") {
+        container.innerHTML = "<button class='btn btn-success' onclick='printTC()'>Print Transfer Certificate (TC)</button>" +
+                              "<button class='btn btn-secondary' onclick='closeModal()'>Close</button>";
+        
+        // Principal or PTA can still revert Admitted student back
+        if (userRole === "Principal" || userRole === "PTA" || userRole === "Nodal Officer") {
+          var revBtn = document.createElement("button");
+          revBtn.className = "btn btn-danger";
+          revBtn.innerText = "Revert Student";
+          revBtn.onclick = function() { triggerRevertFlow(status); };
+          container.insertBefore(revBtn, container.firstChild);
+        }
+        return;
+      }
+
+      // Enable actions for correct roles
+      if (userRole === "Faculty" || userRole === "HOD") {
+        if (status === "Pending_Faculty" || status.includes("Reverted")) {
+          container.innerHTML = "<button class='btn btn-success' onclick='facultyVerify()'>Verify & Forward to Nodal</button>";
+        } else {
+          container.innerHTML = "<p style='color: var(--text-muted); font-size: 0.85rem; font-style: italic;'>Locked. Student in next validation step (" + status + ").</p>";
+        }
+      } 
+      else if (userRole === "Nodal Officer") {
+        if (status === "Pending_Nodal") {
+          container.innerHTML = "<button class='btn btn-success' onclick='nodalApprove()'>Approve & Forward to PTA</button>" +
+                                "<button class='btn btn-danger' onclick='nodalRevert()'>Revert to Faculty</button>";
+        } else {
+          container.innerHTML = "<p style='color: var(--text-muted); font-size: 0.85rem; font-style: italic;'>Locked. Status: " + status + ".</p>";
+        }
+      }
+      else if (userRole === "PTA") {
+        if (status === "Pending_PTA") {
+          container.innerHTML = "<button class='btn btn-success' onclick='ptaCollect()'>Collect Fee & Forward to Principal</button>" +
+                                "<button class='btn btn-danger' onclick='triggerRevertFlow(\"Pending_PTA\")'>Revert Student</button>";
+        } else {
+          container.innerHTML = "<p style='color: var(--text-muted); font-size: 0.85rem; font-style: italic;'>Locked. Status: " + status + ".</p>";
+          if (student["PTA_Amount"]) {
+            container.innerHTML += "<button class='btn btn-primary' onclick='printPTAReceipt()'>Reprint PTA Receipt</button>";
+          }
+        }
+      }
+      else if (userRole === "Principal") {
+        if (status === "Pending_Principal") {
+          container.innerHTML = "<button class='btn btn-success' onclick='principalAdmit()'>Admit Student</button>" +
+                                "<button class='btn btn-danger' onclick='triggerRevertFlow(\"Pending_Principal\")'>Revert Student</button>";
+        } else {
+          container.innerHTML = "<p style='color: var(--text-muted); font-size: 0.85rem; font-style: italic;'>Locked. Status: " + status + ".</p>";
+        }
+      }
+      
+      // Always append a general Save/Save Changes button if fields are edited
+      var saveBtn = document.createElement("button");
+      saveBtn.className = "btn btn-secondary";
+      saveBtn.innerText = "Save Changes (Draft)";
+      saveBtn.onclick = function() { saveDraftChanges(); };
+      container.appendChild(saveBtn);
+    }
+
+    // Action handlers for Faculty
+    function facultyVerify() {
+      var remarks = document.getElementById("wf-faculty-remarks").value;
+      if (!remarks.trim()) {
+        showToast("Please enter Faculty Audit Remarks first.", true);
+        return;
+      }
+      
+      var dataToUpdate = compileUpdatedProfileData();
+      dataToUpdate["Faculty_Remarks"] = remarks;
+      dataToUpdate["Current_Status"] = "Pending_Nodal";
+      
+      sendUpdate(dataToUpdate, function(res) {
+        // Show the generated Token number
+        if (res.token) {
+          document.getElementById("generated-token-text").innerText = res.token;
+          document.getElementById("token-notif-box").style.display = "block";
+          // Update active student details with token
+          activeStudent["Token_Number"] = res.token;
+        }
+        showToast("Verified and forwarded to Nodal Desk successfully.");
+        loadDepartmentData();
+      });
+    }
+
+    // Action handlers for Nodal
+    function nodalApprove() {
+      var remarks = document.getElementById("wf-nodal-remarks").value;
+      
+      var dataToUpdate = compileUpdatedProfileData();
+      dataToUpdate["Nodal_Remarks"] = remarks;
+      dataToUpdate["Current_Status"] = "Pending_PTA";
+      
+      sendUpdate(dataToUpdate, function(res) {
+        showToast("Approved and forwarded to PTA Desk.");
+        closeModal();
+        loadDepartmentData();
+      });
+    }
+
+    function nodalRevert() {
+      var remarks = document.getElementById("wf-nodal-remarks").value;
+      if (!remarks.trim()) {
+        showToast("Nodal Remarks are required to revert a student.", true);
+        return;
+      }
+      
+      var dataToUpdate = compileUpdatedProfileData();
+      dataToUpdate["Nodal_Remarks"] = remarks;
+      dataToUpdate["Current_Status"] = "Pending_Faculty (Reverted)";
+      
+      sendUpdate(dataToUpdate, function(res) {
+        showToast("Student reverted to Faculty Desk.");
+        closeModal();
+        loadDepartmentData();
+      });
+    }
+
+    // Action handlers for PTA
+    function ptaCollect() {
+      var amt = document.getElementById("wf-pta-amount").value;
+      if (!amt || parseFloat(amt) <= 0) {
+        showToast("Please enter a valid PTA Fee collection amount.", true);
+        return;
+      }
+      
+      var dataToUpdate = compileUpdatedProfileData();
+      dataToUpdate["PTA_Amount"] = amt;
+      dataToUpdate["Current_Status"] = "Pending_Principal";
+      
+      sendUpdate(dataToUpdate, function(res) {
+        showToast("Fee recorded and forwarded to Principal.");
+        activeStudent["PTA_Amount"] = amt;
+        activeStudent["Current_Status"] = "Pending_Principal";
+        setupWorkflowButtons(activeStudent);
+        printPTAReceipt();
+        loadDepartmentData();
+      });
+    }
+
+    // Action handlers for Principal
+    function principalAdmit() {
+      var admNo = document.getElementById("wf-admission-number").value;
+      var remarks = document.getElementById("wf-principal-remarks").value;
+      
+      if (!admNo.trim()) {
+        showToast("Please assign an Admission Number to admit the student.", true);
+        return;
+      }
+      
+      var dataToUpdate = compileUpdatedProfileData();
+      dataToUpdate["Admission_Number"] = admNo;
+      dataToUpdate["Principal_Remarks"] = remarks;
+      dataToUpdate["Current_Status"] = "Admitted";
+      
+      sendUpdate(dataToUpdate, function(res) {
+        showToast("Student Admitted successfully!");
+        activeStudent["Admission_Number"] = admNo;
+        activeStudent["Principal_Remarks"] = remarks;
+        activeStudent["Current_Status"] = "Admitted";
+        setupWorkflowButtons(activeStudent);
+        printTC();
+        loadDepartmentData();
+      });
+    }
+
+    // Generic multi-stage reversion dialog/logic
+    function triggerRevertFlow(currentStepStatus) {
+      var targetNode = prompt("Select revert target node:\n1 - Faculty Desk\n2 - Nodal Desk\n3 - PTA Desk", "1");
+      if (!targetNode) return;
+
+      var newStatus = "";
+      if (targetNode === "1") {
+        newStatus = "Pending_Faculty (Reverted)";
+      } else if (targetNode === "2") {
+        newStatus = "Pending_Nodal (Reverted)";
+      } else if (targetNode === "3") {
+        newStatus = "Pending_PTA (Reverted)";
+      } else {
+        showToast("Invalid selection. Reversion cancelled.", true);
+        return;
+      }
+
+      var remarksPrompt = prompt("Enter Reversion Reason / Remarks (Required):");
+      if (!remarksPrompt || !remarksPrompt.trim()) {
+        showToast("Reversion remarks are mandatory.", true);
+        return;
+      }
+
+      var dataToUpdate = compileUpdatedProfileData();
+      dataToUpdate["Current_Status"] = newStatus;
+      
+      if (userRole === "Principal") {
+        dataToUpdate["Principal_Remarks"] = remarksPrompt;
+      } else if (userRole === "PTA") {
+        dataToUpdate["Nodal_Remarks"] = "PTA Revert: " + remarksPrompt;
+      } else if (userRole === "Nodal Officer") {
+        dataToUpdate["Nodal_Remarks"] = remarksPrompt;
+      }
+
+      sendUpdate(dataToUpdate, function(res) {
+        showToast("Student reverted successfully to " + newStatus.replace('_', ' '));
+        closeModal();
+        loadDepartmentData();
+      });
+    }
+
+    // Save profile updates without changing current workflow status (Draft)
+    function saveDraftChanges() {
+      var dataToUpdate = compileUpdatedProfileData();
+      
+      // Update remarks if edited
+      if (userRole === "Faculty" || userRole === "HOD") {
+        dataToUpdate["Faculty_Remarks"] = document.getElementById("wf-faculty-remarks").value;
+      } else if (userRole === "Nodal Officer") {
+        dataToUpdate["Nodal_Remarks"] = document.getElementById("wf-nodal-remarks").value;
+      } else if (userRole === "PTA") {
+        dataToUpdate["PTA_Amount"] = document.getElementById("wf-pta-amount").value;
+      } else if (userRole === "Principal") {
+        dataToUpdate["Admission_Number"] = document.getElementById("wf-admission-number").value;
+        dataToUpdate["Principal_Remarks"] = document.getElementById("wf-principal-remarks").value;
+      }
+
+      sendUpdate(dataToUpdate, function(res) {
+        showToast("Changes saved successfully (Draft).");
+        loadDepartmentData();
+      });
+    }
+
+    // Compile dynamic student text fields from modal
+    function compileUpdatedProfileData() {
+      var fieldsObj = {};
+      var inputs = document.querySelectorAll("#student-fields-container input");
+      inputs.forEach(function(inp) {
+        var key = inp.getAttribute("data-field");
+        fieldsObj[key] = inp.value;
+      });
+      return fieldsObj;
+    }
+
+    // Call Code.gs backend updates API
+    function sendUpdate(updatedData, successCallback) {
+      showLoader("Updating student database...");
+      google.script.run
+        .withSuccessHandler(function(responseJson) {
+          hideLoader();
+          var res = JSON.parse(responseJson);
+          if (res.success) {
+            if (successCallback) successCallback(res);
+          } else {
+            showToast("Update Failed: " + res.message, true);
+          }
+        })
+        .withFailureHandler(function(err) {
+          hideLoader();
+          showToast(err.toString(), true);
+        })
+        .updateStudentData(currentSelectedDept, activeStudent["CAPID"], updatedData);
+    }
+
+    // Close Modal View
+    function closeModal() {
+      document.getElementById("detail-modal").style.display = "none";
+      activeStudent = null;
+    }
+
+    // Half-A4 Receipt Printing Format
+    function printPTAReceipt() {
+      if (!activeStudent) return;
+      
+      var printContent = 
+        "<div class='receipt-card'>" +
+          "<div style='text-align: center; border-bottom: 2px solid #000; padding-bottom: 10px; margin-bottom: 15px;'>" +
+            "<h2>GOVERNMENT COLLEGE ERP PORTAL</h2>" +
+            "<h3>PTA FUND COLLECTION RECEIPT</h3>" +
+            "<p>Date: " + new Date().toLocaleDateString() + " | Time: " + new Date().toLocaleTimeString() + "</p>" +
+          "</div>" +
+          "<table style='width: 100%; border: none; font-size: 1rem; color: #000; margin-bottom: 20px;'>" +
+            "<tr><td style='padding:5px 0; border:none;'><strong>Token Number:</strong></td><td style='padding:5px 0; border:none;'>" + (activeStudent["Token_Number"] || "N/A") + "</td></tr>" +
+            "<tr><td style='padding:5px 0; border:none;'><strong>CAPID:</strong></td><td style='padding:5px 0; border:none;'>" + activeStudent["CAPID"] + "</td></tr>" +
+            "<tr><td style='padding:5px 0; border:none;'><strong>Student Name:</strong></td><td style='padding:5px 0; border:none;'>" + activeStudent["Name"] + "</td></tr>" +
+            "<tr><td style='padding:5px 0; border:none;'><strong>Department:</strong></td><td style='padding:5px 0; border:none;'>" + currentSelectedDept + "</td></tr>" +
+            "<tr><td style='padding:5px 0; border:none;'><strong>Email:</strong></td><td style='padding:5px 0; border:none;'>" + activeStudent["Email"] + "</td></tr>" +
+            "<tr><td style='padding:5px 0; border:none;'><strong>PTA Amount Paid:</strong></td><td style='padding:5px 0; border:none;'><strong>INR " + (activeStudent["PTA_Amount"] || document.getElementById("wf-pta-amount").value) + "/-</strong></td></tr>" +
+          "</table>" +
+          "<div style='margin-top: 40px; display: flex; justify-content: space-between;'>" +
+            "<div><p style='border-top: 1px solid #000; width: 150px; text-align: center; padding-top: 5px; font-size: 0.85rem;'>Student Signature</p></div>" +
+            "<div><p style='border-top: 1px solid #000; width: 150px; text-align: center; padding-top: 5px; font-size: 0.85rem;'>PTA Cashier / ERP Desk</p></div>" +
+          "</div>" +
+        "</div>";
+
+      var printArea = document.getElementById("print-area");
+      printArea.innerHTML = printContent;
+      window.print();
+    }
+
+    // Transfer Certificate (TC) Printing Format
+    function printTC() {
+      if (!activeStudent) return;
+
+      var token = activeStudent["Token_Number"] || "N/A";
+      var name = activeStudent["Name"] || "N/A";
+      var dob = activeStudent["DOB"] || "N/A";
+      var dobWord = convertDateToWords(dob);
+      var admNo = activeStudent["Admission_Number"] || "N/A";
+      var admDate = activeStudent["Date_of_Admission"] || new Date().toLocaleDateString();
+      var joinedSem = activeStudent["Joined_Semester"] || "I Semester";
+      var leavingSem = activeStudent["Leaving_Semester"] || "VI Semester";
+      var subjects = activeStudent["Leaving_Semester"] ? (activeStudent["Leaving_Semester"] + " " + currentSelectedDept) : ("B.Sc. " + currentSelectedDept);
+      var promotion = activeStudent["Promotion_Status"] || "Course Completed";
+      var dues = activeStudent["Dues_Status"] || "yes";
+      var religionCaste = (activeStudent["Religion"] || "N/A") + " " + (activeStudent["Caste"] || "N/A");
+      var leavingDate = activeStudent["Leaving_Date"] || new Date().toLocaleDateString();
+      var appDate = activeStudent["Application_Date"] || new Date().toLocaleDateString();
+      var issueDate = activeStudent["Issue_Date"] || new Date().toLocaleDateString();
+      var conduct = activeStudent["Conduct"] || "Good";
+
+      function renderSingleTC() {
+        return "<div class='tc-half'>" +
+          "<div class='tc-header'>" +
+            "<img src='logo.png' class='tc-logo' />" +
+            "<h1>GOVT. VICTORIA COLLEGE, PALAKKAD</h1>" +
+            "<h2>Affiliated to the University of Calicut</h2>" +
+            "<h2>PALAKKAD, KERALA, INDIA - 678001</h2>" +
+            "<h2>NAAC Accreditation - A Grade (3.2, Fourth Cycle)</h2>" +
+            "<h3>TRANSFER CERTIFICATE</h3>" +
+          "</div>" +
+          "<div class='tc-meta-row'>" +
+            "<span>TC Number: " + token + "</span>" +
+            "<span>Date: " + issueDate + "</span>" +
+          "</div>" +
+          "<div class='tc-grid'>" +
+            "<div class='tc-grid-item tc-grid-label'>Name of Student</div>" +
+            "<div class='tc-grid-item tc-grid-val'>: " + name.toUpperCase() + "</div>" +
+            "<div class='tc-grid-item tc-grid-label'>Date of Birth as per admission register</div>" +
+            "<div class='tc-grid-item tc-grid-val'>: " + dob + "</div>" +
+            "<div class='tc-grid-item tc-grid-label'>Date of Birth in Word</div>" +
+            "<div class='tc-grid-item tc-grid-val'>: " + dobWord + "</div>" +
+            "<div class='tc-grid-item tc-grid-label'>Admission No</div>" +
+            "<div class='tc-grid-item tc-grid-val'>: " + admNo + "</div>" +
+            "<div class='tc-grid-item tc-grid-label'>Date of Admission</div>" +
+            "<div class='tc-grid-item tc-grid-val'>: " + admDate + "</div>" +
+            "<div class='tc-grid-item tc-grid-label'>Joined Semester</div>" +
+            "<div class='tc-grid-item tc-grid-val'>: " + joinedSem + "</div>" +
+            "<div class='tc-grid-item tc-grid-label'>Leaving Semester</div>" +
+            "<div class='tc-grid-item tc-grid-val'>: " + leavingSem + "</div>" +
+            "<div class='tc-grid-item tc-grid-label'>Subjects Studied</div>" +
+            "<div class='tc-grid-item tc-grid-val'>: " + subjects + "</div>" +
+            "<div class='tc-grid-item tc-grid-label'>Whether qualified for promotion to higher class</div>" +
+            "<div class='tc-grid-item tc-grid-val'>: " + promotion + "</div>" +
+            "<div class='tc-grid-item tc-grid-label'>Whether all dues to the college have been discharged</div>" +
+            "<div class='tc-grid-item tc-grid-val'>: " + dues + "</div>" +
+            "<div class='tc-grid-item tc-grid-label'>Religion and caste</div>" +
+            "<div class='tc-grid-item tc-grid-val'>: " + religionCaste + "</div>" +
+            "<div class='tc-grid-item tc-grid-label'>The date on which the student actually left the college</div>" +
+            "<div class='tc-grid-item tc-grid-val'>: " + leavingDate + "</div>" +
+            "<div class='tc-grid-item tc-grid-label'>Date of application for TC</div>" +
+            "<div class='tc-grid-item tc-grid-val'>: " + appDate + "</div>" +
+            "<div class='tc-grid-item tc-grid-label'>Date of issue of TC</div>" +
+            "<div class='tc-grid-item tc-grid-val'>: " + issueDate + "</div>" +
+            "<div class='tc-grid-item tc-grid-label'>Character and Conduct</div>" +
+            "<div class='tc-grid-item tc-grid-val'>: " + conduct + "</div>" +
+          "</div>" +
+          "<div class='tc-footer'>" +
+            "<div style='font-size: 6pt; color: #777;'>* Automated verification document. Signature matches master registry.</div>" +
+            "<div class='tc-signature'>" +
+              "<div class='tc-signature-space'></div>" +
+              "<strong>Principal</strong><br>" +
+              "GOVT. VICTORIA COLLEGE<br>PALAKKAD" +
+            "</div>" +
+          "</div>" +
+        "</div>";
+      }
+
+      var printContent = 
+        "<div class='print-page'>" +
+          renderSingleTC() +
+          "<div class='divider-container'>" +
+            "<div class='dotted-line'></div>" +
+            "<div class='stamp-seal'>" +
+              "<span>GOVERNMENT</span>" +
+              "<span>VICTORIA</span>" +
+              "<span>COLLEGE</span>" +
+              "<span>PALAKKAD</span>" +
+              "<div style='font-size: 4.5pt; margin-top: 1px;'>Date: " + issueDate + "</div>" +
+            "</div>" +
+          "</div>" +
+          renderSingleTC() +
+        "</div>";
+
+      var printArea = document.getElementById("print-area");
+      printArea.innerHTML = printContent;
+      window.print();
+    }
+
+    // Helper UI controllers
+    function showLoader(msg) {
+      document.getElementById("loader-message").innerText = msg || "Processing...";
+      document.getElementById("global-loader").style.display = "flex";
+    }
+
+    function hideLoader() {
+      document.getElementById("global-loader").style.display = "none";
+    }
+
+    function showToast(msg, isError) {
+      var toast = document.getElementById("global-toast");
+      toast.innerText = msg;
+      toast.style.borderLeftColor = isError ? "var(--accent-red)" : "var(--accent-green)";
+      toast.classList.add("show");
+      
+      setTimeout(function() {
+        toast.classList.remove("show");
+      }, 4000);
+    }
+  </script>
+</body>
+</html>
