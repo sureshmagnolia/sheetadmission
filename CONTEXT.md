@@ -24,22 +24,25 @@ graph TD
 * **Department Sheets (e.g., *Computer Science*, *Physics*)**: Named exactly after the college's departments. Form submissions are auto-routed here.
 * **`Credentials`**: Stores passwords for administrative and department desks. Automatically self-heals/populates missing departments.
 * **`PTA_Config`**: Holds default Welfare, Membership, and Donation fees per Program Type (*BA*, *B.Sc.*, *B.Com.*) for SC/ST and Non-SC/ST categories.
+* **`Seat_Matrix`**: Maintains the maximum vacancy allocation (`Open`, `SC`, `ST`, `OBC`, `EWS`, `OEC`) dynamically configured by the Nodal Officer for each Department.
 
 ### B. Backend API Layer (`Code.gs`)
 * **`onFormSubmit(e)`**: An installable Google Sheets trigger.
   * Listens for form submissions, identifies the target department using the `"Admission to the Department"` header.
   * Copies all 43 columns, appends workflow headers (`Current_Status`, `Token_Number`, `Admission_Number`, remarks, PTA details), and routes the row to the department-specific tab.
 * **`doPost(e)`**: Serves as a CORS-compliant JSON API endpoint. Supports operations:
-  * `getDepartmentsList`, `getDepartmentData`, `validateCredentials`, `updateStudentData`, `getPTAConfig`, `updatePTAConfig`, `getAllDepartmentsData`.
+  * `getDepartmentsList`, `getDepartmentData`, `validateCredentials`, `updateStudentData`, `getPTAConfig`, `updatePTAConfig`, `getAllDepartmentsData`, `getSeatMatrix`, `updateSeatMatrix`.
 * **`validateCredentials()`**: Checks role credentials. Safely synchronizes missing departments into the `Credentials` sheet without overwriting existing custom passwords.
+* **Concurrency Control (`LockService`)**: Functions handling sensitive write-logic (like `updateStudentData`) are wrapped in `LockService.getScriptLock()` to queue exact-millisecond executions. This guarantees that sequentially generated tokens (e.g. `T-001`, `T-002`) remain perfectly unique under heavy 16-department concurrent loads.
 
 ### C. Frontend Dashboard (`index.html`)
 * **Unified Workspace**: Served either as an Apps Script Web App or a standalone static page (e.g., GitHub Pages). If hosted externally, it emulates the Native Apps Script environment (`google.script.run`) using `fetch()` POST requests to the `webAppUrl` global variable.
 * **Responsive Roles**:
-  * **Faculty / Department Desk**: Unified role (1 login per department). Generates sequential token numbers (e.g., `CS-001`).
-  * **Nodal Officer**: Central audit desk. Can revert profiles back to Faculty.
+  * **Faculty / Department Desk**: Unified role (1 login per department). Allocates students to available Seat Matrix slots. Generates universal sequential token numbers prefixed with `T-` (e.g., `T-001`).
+  * **Nodal Officer**: Central audit desk. Configures the Seat Matrix quotas. Can revert profiles back to Faculty.
   * **PTA Desk**: Computes fees, issues half-page A5 landscape receipts.
-  * **Principal**: Final authority. Assigns the Admission Number, decides the final TC Number, and sets the status to **`TC Issued`**.
+  * **Principal**: Final authority. Assigns the Admission Number, decides the final TC Number, and sets the status to **`TC Issued`** (which visually turns red system-wide).
+* **Cross-Desk Data Aggregation**: Central nodes (Nodal, PTA, Principal) automatically load all 1,000+ students across all 16 separate sheets simultaneously via a high-speed bulk `getValues()` payload, displaying a unified grid with a dedicated "Department" column.
 
 ---
 
