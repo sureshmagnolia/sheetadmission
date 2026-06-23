@@ -532,7 +532,7 @@
     .status-Pending_PTA { background: rgba(139, 92, 246, 0.15); color: #a78bfa; border: 1px solid rgba(139, 92, 246, 0.3); }
     .status-Pending_Principal { background: rgba(236, 72, 153, 0.15); color: #f472b6; border: 1px solid rgba(236, 72, 153, 0.3); }
     .status-Admitted { background: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3); }
-    .status-TC_Issued { background: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3); }
+    .status-TC_Issued { background: rgba(239, 68, 68, 0.15); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.3); }
 
     /* Modal Overlay & Card styling */
     .modal-overlay {
@@ -989,9 +989,18 @@
           </div>
           
           <input type="text" class="form-control search-box" id="search-bar" placeholder="Search by CAPID, Email, or Name..." onkeyup="filterTable()">
+          <button class="btn btn-primary" id="btn-nodal-matrix" style="display: none;" onclick="openSeatMatrixModal()">Manage Seat Matrix</button>
           <button class="btn btn-primary" id="btn-pta-config-fee" style="display: none;" onclick="openPTAConfigModal()">Configure Fees</button>
           <button class="btn btn-success" id="btn-pta-balance" style="display: none;" onclick="generateDailyBalanceSheet()">Balance Sheet</button>
           <button class="btn btn-secondary" onclick="loadDepartmentData()">Refresh</button>
+        </div>
+      </div>
+
+      <!-- Vacancy Summary for Faculty -->
+      <div id="vacancy-summary-container" style="display: none; background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 8px; padding: 15px 20px; margin-bottom: 20px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);">
+        <h3 style="font-size: 1.05rem; font-weight: 600; margin-bottom: 10px; color: var(--text-main);">Seat Vacancy Status</h3>
+        <div id="vacancy-grid" style="display: flex; gap: 15px; flex-wrap: wrap;">
+          <!-- Dynamically populated -->
         </div>
       </div>
 
@@ -1009,6 +1018,7 @@
                 <th>Token</th>
                 <th>CAPID</th>
                 <th>Name</th>
+                <th id="col-dept" style="display:none;">Dept</th>
                 <th>Email</th>
                 <th>Index Mark</th>
                 <th>Current Status</th>
@@ -1084,6 +1094,16 @@
               <div id="workflow-inputs">
                 <!-- Faculty Remarks input -->
                 <div class="form-group" id="group-faculty-input" style="display: none;">
+                  <label for="wf-assigned-slot">Assigned Slot (Seat Matrix)</label>
+                  <select class="form-control" id="wf-assigned-slot" style="margin-bottom: 10px;">
+                    <option value="">-- Select Slot --</option>
+                    <option value="Open">Open</option>
+                    <option value="SC">SC</option>
+                    <option value="ST">ST</option>
+                    <option value="OBC">OBC</option>
+                    <option value="EWS">EWS</option>
+                    <option value="OEC">OEC</option>
+                  </select>
                   <label for="wf-faculty-remarks">Faculty Audit & Verification Remarks</label>
                   <textarea class="form-control" id="wf-faculty-remarks" rows="2" placeholder="Input eligibility verification notes..."></textarea>
                 </div>
@@ -1227,6 +1247,41 @@
           <button class="btn btn-secondary" onclick="closePTAConfigModal()">Cancel</button>
           <button class="btn btn-success" onclick="savePTAConfig()">Save Configuration</button>
         </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Seat Matrix Modal -->
+  <div class="modal-overlay" id="matrix-modal">
+    <div class="modal" style="max-width: 800px;">
+      <div class="modal-header">
+        <h2 style="font-size: 1.25rem;">Manage Seat Matrix</h2>
+        <button class="close-btn" onclick="closeSeatMatrixModal()">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 15px;">Define the total available slots (vacancies) for each department under the following categories.</p>
+        <div class="table-responsive">
+          <table>
+            <thead>
+              <tr>
+                <th>Department</th>
+                <th>Open</th>
+                <th>SC</th>
+                <th>ST</th>
+                <th>OBC</th>
+                <th>EWS</th>
+                <th>OEC</th>
+              </tr>
+            </thead>
+            <tbody id="matrix-table-body">
+              <!-- Dynamically loaded -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div class="modal-footer" style="padding-top: 15px; text-align: right; border-top: 1px solid var(--card-border);">
+        <button class="btn btn-secondary" onclick="closeSeatMatrixModal()" style="margin-right: 10px;">Cancel</button>
+        <button class="btn btn-primary" onclick="saveSeatMatrix()">Save Matrix</button>
       </div>
     </div>
   </div>
@@ -1486,15 +1541,31 @@
       var viewDeptSelector = document.getElementById("central-dept-selector");
       var balanceBtn = document.getElementById("btn-pta-balance");
       var configFeeBtn = document.getElementById("btn-pta-config-fee");
+      var matrixBtn = document.getElementById("btn-nodal-matrix");
       var dashboardTabs = document.getElementById("dashboard-tabs");
+      var vacancyContainer = document.getElementById("vacancy-summary-container");
       
       if (userRole === "PTA") {
         balanceBtn.style.display = "inline-block";
         configFeeBtn.style.display = "inline-block";
+        matrixBtn.style.display = "none";
         loadPTAConfig();
+      } else if (userRole === "Nodal Officer") {
+        balanceBtn.style.display = "none";
+        configFeeBtn.style.display = "none";
+        matrixBtn.style.display = "inline-block";
       } else {
         balanceBtn.style.display = "none";
         configFeeBtn.style.display = "none";
+        matrixBtn.style.display = "none";
+      }
+      
+      if (userRole === "Faculty" || userRole === "HOD") {
+        document.getElementById("col-dept").style.display = "none";
+        vacancyContainer.style.display = "block"; // Note: Only block if data exists, handled in renderVacancySummary
+      } else {
+        document.getElementById("col-dept").style.display = "table-cell";
+        vacancyContainer.style.display = "none";
       }
 
       dashboardTabs.style.display = "flex";
@@ -1546,6 +1617,7 @@
         if (res.success) {
           allStudents = res.data;
           filterTable();
+          loadSeatMatrix();
         } else {
           showToast(res.message, true);
         }
@@ -1574,8 +1646,10 @@
       var tbody = document.getElementById("student-table-body");
       tbody.innerHTML = "";
       
+      var isCentral = (userRole !== "Faculty" && userRole !== "HOD");
+      
       if (!students || students.length === 0) {
-        tbody.innerHTML = "<tr><td colspan='8' style='text-align: center; color: var(--text-muted);'>No student submissions found.</td></tr>";
+        tbody.innerHTML = "<tr><td colspan='9' style='text-align: center; color: var(--text-muted);'>No student submissions found.</td></tr>";
         return;
       }
 
@@ -1590,13 +1664,17 @@
         var indexMark = s["Index Marks (as per admit/allotment card)"] || s["Index Mark"] || "-";
         var status = s["Current_Status"] || "Pending_Faculty";
         var admNo = s["Admission_Number"] || "-";
+        
+        var deptCell = isCentral ? ("<td>" + (s["Department"] || "-") + "</td>") : "";
+        var assignedBadge = s["Assigned_Slot"] ? ("<br><span style='font-size: 0.75rem; background: var(--card-border); padding: 2px 6px; border-radius: 4px; color: var(--text-muted); display: inline-block; margin-top: 4px;'>Slot: " + s["Assigned_Slot"] + "</span>") : "";
 
         tr.innerHTML = "<td><strong>" + token + "</strong></td>" +
                        "<td>" + capid + "</td>" +
                        "<td>" + name + "</td>" +
+                       deptCell +
                        "<td>" + email + "</td>" +
                        "<td>" + indexMark + "</td>" +
-                       "<td><span class='status-badge status-" + status.replace(/\s+/g, '_') + "'>" + status.replace('_', ' ') + "</span></td>" +
+                       "<td><span class='status-badge status-" + status.replace(/\s+/g, '_') + "'>" + status.replace('_', ' ') + "</span>" + assignedBadge + "</td>" +
                        "<td>" + admNo + "</td>" +
                        "<td><button class='btn btn-secondary' style='padding: 4px 10px; font-size: 0.8rem;'>Verify</button></td>";
         tbody.appendChild(tr);
@@ -1904,6 +1982,7 @@
       document.getElementById("hist-principal-remarks").innerText = student["Principal_Remarks"] || "N/A";
 
       // Setup inputs depending on user role
+      document.getElementById("wf-assigned-slot").value = student["Assigned_Slot"] || "";
       document.getElementById("wf-faculty-remarks").value = student["Faculty_Remarks"] || "";
       document.getElementById("wf-nodal-remarks").value = student["Nodal_Remarks"] || "";
       document.getElementById("wf-pta-amount").value = student["PTA_Amount"] || "";
@@ -2135,6 +2214,12 @@
     // Action handlers for Faculty
     function facultyVerify() {
       var remarks = document.getElementById("wf-faculty-remarks").value;
+      var assignedSlot = document.getElementById("wf-assigned-slot").value;
+      
+      if (!assignedSlot) {
+        showToast("Please assign a slot (Seat Matrix) before verifying.", true);
+        return;
+      }
       if (!remarks.trim()) {
         showToast("Please enter Faculty Audit Remarks first.", true);
         return;
@@ -2142,6 +2227,7 @@
       
       var dataToUpdate = compileUpdatedProfileData();
       dataToUpdate["Faculty_Remarks"] = remarks;
+      dataToUpdate["Assigned_Slot"] = assignedSlot;
       dataToUpdate["Current_Status"] = "Pending_Nodal";
       
       sendUpdate(dataToUpdate, function(res) {
@@ -2328,6 +2414,7 @@
       // Update remarks if edited
       if (userRole === "Faculty" || userRole === "HOD") {
         dataToUpdate["Faculty_Remarks"] = document.getElementById("wf-faculty-remarks").value;
+        dataToUpdate["Assigned_Slot"] = document.getElementById("wf-assigned-slot").value;
       } else if (userRole === "Nodal Officer") {
         dataToUpdate["Nodal_Remarks"] = document.getElementById("wf-nodal-remarks").value;
       } else if (userRole === "PTA") {
@@ -2680,6 +2767,125 @@
       var printArea = document.getElementById("print-area");
       printArea.innerHTML = printContent;
       window.print();
+    }
+
+    // --- Seat Matrix Logic ---
+    var seatMatrixData = [];
+    
+    function loadSeatMatrix() {
+      google.script.run
+        .withSuccessHandler(function(resJson) {
+          var res = JSON.parse(resJson);
+          if (res.success && res.data) {
+            seatMatrixData = res.data;
+            if (userRole === "Faculty" || userRole === "HOD") {
+              renderVacancySummary();
+            }
+          }
+        })
+        .withFailureHandler(function(err) {
+          console.error("Failed to load Seat Matrix:", err);
+        })
+        .getSeatMatrix();
+    }
+
+    function openSeatMatrixModal() {
+      var tbody = document.getElementById("matrix-table-body");
+      tbody.innerHTML = "";
+      
+      seatMatrixData.forEach(function(item) {
+        var tr = document.createElement("tr");
+        tr.innerHTML = 
+          "<td>" + item.Department + "</td>" +
+          "<td><input type='number' class='form-control' style='width:70px' data-dept='" + item.Department + "' data-key='Open' value='" + (item.Open || 0) + "'></td>" +
+          "<td><input type='number' class='form-control' style='width:70px' data-dept='" + item.Department + "' data-key='SC' value='" + (item.SC || 0) + "'></td>" +
+          "<td><input type='number' class='form-control' style='width:70px' data-dept='" + item.Department + "' data-key='ST' value='" + (item.ST || 0) + "'></td>" +
+          "<td><input type='number' class='form-control' style='width:70px' data-dept='" + item.Department + "' data-key='OBC' value='" + (item.OBC || 0) + "'></td>" +
+          "<td><input type='number' class='form-control' style='width:70px' data-dept='" + item.Department + "' data-key='EWS' value='" + (item.EWS || 0) + "'></td>" +
+          "<td><input type='number' class='form-control' style='width:70px' data-dept='" + item.Department + "' data-key='OEC' value='" + (item.OEC || 0) + "'></td>";
+        tbody.appendChild(tr);
+      });
+      document.getElementById("matrix-modal").style.display = "flex";
+    }
+
+    function closeSeatMatrixModal() {
+      document.getElementById("matrix-modal").style.display = "none";
+    }
+
+    function saveSeatMatrix() {
+      var inputs = document.querySelectorAll("#matrix-table-body input");
+      var dataMap = {};
+      inputs.forEach(function(inp) {
+        var dept = inp.getAttribute("data-dept");
+        var key = inp.getAttribute("data-key");
+        var val = parseInt(inp.value) || 0;
+        if (!dataMap[dept]) {
+          dataMap[dept] = { Department: dept };
+        }
+        dataMap[dept][key] = val;
+      });
+
+      var matrixArray = Object.keys(dataMap).map(function(k) { return dataMap[k]; });
+      
+      showLoader("Saving Seat Matrix...");
+      google.script.run
+        .withSuccessHandler(function(responseJson) {
+          hideLoader();
+          var res = JSON.parse(responseJson);
+          if (res.success) {
+            showToast("Seat Matrix saved successfully.");
+            seatMatrixData = matrixArray;
+            closeSeatMatrixModal();
+            if (userRole === "Faculty" || userRole === "HOD") renderVacancySummary();
+          } else {
+            showToast("Failed to save: " + res.message, true);
+          }
+        })
+        .withFailureHandler(function(err) {
+          hideLoader();
+          showToast(err.toString(), true);
+        })
+        .updateSeatMatrix(matrixArray);
+    }
+
+    function renderVacancySummary() {
+      if (!seatMatrixData || seatMatrixData.length === 0) return;
+      var deptMatrix = seatMatrixData.find(function(m) { return m.Department === currentSelectedDept; });
+      if (!deptMatrix) return;
+
+      var container = document.getElementById("vacancy-summary-container");
+      var grid = document.getElementById("vacancy-grid");
+      grid.innerHTML = "";
+      
+      var slots = ["Open", "SC", "ST", "OBC", "EWS", "OEC"];
+      
+      // Compute filled slots
+      var filled = { Open:0, SC:0, ST:0, OBC:0, EWS:0, OEC:0 };
+      allStudents.forEach(function(s) {
+        var status = s["Current_Status"];
+        if (status && status !== "Pending_Faculty" && !status.includes("Reverted")) {
+          var assigned = s["Assigned_Slot"];
+          if (assigned && filled[assigned] !== undefined) {
+            filled[assigned]++;
+          }
+        }
+      });
+      
+      slots.forEach(function(slot) {
+        var total = parseInt(deptMatrix[slot]) || 0;
+        var used = filled[slot];
+        var vacant = total - used;
+        var color = vacant > 0 ? "var(--accent-green)" : (vacant < 0 ? "var(--accent-red)" : "var(--text-muted)");
+        
+        grid.innerHTML += 
+          "<div style='background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 6px; padding: 10px; min-width: 100px; text-align: center;'>" +
+            "<div style='font-size: 0.8rem; color: var(--text-muted);'>" + slot + "</div>" +
+            "<div style='font-size: 1.2rem; font-weight: 700; color: " + color + "; margin: 4px 0;'>" + vacant + " left</div>" +
+            "<div style='font-size: 0.7rem; color: rgba(255,255,255,0.5);'>Used: " + used + " / " + total + "</div>" +
+          "</div>";
+      });
+      
+      container.style.display = "block";
     }
 
     // Helper UI controllers

@@ -83,7 +83,7 @@ function onFormSubmit(e) {
       // Copy headers from master
       var deptHeaders = [].concat(headers);
       // Append workflow and TC headers
-      var extraHeaders = ["Current_Status", "Faculty_Remarks", "Nodal_Remarks", "PTA_Amount", "Principal_Remarks", "Admission_Number", "Token_Number", "DOB", "Joined_Semester", "Leaving_Semester", "Promotion_Status", "Dues_Status", "Leaving_Date", "Application_Date", "Issue_Date", "Conduct", "PTA_Welfare_Fund", "PTA_Membership", "PTA_Donation", "Program_Type"];
+      var extraHeaders = ["Current_Status", "Faculty_Remarks", "Nodal_Remarks", "PTA_Amount", "Principal_Remarks", "Admission_Number", "Token_Number", "DOB", "Joined_Semester", "Leaving_Semester", "Promotion_Status", "Dues_Status", "Leaving_Date", "Application_Date", "Issue_Date", "Conduct", "PTA_Welfare_Fund", "PTA_Membership", "PTA_Donation", "Program_Type", "Assigned_Slot"];
       deptHeaders = deptHeaders.concat(extraHeaders);
       deptSheet.appendRow(deptHeaders);
       
@@ -96,7 +96,7 @@ function onFormSubmit(e) {
       // Ensure workflow and TC columns exist in the header row
       var deptHeadersRange = deptSheet.getRange(1, 1, 1, deptSheet.getLastColumn());
       var deptHeaders = deptHeadersRange.getValues()[0];
-      var requiredCols = ["Current_Status", "Faculty_Remarks", "Nodal_Remarks", "PTA_Amount", "Principal_Remarks", "Admission_Number", "Token_Number", "DOB", "Joined_Semester", "Leaving_Semester", "Promotion_Status", "Dues_Status", "Leaving_Date", "Application_Date", "Issue_Date", "Conduct", "PTA_Welfare_Fund", "PTA_Membership", "PTA_Donation", "Program_Type"];
+      var requiredCols = ["Current_Status", "Faculty_Remarks", "Nodal_Remarks", "PTA_Amount", "Principal_Remarks", "Admission_Number", "Token_Number", "DOB", "Joined_Semester", "Leaving_Semester", "Promotion_Status", "Dues_Status", "Leaving_Date", "Application_Date", "Issue_Date", "Conduct", "PTA_Welfare_Fund", "PTA_Membership", "PTA_Donation", "Program_Type", "Assigned_Slot"];
       var modified = false;
       
       requiredCols.forEach(function(col) {
@@ -456,6 +456,10 @@ function doPost(e) {
       result = JSON.parse(updatePTAConfig(requestData.configData));
     } else if (action === "getAllDepartmentsData") {
       result = JSON.parse(getAllDepartmentsData());
+    } else if (action === "getSeatMatrix") {
+      result = JSON.parse(getSeatMatrix());
+    } else if (action === "updateSeatMatrix") {
+      result = JSON.parse(updateSeatMatrix(requestData.matrixData));
     } else {
       result = { success: false, message: "Unknown action: " + action };
     }
@@ -575,7 +579,7 @@ function getAllDepartmentsData() {
     for (var i = 0; i < sheets.length; i++) {
       var name = sheets[i].getName();
       // Skip system sheets
-      if (name !== "Master Responses" && name !== "Sheet1" && name !== "Credentials" && name !== "PTA_Config") {
+      if (name !== "Master Responses" && name !== "Sheet1" && name !== "Credentials" && name !== "PTA_Config" && name !== "Seat_Matrix") {
         var deptDataJson = getDepartmentData(name);
         var res = JSON.parse(deptDataJson);
         if (res.success && res.data) {
@@ -600,6 +604,93 @@ function syncCredentialsSheet() {
   Logger.log("Credential Sync Result: " + res);
 }
 
+// Fetch Seat Matrix configuration
+function getSeatMatrix() {
+  try {
+    var sheet = SpreadsheetApp.getActiveSpreadsheet();
+    var matrixSheet = sheet.getSheetByName("Seat_Matrix");
+    var needInit = false;
+    
+    if (!matrixSheet) {
+      matrixSheet = sheet.insertSheet("Seat_Matrix");
+      needInit = true;
+    } else if (matrixSheet.getLastRow() < 2) {
+      needInit = true;
+    }
+    
+    if (needInit) {
+      matrixSheet.clear();
+      var headers = ["Department", "Open", "SC", "ST", "OBC", "EWS", "OEC"];
+      matrixSheet.appendRow(headers);
+      
+      var deptsRaw = getDepartmentsList();
+      var deptsData = JSON.parse(deptsRaw);
+      if (deptsData.success && deptsData.departments) {
+        deptsData.departments.forEach(function(d) {
+          matrixSheet.appendRow([d, 0, 0, 0, 0, 0, 0]);
+        });
+      }
+      
+      var headerRange = matrixSheet.getRange(1, 1, 1, headers.length);
+      headerRange.setFontWeight("bold");
+      headerRange.setBackground("#f1f3f4");
+    }
+    
+    var lastRow = matrixSheet.getLastRow();
+    if (lastRow < 2) return JSON.stringify({ success: true, data: [] });
+    
+    var dataRange = matrixSheet.getRange(1, 1, lastRow, matrixSheet.getLastColumn());
+    var values = dataRange.getValues();
+    var headers = values[0];
+    
+    var data = [];
+    for (var r = 1; r < values.length; r++) {
+      var rowObj = {};
+      for (var c = 0; c < headers.length; c++) {
+        rowObj[headers[c]] = values[r][c];
+      }
+      data.push(rowObj);
+    }
+    
+    return JSON.stringify({ success: true, data: data });
+  } catch (error) {
+    return JSON.stringify({ success: false, message: error.toString() });
+  }
+}
 
-
-
+// Update Seat Matrix data
+function updateSeatMatrix(matrixData) {
+  try {
+    var sheet = SpreadsheetApp.getActiveSpreadsheet();
+    var matrixSheet = sheet.getSheetByName("Seat_Matrix");
+    
+    if (!matrixSheet) {
+      matrixSheet = sheet.insertSheet("Seat_Matrix");
+    }
+    
+    matrixSheet.clear();
+    var headers = ["Department", "Open", "SC", "ST", "OBC", "EWS", "OEC"];
+    matrixSheet.appendRow(headers);
+    
+    var headerRange = matrixSheet.getRange(1, 1, 1, headers.length);
+    headerRange.setFontWeight("bold");
+    headerRange.setBackground("#f1f3f4");
+    
+    matrixData.forEach(function(item) {
+      var row = [
+        item.Department,
+        item.Open || 0,
+        item.SC || 0,
+        item.ST || 0,
+        item.OBC || 0,
+        item.EWS || 0,
+        item.OEC || 0
+      ];
+      matrixSheet.appendRow(row);
+    });
+    
+    return JSON.stringify({ success: true });
+  } catch (error) {
+    return JSON.stringify({ success: false, message: error.toString() });
+  }
+}
