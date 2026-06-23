@@ -186,7 +186,7 @@ function getDepartmentsList() {
     var depts = [];
     for (var i = 0; i < sheets.length; i++) {
       var name = sheets[i].getName();
-      if (name !== "Master Responses" && name !== "Sheet1" && name !== "Credentials") {
+      if (name !== "Master Responses" && name !== "Sheet1" && name !== "Credentials" && name !== "PTA_Config" && name !== "Seat_Matrix") {
         depts.push(name);
       }
     }
@@ -632,17 +632,29 @@ function getSeatMatrix() {
       var headers = ["Department", "Open", "SC", "ST", "OBC", "EWS", "OEC"];
       matrixSheet.appendRow(headers);
       
-      var deptsRaw = getDepartmentsList();
-      var deptsData = JSON.parse(deptsRaw);
-      if (deptsData.success && deptsData.departments) {
-        deptsData.departments.forEach(function(d) {
-          matrixSheet.appendRow([d, 0, 0, 0, 0, 0, 0]);
-        });
-      }
-      
       var headerRange = matrixSheet.getRange(1, 1, 1, headers.length);
       headerRange.setFontWeight("bold");
       headerRange.setBackground("#f1f3f4");
+    }
+    
+    // Auto-sync missing departments into the Seat_Matrix
+    var lastRow = matrixSheet.getLastRow();
+    var existingDepts = {};
+    if (lastRow > 1) {
+      var existingData = matrixSheet.getRange(2, 1, lastRow - 1, 1).getValues();
+      existingData.forEach(function(row) {
+        if (row[0]) existingDepts[row[0].toString().trim()] = true;
+      });
+    }
+    
+    var deptsRaw = getDepartmentsList();
+    var deptsData = JSON.parse(deptsRaw);
+    if (deptsData.success && deptsData.departments) {
+      deptsData.departments.forEach(function(d) {
+        if (!existingDepts[d]) {
+          matrixSheet.appendRow([d, 0, 0, 0, 0, 0, 0]);
+        }
+      });
     }
     
     var lastRow = matrixSheet.getLastRow();
