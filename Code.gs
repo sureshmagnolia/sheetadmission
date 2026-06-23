@@ -198,6 +198,13 @@ function getDepartmentsList() {
 
 // Update student data and handle state transitions
 function updateStudentData(department, capid, updatedData) {
+  var lock = LockService.getScriptLock();
+  try {
+    lock.waitLock(10000); // Wait up to 10 seconds for other processes
+  } catch (e) {
+    return JSON.stringify({ success: false, message: "System is busy. Please try again in a few seconds." });
+  }
+  
   try {
     var sheet = SpreadsheetApp.getActiveSpreadsheet();
     var deptSheet = sheet.getSheetByName(department);
@@ -246,7 +253,7 @@ function updateStudentData(department, capid, updatedData) {
     
     // Logic: If status transitions from Faculty to Nodal, generate a token if not already exists
     if (nextStatus === "Pending_Nodal" && !existingToken) {
-      var deptCode = getDeptCode(department);
+      var prefix = "T";
       // Fetch all tokens to find the next sequential number to prevent duplicates
       var allTokens = [];
       if (tokenIndex !== -1) {
@@ -257,7 +264,7 @@ function updateStudentData(department, capid, updatedData) {
       
       var maxNum = 0;
       allTokens.forEach(function(tok) {
-        if (tok && tok.indexOf(deptCode + "-") === 0) {
+        if (tok && tok.indexOf(prefix + "-") === 0) {
           var numPart = parseInt(tok.split("-")[1], 10);
           if (!isNaN(numPart) && numPart > maxNum) {
             maxNum = numPart;
@@ -266,9 +273,9 @@ function updateStudentData(department, capid, updatedData) {
       });
       
       var nextNum = maxNum + 1;
-      // Pad to 3 digits (e.g. CS-001)
+      // Pad to 3 digits (e.g. T-001)
       var paddedNum = ("000" + nextNum).slice(-3);
-      tokenGenerated = deptCode + "-" + paddedNum;
+      tokenGenerated = prefix + "-" + paddedNum;
       updatedData["Token_Number"] = tokenGenerated;
     }
     
@@ -294,6 +301,8 @@ function updateStudentData(department, capid, updatedData) {
     
   } catch (error) {
     return JSON.stringify({ success: false, message: error.toString() });
+  } finally {
+    lock.releaseLock();
   }
 }
 
