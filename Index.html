@@ -1417,7 +1417,11 @@
         { key: "Leaving_Date", label: "Date of leaving college (DD/MM/YYYY)" },
         { key: "Application_Date", label: "Date of application for TC (DD/MM/YYYY)" },
         { key: "Issue_Date", label: "Date of issue of TC (DD/MM/YYYY)" },
-        { key: "Conduct", label: "Character and Conduct (e.g. Good)" }
+        { key: "Conduct", label: "Character and Conduct (e.g. Good)" },
+        { key: "PTA_Amount", label: "PTA Total Amount (INR)" },
+        { key: "PTA_Prog_Fee", label: "PTA Programme Fee (INR)" },
+        { key: "PTA_Cat_Fee", label: "PTA Category Fee (INR)" },
+        { key: "PTA_Custom_Fee", label: "PTA Custom Fee Adjustment (INR)" }
       ];
 
       displayFields.forEach(function(f) {
@@ -1649,13 +1653,23 @@
         return;
       }
       
+      var progFee = document.getElementById("pta-prog-fee").value;
+      var catFee = document.getElementById("pta-cat-fee").value;
+      var customFee = document.getElementById("pta-custom-fee").value;
+      
       var dataToUpdate = compileUpdatedProfileData();
       dataToUpdate["PTA_Amount"] = amt;
+      dataToUpdate["PTA_Prog_Fee"] = progFee;
+      dataToUpdate["PTA_Cat_Fee"] = catFee;
+      dataToUpdate["PTA_Custom_Fee"] = customFee;
       dataToUpdate["Current_Status"] = "Pending_Principal";
       
       sendUpdate(dataToUpdate, function(res) {
         showToast("Fee recorded and forwarded to Principal.");
         activeStudent["PTA_Amount"] = amt;
+        activeStudent["PTA_Prog_Fee"] = progFee;
+        activeStudent["PTA_Cat_Fee"] = catFee;
+        activeStudent["PTA_Custom_Fee"] = customFee;
         activeStudent["Current_Status"] = "Pending_Principal";
         setupWorkflowButtons(activeStudent);
         printPTAReceipt();
@@ -1741,6 +1755,9 @@
         dataToUpdate["Nodal_Remarks"] = document.getElementById("wf-nodal-remarks").value;
       } else if (userRole === "PTA") {
         dataToUpdate["PTA_Amount"] = document.getElementById("wf-pta-amount").value;
+        dataToUpdate["PTA_Prog_Fee"] = document.getElementById("pta-prog-fee").value;
+        dataToUpdate["PTA_Cat_Fee"] = document.getElementById("pta-cat-fee").value;
+        dataToUpdate["PTA_Custom_Fee"] = document.getElementById("pta-custom-fee").value;
       } else if (userRole === "Principal") {
         dataToUpdate["Admission_Number"] = document.getElementById("wf-admission-number").value;
         dataToUpdate["Principal_Remarks"] = document.getElementById("wf-principal-remarks").value;
