@@ -1010,31 +1010,21 @@
 
                 <!-- PTA Fee input with Calculator -->
                 <div class="form-group" id="group-pta-input" style="display: none;">
-                  <label>PTA Fee Calculator</label>
+                  <label style="font-weight: 600; color: var(--accent-yellow); margin-bottom: 8px;">PTA Fee Collector & Calculator</label>
                   <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px;">
                     <div>
-                      <label for="pta-prog-fee" style="font-size: 0.75rem;">Admission Programme</label>
-                      <select class="form-control" id="pta-prog-fee" onchange="calculatePTAFee()">
-                        <option value="5000">Computer Science (5000)</option>
-                        <option value="4500">Physics (4500)</option>
-                        <option value="4200">Chemistry (4200)</option>
-                        <option value="4000">Mathematics (4000)</option>
-                        <option value="3500">Commerce (3500)</option>
-                      </select>
+                      <label for="pta-welfare-fund" style="font-size: 0.75rem;">Welfare Fund (Mandatory)</label>
+                      <input type="number" class="form-control" id="pta-welfare-fund" oninput="calculatePTAFee()">
                     </div>
                     <div>
-                      <label for="pta-cat-fee" style="font-size: 0.75rem;">Admitted Category</label>
-                      <select class="form-control" id="pta-cat-fee" onchange="calculatePTAFee()">
-                        <option value="1000">General (+1000)</option>
-                        <option value="500">OBC (+500)</option>
-                        <option value="0">SC/ST (+0)</option>
-                      </select>
+                      <label for="pta-membership" style="font-size: 0.75rem;">Membership (Mandatory)</label>
+                      <input type="number" class="form-control" id="pta-membership" oninput="calculatePTAFee()">
                     </div>
                   </div>
                   <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px;">
                     <div>
-                      <label for="pta-custom-fee" style="font-size: 0.75rem;">Custom Value Adjustment (INR)</label>
-                      <input type="number" class="form-control" id="pta-custom-fee" value="0" oninput="calculatePTAFee()">
+                      <label for="pta-donation" style="font-size: 0.75rem;">Donation (Optional)</label>
+                      <input type="number" class="form-control" id="pta-donation" value="0" oninput="calculatePTAFee()">
                     </div>
                     <div>
                       <label for="wf-pta-amount" style="font-size: 0.75rem; font-weight: bold; color: #10b981;">Total PTA Fee (INR)</label>
@@ -1419,9 +1409,9 @@
         { key: "Issue_Date", label: "Date of issue of TC (DD/MM/YYYY)" },
         { key: "Conduct", label: "Character and Conduct (e.g. Good)" },
         { key: "PTA_Amount", label: "PTA Total Amount (INR)" },
-        { key: "PTA_Prog_Fee", label: "PTA Programme Fee (INR)" },
-        { key: "PTA_Cat_Fee", label: "PTA Category Fee (INR)" },
-        { key: "PTA_Custom_Fee", label: "PTA Custom Fee Adjustment (INR)" }
+        { key: "PTA_Welfare_Fund", label: "PTA Welfare Fund (INR)" },
+        { key: "PTA_Membership", label: "PTA Membership (INR)" },
+        { key: "PTA_Donation", label: "PTA Donation (INR)" }
       ];
 
       displayFields.forEach(function(f) {
@@ -1460,33 +1450,36 @@
       } else if (userRole === "PTA") {
         document.getElementById("group-pta-input").style.display = "block";
         
-        // Dynamic PTA Calculator initialization
-        var progSelect = document.getElementById("pta-prog-fee");
-        for (var i = 0; i < progSelect.options.length; i++) {
-          if (progSelect.options[i].text.toLowerCase().indexOf(currentSelectedDept.toLowerCase()) > -1) {
-            progSelect.selectedIndex = i;
-            break;
-          }
-        }
-        
-        var catSelect = document.getElementById("pta-cat-fee");
+        var isSCST = false;
         var studentCat = (student["Actual Category"] || student["Reservation Category"] || "General").trim().toUpperCase();
-        if (studentCat.indexOf("OBC") > -1 || studentCat.indexOf("OEC") > -1) {
-          catSelect.value = "500";
-        } else if (studentCat.indexOf("SC") > -1 || studentCat.indexOf("ST") > -1) {
-          catSelect.value = "0";
-        } else {
-          catSelect.value = "1000"; // General
+        if (studentCat.indexOf("SC") > -1 || studentCat.indexOf("ST") > -1) {
+          isSCST = true;
         }
         
-        if (student["PTA_Amount"]) {
-          var paid = parseFloat(student["PTA_Amount"]) || 0;
-          var prog = parseFloat(progSelect.value) || 0;
-          var cat = parseFloat(catSelect.value) || 0;
-          document.getElementById("pta-custom-fee").value = paid - (prog + cat);
-        } else {
-          document.getElementById("pta-custom-fee").value = 0;
+        var defaultWelfare = 2000;
+        var defaultMembership = 500;
+        
+        var deptClean = currentSelectedDept.toLowerCase();
+        if (deptClean.indexOf("computer") > -1) {
+          defaultWelfare = 3000;
+        } else if (deptClean.indexOf("physics") > -1) {
+          defaultWelfare = 2500;
+        } else if (deptClean.indexOf("chemistry") > -1) {
+          defaultWelfare = 2200;
+        } else if (deptClean.indexOf("mathematics") > -1) {
+          defaultWelfare = 2000;
+        } else if (deptClean.indexOf("commerce") > -1) {
+          defaultWelfare = 1500;
         }
+        
+        if (isSCST) {
+          defaultWelfare = 300;
+          defaultMembership = 50;
+        }
+        
+        document.getElementById("pta-welfare-fund").value = student["PTA_Welfare_Fund"] !== undefined && student["PTA_Welfare_Fund"] !== "" ? student["PTA_Welfare_Fund"] : defaultWelfare;
+        document.getElementById("pta-membership").value = student["PTA_Membership"] !== undefined && student["PTA_Membership"] !== "" ? student["PTA_Membership"] : defaultMembership;
+        document.getElementById("pta-donation").value = student["PTA_Donation"] !== undefined && student["PTA_Donation"] !== "" ? student["PTA_Donation"] : 0;
         
         calculatePTAFee();
       } else if (userRole === "Principal") {
@@ -1532,13 +1525,30 @@
         container.innerHTML = "<button class='btn btn-success' onclick='printTC()'>Print Transfer Certificate (TC)</button>" +
                               "<button class='btn btn-secondary' onclick='closeModal()'>Close</button>";
         
-        // Principal or PTA can still revert Admitted student back
+        // Principal or PTA or Nodal can still revert Admitted student back
         if (userRole === "Principal" || userRole === "PTA" || userRole === "Nodal Officer") {
           var revBtn = document.createElement("button");
           revBtn.className = "btn btn-danger";
           revBtn.innerText = "Revert Student";
           revBtn.onclick = function() { triggerRevertFlow(status); };
           container.insertBefore(revBtn, container.firstChild);
+        }
+        
+        // PTA desk can still update fees and reprint receipt even if Admitted
+        if (userRole === "PTA") {
+          var ptaBtn = document.createElement("button");
+          ptaBtn.className = "btn btn-success";
+          ptaBtn.innerText = "Update PTA Fee";
+          ptaBtn.onclick = function() { ptaCollect(); };
+          container.insertBefore(ptaBtn, container.firstChild);
+          
+          if (student["PTA_Amount"]) {
+            var reprintBtn = document.createElement("button");
+            reprintBtn.className = "btn btn-primary";
+            reprintBtn.innerText = "Reprint PTA Receipt";
+            reprintBtn.onclick = function() { printPTAReceipt(); };
+            container.insertBefore(reprintBtn, container.firstChild);
+          }
         }
         return;
       }
@@ -1560,14 +1570,14 @@
         }
       }
       else if (userRole === "PTA") {
+        var actionText = (status === "Pending_PTA") ? "Collect Fee & Forward to Principal" : "Update PTA Fee";
+        container.innerHTML = "<button class='btn btn-success' onclick='ptaCollect()'>" + actionText + "</button>";
+        
+        if (student["PTA_Amount"] || status !== "Pending_PTA") {
+          container.innerHTML += "<button class='btn btn-primary' onclick='printPTAReceipt()'>Print/Reprint Receipt</button>";
+        }
         if (status === "Pending_PTA") {
-          container.innerHTML = "<button class='btn btn-success' onclick='ptaCollect()'>Collect Fee & Forward to Principal</button>" +
-                                "<button class='btn btn-danger' onclick='triggerRevertFlow(\"Pending_PTA\")'>Revert Student</button>";
-        } else {
-          container.innerHTML = "<p style='color: var(--text-muted); font-size: 0.85rem; font-style: italic;'>Locked. Status: " + status + ".</p>";
-          if (student["PTA_Amount"]) {
-            container.innerHTML += "<button class='btn btn-primary' onclick='printPTAReceipt()'>Reprint PTA Receipt</button>";
-          }
+          container.innerHTML += "<button class='btn btn-danger' onclick='triggerRevertFlow(\"Pending_PTA\")'>Revert Student</button>";
         }
       }
       else if (userRole === "Principal") {
@@ -1653,23 +1663,23 @@
         return;
       }
       
-      var progFee = document.getElementById("pta-prog-fee").value;
-      var catFee = document.getElementById("pta-cat-fee").value;
-      var customFee = document.getElementById("pta-custom-fee").value;
+      var welfareFund = document.getElementById("pta-welfare-fund").value;
+      var membership = document.getElementById("pta-membership").value;
+      var donation = document.getElementById("pta-donation").value;
       
       var dataToUpdate = compileUpdatedProfileData();
       dataToUpdate["PTA_Amount"] = amt;
-      dataToUpdate["PTA_Prog_Fee"] = progFee;
-      dataToUpdate["PTA_Cat_Fee"] = catFee;
-      dataToUpdate["PTA_Custom_Fee"] = customFee;
+      dataToUpdate["PTA_Welfare_Fund"] = welfareFund;
+      dataToUpdate["PTA_Membership"] = membership;
+      dataToUpdate["PTA_Donation"] = donation;
       dataToUpdate["Current_Status"] = "Pending_Principal";
       
       sendUpdate(dataToUpdate, function(res) {
         showToast("Fee recorded and forwarded to Principal.");
         activeStudent["PTA_Amount"] = amt;
-        activeStudent["PTA_Prog_Fee"] = progFee;
-        activeStudent["PTA_Cat_Fee"] = catFee;
-        activeStudent["PTA_Custom_Fee"] = customFee;
+        activeStudent["PTA_Welfare_Fund"] = welfareFund;
+        activeStudent["PTA_Membership"] = membership;
+        activeStudent["PTA_Donation"] = donation;
         activeStudent["Current_Status"] = "Pending_Principal";
         setupWorkflowButtons(activeStudent);
         printPTAReceipt();
@@ -1755,9 +1765,9 @@
         dataToUpdate["Nodal_Remarks"] = document.getElementById("wf-nodal-remarks").value;
       } else if (userRole === "PTA") {
         dataToUpdate["PTA_Amount"] = document.getElementById("wf-pta-amount").value;
-        dataToUpdate["PTA_Prog_Fee"] = document.getElementById("pta-prog-fee").value;
-        dataToUpdate["PTA_Cat_Fee"] = document.getElementById("pta-cat-fee").value;
-        dataToUpdate["PTA_Custom_Fee"] = document.getElementById("pta-custom-fee").value;
+        dataToUpdate["PTA_Welfare_Fund"] = document.getElementById("pta-welfare-fund").value;
+        dataToUpdate["PTA_Membership"] = document.getElementById("pta-membership").value;
+        dataToUpdate["PTA_Donation"] = document.getElementById("pta-donation").value;
       } else if (userRole === "Principal") {
         dataToUpdate["Admission_Number"] = document.getElementById("wf-admission-number").value;
         dataToUpdate["Principal_Remarks"] = document.getElementById("wf-principal-remarks").value;
@@ -1810,24 +1820,33 @@
     function printPTAReceipt() {
       if (!activeStudent) return;
       
+      var welfare = activeStudent["PTA_Welfare_Fund"] || document.getElementById("pta-welfare-fund").value || "0";
+      var membership = activeStudent["PTA_Membership"] || document.getElementById("pta-membership").value || "0";
+      var donation = activeStudent["PTA_Donation"] || document.getElementById("pta-donation").value || "0";
+      var total = activeStudent["PTA_Amount"] || document.getElementById("wf-pta-amount").value || "0";
+
       var printContent = 
-        "<div class='receipt-card'>" +
-          "<div style='text-align: center; border-bottom: 2px solid #000; padding-bottom: 10px; margin-bottom: 15px;'>" +
+        "<div class='receipt-card' style='border:2px dashed #000; padding:15px; width:148mm; margin:auto; font-family:sans-serif; color:#000;'>" +
+          "<div style='text-align: center; border-bottom: 2px solid #000; padding-bottom: 8px; margin-bottom: 12px;'>" +
             "<h2>GOVERNMENT COLLEGE ERP PORTAL</h2>" +
             "<h3>PTA FUND COLLECTION RECEIPT</h3>" +
-            "<p>Date: " + new Date().toLocaleDateString() + " | Time: " + new Date().toLocaleTimeString() + "</p>" +
+            "<p style='font-size:0.85rem;'>Date: " + new Date().toLocaleDateString() + " | Time: " + new Date().toLocaleTimeString() + "</p>" +
           "</div>" +
-          "<table style='width: 100%; border: none; font-size: 1rem; color: #000; margin-bottom: 20px;'>" +
-            "<tr><td style='padding:5px 0; border:none;'><strong>Token Number:</strong></td><td style='padding:5px 0; border:none;'>" + (activeStudent["Token_Number"] || "N/A") + "</td></tr>" +
-            "<tr><td style='padding:5px 0; border:none;'><strong>CAPID:</strong></td><td style='padding:5px 0; border:none;'>" + activeStudent["CAPID"] + "</td></tr>" +
-            "<tr><td style='padding:5px 0; border:none;'><strong>Student Name:</strong></td><td style='padding:5px 0; border:none;'>" + activeStudent["Name"] + "</td></tr>" +
-            "<tr><td style='padding:5px 0; border:none;'><strong>Department:</strong></td><td style='padding:5px 0; border:none;'>" + currentSelectedDept + "</td></tr>" +
-            "<tr><td style='padding:5px 0; border:none;'><strong>Email:</strong></td><td style='padding:5px 0; border:none;'>" + activeStudent["Email"] + "</td></tr>" +
-            "<tr><td style='padding:5px 0; border:none;'><strong>PTA Amount Paid:</strong></td><td style='padding:5px 0; border:none;'><strong>INR " + (activeStudent["PTA_Amount"] || document.getElementById("wf-pta-amount").value) + "/-</strong></td></tr>" +
+          "<table style='width: 100%; border: none; font-size: 0.95rem; color: #000; margin-bottom: 15px; line-height: 1.5;'>" +
+            "<tr><td style='padding:3px 0; border:none;'><strong>Token Number:</strong></td><td style='padding:3px 0; border:none;'>" + (activeStudent["Token_Number"] || "N/A") + "</td></tr>" +
+            "<tr><td style='padding:3px 0; border:none;'><strong>CAPID:</strong></td><td style='padding:3px 0; border:none;'>" + activeStudent["CAPID"] + "</td></tr>" +
+            "<tr><td style='padding:3px 0; border:none;'><strong>Student Name:</strong></td><td style='padding:3px 0; border:none;'>" + activeStudent["Name"].toUpperCase() + "</td></tr>" +
+            "<tr><td style='padding:3px 0; border:none;'><strong>Department:</strong></td><td style='padding:3px 0; border:none;'>" + currentSelectedDept + "</td></tr>" +
+            "<tr><td colspan='2' style='border-bottom:1px solid #000; padding:5px 0;'></td></tr>" +
+            "<tr><td style='padding:3px 0; border:none;'>1. Welfare Fund (Mandatory):</td><td style='padding:3px 0; border:none;'>INR " + welfare + "/-</td></tr>" +
+            "<tr><td style='padding:3px 0; border:none;'>2. Membership (Mandatory):</td><td style='padding:3px 0; border:none;'>INR " + membership + "/-</td></tr>" +
+            "<tr><td style='padding:3px 0; border:none;'>3. Donation / Other (Optional):</td><td style='padding:3px 0; border:none;'>INR " + donation + "/-</td></tr>" +
+            "<tr><td colspan='2' style='border-bottom:2px double #000; padding:5px 0;'></td></tr>" +
+            "<tr><td style='padding:5px 0; border:none;'><strong>TOTAL PTA FEE PAID:</strong></td><td style='padding:5px 0; border:none;'><strong>INR " + total + "/-</strong></td></tr>" +
           "</table>" +
-          "<div style='margin-top: 40px; display: flex; justify-content: space-between;'>" +
-            "<div><p style='border-top: 1px solid #000; width: 150px; text-align: center; padding-top: 5px; font-size: 0.85rem;'>Student Signature</p></div>" +
-            "<div><p style='border-top: 1px solid #000; width: 150px; text-align: center; padding-top: 5px; font-size: 0.85rem;'>PTA Cashier / ERP Desk</p></div>" +
+          "<div style='margin-top: 30px; display: flex; justify-content: space-between; font-size:0.85rem;'>" +
+            "<div><p style='border-top: 1px solid #000; width: 140px; text-align: center; padding-top: 5px;'>Student Signature</p></div>" +
+            "<div><p style='border-top: 1px solid #000; width: 140px; text-align: center; padding-top: 5px;'>PTA Cashier / ERP Desk</p></div>" +
           "</div>" +
         "</div>";
 
@@ -1937,10 +1956,10 @@
 
     // Dynamic PTA Fee Calculation
     function calculatePTAFee() {
-      var progFee = parseFloat(document.getElementById("pta-prog-fee").value) || 0;
-      var catFee = parseFloat(document.getElementById("pta-cat-fee").value) || 0;
-      var customFee = parseFloat(document.getElementById("pta-custom-fee").value) || 0;
-      document.getElementById("wf-pta-amount").value = progFee + catFee + customFee;
+      var welfare = parseFloat(document.getElementById("pta-welfare-fund").value) || 0;
+      var membership = parseFloat(document.getElementById("pta-membership").value) || 0;
+      var donation = parseFloat(document.getElementById("pta-donation").value) || 0;
+      document.getElementById("wf-pta-amount").value = welfare + membership + donation;
     }
 
     // Print Daily PTA Collection Balance Sheet

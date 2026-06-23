@@ -73,7 +73,7 @@ function onFormSubmit(e) {
       // Copy headers from master
       var deptHeaders = [].concat(headers);
       // Append workflow and TC headers
-      var extraHeaders = ["Current_Status", "Faculty_Remarks", "Nodal_Remarks", "PTA_Amount", "Principal_Remarks", "Admission_Number", "Token_Number", "DOB", "Joined_Semester", "Leaving_Semester", "Promotion_Status", "Dues_Status", "Leaving_Date", "Application_Date", "Issue_Date", "Conduct", "PTA_Prog_Fee", "PTA_Cat_Fee", "PTA_Custom_Fee"];
+      var extraHeaders = ["Current_Status", "Faculty_Remarks", "Nodal_Remarks", "PTA_Amount", "Principal_Remarks", "Admission_Number", "Token_Number", "DOB", "Joined_Semester", "Leaving_Semester", "Promotion_Status", "Dues_Status", "Leaving_Date", "Application_Date", "Issue_Date", "Conduct", "PTA_Welfare_Fund", "PTA_Membership", "PTA_Donation"];
       deptHeaders = deptHeaders.concat(extraHeaders);
       deptSheet.appendRow(deptHeaders);
       
@@ -86,7 +86,7 @@ function onFormSubmit(e) {
       // Ensure workflow and TC columns exist in the header row
       var deptHeadersRange = deptSheet.getRange(1, 1, 1, deptSheet.getLastColumn());
       var deptHeaders = deptHeadersRange.getValues()[0];
-      var requiredCols = ["Current_Status", "Faculty_Remarks", "Nodal_Remarks", "PTA_Amount", "Principal_Remarks", "Admission_Number", "Token_Number", "DOB", "Joined_Semester", "Leaving_Semester", "Promotion_Status", "Dues_Status", "Leaving_Date", "Application_Date", "Issue_Date", "Conduct", "PTA_Prog_Fee", "PTA_Cat_Fee", "PTA_Custom_Fee"];
+      var requiredCols = ["Current_Status", "Faculty_Remarks", "Nodal_Remarks", "PTA_Amount", "Principal_Remarks", "Admission_Number", "Token_Number", "DOB", "Joined_Semester", "Leaving_Semester", "Promotion_Status", "Dues_Status", "Leaving_Date", "Application_Date", "Issue_Date", "Conduct", "PTA_Welfare_Fund", "PTA_Membership", "PTA_Donation"];
       var modified = false;
       
       requiredCols.forEach(function(col) {
