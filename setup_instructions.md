@@ -65,7 +65,8 @@ Follow these step-by-step instructions to configure your Google Sheets, Google F
    - **Execute as**: `Me (your email)`
    - **Who has access**: `Anyone` (necessary so students and staff can access the portal endpoints)
 4. Click **Deploy**.
-5. Copy the **Web App URL** provided under the deployment details. This is the link you will use to open the ERP system!
+5. Copy the **Web App URL** provided under the deployment details. **This is the browser link you and your staff will open to use the ERP portal!**
+   - *Note*: You do **not** need to paste this URL anywhere inside the `Code.gs` or `Index.html` code files when hosting directly on Google Apps Script. Apps Script handles all backend communication automatically. You only need to save this URL to distribute it to users.
 
 ---
 
