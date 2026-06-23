@@ -1074,6 +1074,59 @@
 
   <!-- Client-side logic -->
   <script>
+    // --- CONFIGURE YOUR GOOGLE APPS SCRIPT WEB APP URL HERE ---
+    var webAppUrl = "YOUR_WEB_APP_URL"; 
+
+    // Emulate google.script.run using standard HTTP fetch requests for external hosting
+    var google = {
+      script: {
+        run: {
+          successHandler: null,
+          failureHandler: null,
+          withSuccessHandler: function(sh) {
+            this.successHandler = sh;
+            return this;
+          },
+          withFailureHandler: function(fh) {
+            this.failureHandler = fh;
+            return this;
+          },
+          _dispatch: function(action, args) {
+            var self = this;
+            if (!webAppUrl || webAppUrl === "YOUR_WEB_APP_URL") {
+              hideLoader();
+              alert("Web App URL is not set! Please copy the Apps Script Web App URL and paste it in the 'webAppUrl' variable at the top of your Index.html script block.");
+              return;
+            }
+            var payload = Object.assign({ action: action }, args);
+            fetch(webAppUrl, {
+              method: "POST",
+              body: JSON.stringify(payload)
+            })
+            .then(function(res) { return res.json(); })
+            .then(function(data) {
+              if (self.successHandler) self.successHandler(JSON.stringify(data));
+            })
+            .catch(function(err) {
+              if (self.failureHandler) self.failureHandler(err);
+            });
+          },
+          validateCredentials: function(role, dept, pass) {
+            this._dispatch("validateCredentials", { role: role, department: dept, password: pass });
+          },
+          getDepartmentsList: function() {
+            this._dispatch("getDepartmentsList", {});
+          },
+          getDepartmentData: function(dept) {
+            this._dispatch("getDepartmentData", { department: dept });
+          },
+          updateStudentData: function(dept, capid, data) {
+            this._dispatch("updateStudentData", { department: dept, capid: capid, updatedData: data });
+          }
+        }
+      }
+    };
+
     // System Config
     var userRole = "";
     var userDept = "";

@@ -4,7 +4,7 @@
 
 // Serve the frontend web page
 function doGet(e) {
-  return HtmlService.createTemplateFromFile('Index')
+  return HtmlService.createTemplateFromFile('index')
     .evaluate()
     .setTitle('Government College ERP Portal')
     .addMetaTag('viewport', 'width=device-width, initial-scale=1')
@@ -355,6 +355,42 @@ function validateCredentials(role, department, password) {
     }
   } catch (error) {
     return JSON.stringify({ success: false, message: error.toString() });
+  }
+}
+
+// doPost Endpoint to serve requests from GitHub Pages (CORS compliant API)
+function doPost(e) {
+  try {
+    var requestData;
+    if (e && e.postData && e.postData.contents) {
+      requestData = JSON.parse(e.postData.contents);
+    } else if (e && e.parameter) {
+      requestData = e.parameter;
+    } else {
+      return ContentService.createTextOutput(JSON.stringify({ success: false, message: "No post data received." }))
+        .setMimeType(ContentService.MimeType.JSON);
+    }
+    
+    var action = requestData.action;
+    var result;
+    
+    if (action === "getDepartmentsList") {
+      result = JSON.parse(getDepartmentsList());
+    } else if (action === "getDepartmentData") {
+      result = JSON.parse(getDepartmentData(requestData.department));
+    } else if (action === "validateCredentials") {
+      result = JSON.parse(validateCredentials(requestData.role, requestData.department, requestData.password));
+    } else if (action === "updateStudentData") {
+      result = JSON.parse(updateStudentData(requestData.department, requestData.capid, requestData.updatedData));
+    } else {
+      result = { success: false, message: "Unknown action: " + action };
+    }
+    
+    return ContentService.createTextOutput(JSON.stringify(result))
+      .setMimeType(ContentService.MimeType.JSON);
+  } catch (err) {
+    return ContentService.createTextOutput(JSON.stringify({ success: false, message: err.toString() }))
+      .setMimeType(ContentService.MimeType.JSON);
   }
 }
 
