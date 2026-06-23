@@ -66,8 +66,9 @@ Follow these step-by-step instructions to configure your Google Sheets, Google F
    - **Who has access**: `Anyone` (necessary so students and staff can access the portal endpoints)
 4. Click **Deploy**.
 5. Copy the **Web App URL** provided under the deployment details.
-   - **For GitHub Pages Static Hosting**: Open your local `index.html` file, locate the `webAppUrl` variable at the top of the `<script>` tag (around line 1076), and replace `"YOUR_WEB_APP_URL"` with the copied deployment URL. Save and push this change to GitHub.
-   - **For Direct Apps Script Hosting**: If you run it within the Google ecosystem, you do not need to paste this URL anywhere. However, since you are hosting on GitHub Pages, **this step is required** so the static frontend can find and query your Google Sheets database.
+   - **For Direct Apps Script Hosting (Default)**: You can open this URL directly in your browser to run the ERP system! You do **not** need to paste this URL anywhere inside the `Code.gs` or `index.html` files. The system runs natively with full styling.
+   - **For GitHub Pages Static Hosting**: Open your local `index.html` file, locate the `webAppUrl` variable at the top of the `<script>` tag, and replace `"YOUR_WEB_APP_URL"` with the copied deployment URL. Save and push to GitHub.
+   - *Note on Logo*: The college emblem has been **Base64 encoded and embedded directly inside `index.html`**. This ensures the logo displays with high fidelity on both Apps Script Web App hosting and GitHub Pages hosting, without requiring any external file storage.
 
 ---
 

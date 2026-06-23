@@ -1,0 +1,4 @@
+Timestamp	Name	Email	CAPID	Index Mark	Reservation Category	Actual Category	Religion	Caste	Annual Income	Additional Languages	Photograph Drive URL	Department
+2026-06-23 10:00:00	Adithyan K	adithyan@test.com	CAP2026001	980	SC	SC	Hindu	Pulayan	48000	Sanskrit	https://drive.google.com/open?id=1xyzTestPhotoIdSC	Computer Science
+2026-06-23 10:05:00	Ananya Rajesh	ananya@test.com	CAP2026002	965	EZ	Ezhava-Thiyya-Bilva	Hindu	Ezhava	120000	Hindi	https://drive.google.com/open?id=1xyzTestPhotoIdEZ	Physics
+2026-06-23 10:10:00	Rahul Sharma	rahul@test.com	CAP2026003	920	General	Hindu - Forward community	Hindu	Nair	300000	Malayalam	https://drive.google.com/open?id=1xyzTestPhotoIdGEN	Commerce
