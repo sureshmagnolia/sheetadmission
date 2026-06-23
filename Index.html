@@ -1014,44 +1014,48 @@
       generateCaptcha();
     }
 
-    // Login logic
+    // Login logic calling backend credentials validation
     function login() {
       var role = document.getElementById("login-role").value;
       var dept = document.getElementById("login-dept").value;
       var pass = document.getElementById("login-password").value;
       var captchaVal = document.getElementById("login-captcha").value;
 
-      // Generate expected dynamic password: ddmmyyyy
-      var today = new Date();
-      var dd = String(today.getDate()).padStart(2, '0');
-      var mm = String(today.getMonth() + 1).padStart(2, '0');
-      var yyyy = today.getFullYear();
-      var expectedPassword = dd + mm + yyyy;
-
-      // Validate credentials
-      if (pass !== expectedPassword) {
-        showToast("Authentication Failed: Invalid password.", true);
-        return;
-      }
-
-      // Validate captcha
+      // Validate captcha first locally
       if (parseInt(captchaVal, 10) !== captchaAnswer) {
         showToast("Captcha Verification Failed. Please try again.", true);
         generateCaptcha();
         return;
       }
 
-      // Save to localStorage
-      userRole = role;
-      userDept = (role === "Nodal Officer" || role === "PTA" || role === "Principal") ? "" : dept;
-      currentSelectedDept = userDept || "Computer Science";
+      showLoader("Authenticating credentials...");
+      google.script.run
+        .withSuccessHandler(function(responseJson) {
+          hideLoader();
+          var res = JSON.parse(responseJson);
+          if (res.success) {
+            // Save to localStorage
+            userRole = role;
+            userDept = (role === "Nodal Officer" || role === "PTA" || role === "Principal") ? "" : dept;
+            currentSelectedDept = userDept || "Computer Science";
 
-      localStorage.setItem("erp_role", userRole);
-      localStorage.setItem("erp_dept", userDept);
+            localStorage.setItem("erp_role", userRole);
+            localStorage.setItem("erp_dept", userDept);
 
-      showToast("Access Granted");
-      document.getElementById("login-section").style.display = "none";
-      setupDashboardUI();
+            showToast("Access Granted");
+            document.getElementById("login-section").style.display = "none";
+            setupDashboardUI();
+          } else {
+            showToast("Authentication Failed: " + res.message, true);
+            generateCaptcha();
+          }
+        })
+        .withFailureHandler(function(err) {
+          hideLoader();
+          showToast(err.toString(), true);
+          generateCaptcha();
+        })
+        .validateCredentials(role, (role === "Nodal Officer" || role === "PTA" || role === "Principal") ? "" : dept, pass);
     }
 
     // Logout logic

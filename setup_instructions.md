@@ -69,7 +69,13 @@ Follow these step-by-step instructions to configure your Google Sheets, Google F
 
 ---
 
-- **Password**: The password changes daily. It is today's date in `ddmmyyyy` format (for example, if today is June 23rd, 2026, the password is `23062026`).
+## System Usage & Personal Passwords
+
+- **Personalized Passwords**: A Google Sheet tab named **Credentials** is automatically created on startup.
+- You can manage, update, and personalize passwords for every user directly in the Google Sheet:
+  - Open the **Credentials** sheet.
+  - Modify the passwords under the **Password** column.
+  - Ensure department-specific roles (e.g. `Faculty` or `HOD`) have their correct department listed in the **Department** column.
 - **Authentication Persistence**: Once logged in, your session is stored locally. Click **Logout** to clear the session and return to the login interface.
 
 ---

@@ -283,3 +283,78 @@ function updateStudentData(department, capid, updatedData) {
     return JSON.stringify({ success: false, message: error.toString() });
   }
 }
+
+// Personal credentials validation using a 'Credentials' tab in Google Sheets
+function validateCredentials(role, department, password) {
+  try {
+    var sheet = SpreadsheetApp.getActiveSpreadsheet();
+    var credSheet = sheet.getSheetByName("Credentials");
+    
+    // Auto-create Credentials sheet with defaults if it doesn't exist
+    if (!credSheet) {
+      credSheet = sheet.insertSheet("Credentials");
+      var headers = ["Role", "Department", "Password"];
+      credSheet.appendRow(headers);
+      
+      // Default credentials rows
+      var defaults = [
+        ["Principal", "", "principal123"],
+        ["Nodal Officer", "", "nodal123"],
+        ["PTA", "", "pta123"],
+        ["Faculty", "Computer Science", "facultycs123"],
+        ["Faculty", "Physics", "facultyph123"],
+        ["Faculty", "Chemistry", "facultych123"],
+        ["Faculty", "Mathematics", "facultyma123"],
+        ["Faculty", "Commerce", "facultyco123"],
+        ["HOD", "Computer Science", "hodcs123"],
+        ["HOD", "Physics", "hodph123"]
+      ];
+      
+      defaults.forEach(function(row) {
+        credSheet.appendRow(row);
+      });
+      
+      // Style headers
+      var headerRange = credSheet.getRange(1, 1, 1, headers.length);
+      headerRange.setFontWeight("bold");
+      headerRange.setBackground("#f1f3f4");
+    }
+    
+    var lastRow = credSheet.getLastRow();
+    if (lastRow < 2) {
+      return JSON.stringify({ success: false, message: "Credentials registry is empty." });
+    }
+    
+    var data = credSheet.getRange(2, 1, lastRow - 1, 3).getValues();
+    var validated = false;
+    
+    for (var i = 0; i < data.length; i++) {
+      var dbRole = data[i][0] ? data[i][0].toString().trim() : "";
+      var dbDept = data[i][1] ? data[i][1].toString().trim() : "";
+      var dbPass = data[i][2] ? data[i][2].toString().trim() : "";
+      
+      if (dbRole === role && dbPass === password) {
+        // If it's a department-specific role (Faculty or HOD), check department match
+        if (role === "Faculty" || role === "HOD") {
+          if (dbDept === department) {
+            validated = true;
+            break;
+          }
+        } else {
+          // Central administrative roles do not need department match
+          validated = true;
+          break;
+        }
+      }
+    }
+    
+    if (validated) {
+      return JSON.stringify({ success: true });
+    } else {
+      return JSON.stringify({ success: false, message: "Invalid credentials or password." });
+    }
+  } catch (error) {
+    return JSON.stringify({ success: false, message: error.toString() });
+  }
+}
+
