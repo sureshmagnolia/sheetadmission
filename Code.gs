@@ -107,23 +107,25 @@ function getOrCreateSystemDBSheet() {
     headerRange.setBackground("#1e293b");
     headerRange.setFontColor("#ffffff");
   } else {
-    // Check if Synced_Form_Department exists, if not, append it
-    var headers = dbSheet.getRange(1, 1, 1, dbSheet.getLastColumn()).getValues()[0];
-    if (findHeaderIndex(headers, "Synced_Form_Department") === -1) {
-      dbSheet.getRange(1, headers.length + 1).setValue("Synced_Form_Department")
-        .setFontWeight("bold")
-        .setBackground("#1e293b")
-        .setFontColor("#ffffff");
-    }
-    
-    // Fetch updated headers to find correct position
-    var updatedHeaders = dbSheet.getRange(1, 1, 1, dbSheet.getLastColumn()).getValues()[0];
-    if (findHeaderIndex(updatedHeaders, "Verified_Index_Mark") === -1) {
-      dbSheet.getRange(1, updatedHeaders.length + 1).setValue("Verified_Index_Mark")
-        .setFontWeight("bold")
-        .setBackground("#1e293b")
-        .setFontColor("#ffffff");
-    }
+    // Auto-migrate: ensure all required columns exist in the existing System_DB sheet
+    var existingHeaders = dbSheet.getRange(1, 1, 1, dbSheet.getLastColumn()).getValues()[0];
+    var colsToMigrate = [
+      "Synced_Form_Department", "Verified_Index_Mark",
+      "Admission_Number", "Token_Number", "Joined_Semester", "Leaving_Semester",
+      "Promotion_Status", "Dues_Status", "Leaving_Date", "Application_Date",
+      "Issue_Date", "Conduct", "PTA_Welfare_Fund", "PTA_Membership",
+      "PTA_Donation", "Program_Type", "Assigned_Slot", "Principal_Remarks"
+    ];
+    colsToMigrate.forEach(function(col) {
+      // Re-read headers each iteration so lengths stay accurate after additions
+      var currentHeaders = dbSheet.getRange(1, 1, 1, dbSheet.getLastColumn()).getValues()[0];
+      if (findHeaderIndex(currentHeaders, col) === -1) {
+        dbSheet.getRange(1, currentHeaders.length + 1).setValue(col)
+          .setFontWeight("bold")
+          .setBackground("#1e293b")
+          .setFontColor("#ffffff");
+      }
+    });
   }
   return dbSheet;
 }
