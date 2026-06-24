@@ -641,10 +641,9 @@ function updateStudentData(department, capid, email, updatedData) {
     var tokenGenerated = existingToken;
     
     if (nextStatus === "Pending_Nodal" && !existingToken && tokenIndex !== -1) {
-      var deptCode = getDeptCode(department);
-      var prefix = deptCode;
+      var prefix = "T";
       
-      // Compute sequential token number
+      // Compute sequential token number centrally (across all departments in System_DB)
       var allTokens = dbSheet.getRange(2, tokenIndex + 1, lastRow - 1, 1).getValues().map(function(r) {
         return r[0] ? r[0].toString().trim() : "";
       });
@@ -660,7 +659,10 @@ function updateStudentData(department, capid, email, updatedData) {
       });
       
       var nextNum = maxNum + 1;
-      var paddedNum = ("000" + nextNum).slice(-3);
+      var paddedNum = nextNum.toString();
+      while (paddedNum.length < 3) {
+        paddedNum = "0" + paddedNum;
+      }
       tokenGenerated = prefix + "-" + paddedNum;
       updatedData["Token_Number"] = tokenGenerated;
     }
