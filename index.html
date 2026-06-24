@@ -2205,43 +2205,51 @@
       
       var status = student["Current_Status"] || "Pending_Faculty";
 
-      // If Admitted or TC Issued, provide a close option and print TC
-      if (status === "Admitted" || status === "TC Issued") {
+      // If TC Issued — Print TC only (no admit/PTA buttons)
+      if (status === "TC Issued") {
         container.innerHTML = "<button class='btn btn-success' onclick='printTC()'>Print Transfer Certificate (TC)</button>" +
                               "<button class='btn btn-secondary' onclick='closeModal()'>Close</button>";
-        
-        // Principal or PTA or Nodal can still revert Admitted student back
-        if (userRole === "Principal" || userRole === "PTA" || userRole === "Nodal Officer") {
+        if (userRole === "Principal" || userRole === "Nodal Officer") {
           var revBtn = document.createElement("button");
           revBtn.className = "btn btn-danger";
           revBtn.innerText = "Revert Student";
           revBtn.onclick = function() { triggerRevertFlow(status); };
           container.insertBefore(revBtn, container.firstChild);
         }
-        
-        // Principal can still update Admission/TC number even after TC is issued
-        if (userRole === "Principal") {
-          var updateBtn = document.createElement("button");
-          updateBtn.className = "btn btn-success";
-          updateBtn.innerText = "Update TC / Adm Details";
-          updateBtn.onclick = function() { principalAdmit(); };
-          container.insertBefore(updateBtn, container.firstChild);
-        }
-        
-        // PTA desk can still update fees and reprint receipt even if Admitted
         if (userRole === "PTA") {
-          var ptaBtn = document.createElement("button");
-          ptaBtn.className = "btn btn-success";
-          ptaBtn.innerText = "Update PTA Fee";
-          ptaBtn.onclick = function() { ptaCollect(); };
-          container.insertBefore(ptaBtn, container.firstChild);
-          
           if (student["PTA_Amount"]) {
             var reprintBtn = document.createElement("button");
             reprintBtn.className = "btn btn-primary";
             reprintBtn.innerText = "Reprint PTA Receipt";
             reprintBtn.onclick = function() { printPTAReceipt(); };
             container.insertBefore(reprintBtn, container.firstChild);
+          }
+        }
+        return;
+      }
+
+      // If Admitted — Principal sees Issue TC button; others see read-only
+      if (status === "Admitted") {
+        if (userRole === "Principal") {
+          container.innerHTML = "<button class='btn btn-success' onclick='principalIssueTC()'>Issue TC</button>" +
+                                "<button class='btn btn-danger' onclick='triggerRevertFlow(\"Admitted\")'>Revert Student</button>" +
+                                "<button class='btn btn-secondary' onclick='closeModal()'>Close</button>";
+        } else {
+          container.innerHTML = "<p style='color: var(--text-muted); font-size: 0.85rem; font-style: italic;'>Student Admitted. Awaiting TC issuance by Principal.</p>" +
+                                "<button class='btn btn-secondary' onclick='closeModal()'>Close</button>";
+          if (userRole === "PTA" && student["PTA_Amount"]) {
+            var reprintBtn2 = document.createElement("button");
+            reprintBtn2.className = "btn btn-primary";
+            reprintBtn2.innerText = "Reprint PTA Receipt";
+            reprintBtn2.onclick = function() { printPTAReceipt(); };
+            container.insertBefore(reprintBtn2, container.firstChild);
+          }
+          if ((userRole === "Nodal Officer") ) {
+            var revBtn2 = document.createElement("button");
+            revBtn2.className = "btn btn-danger";
+            revBtn2.innerText = "Revert Student";
+            revBtn2.onclick = function() { triggerRevertFlow("Admitted"); };
+            container.insertBefore(revBtn2, container.firstChild);
           }
         }
         return;
@@ -2254,7 +2262,7 @@
         } else {
           container.innerHTML = "<p style='color: var(--text-muted); font-size: 0.85rem; font-style: italic;'>Locked. Student in next validation step (" + status + ").</p>";
         }
-      } 
+      }
       else if (userRole === "Nodal Officer") {
         if (status === "Pending_Nodal") {
           container.innerHTML = "<button class='btn btn-success' onclick='nodalApprove()'>Approve & Forward to PTA</button>" +
@@ -2266,7 +2274,6 @@
       else if (userRole === "PTA") {
         var actionText = (status === "Pending_PTA") ? "Collect Fee & Forward to Principal" : "Update PTA Fee";
         container.innerHTML = "<button class='btn btn-success' onclick='ptaCollect()'>" + actionText + "</button>";
-        // Show Print & Email Receipt only after fee has been collected
         if (student["PTA_Amount"]) {
           container.innerHTML += "<button class='btn btn-primary' onclick='printPTAReceipt()'>Print/Reprint Receipt</button>";
           container.innerHTML += "<button class='btn btn-success' id='btn-email-receipt' onclick='emailPTAReceipt()'>Email Receipt to Student</button>";
@@ -2277,7 +2284,8 @@
       }
       else if (userRole === "Principal") {
         if (status === "Pending_Principal") {
-          container.innerHTML = "<button class='btn btn-success' onclick='principalAdmit()'>Issue TC</button>" +
+          // Step 1: Admit Student (enters admission number)
+          container.innerHTML = "<button class='btn btn-success' onclick='principalAdmitStudent()'>&#10003; Admit Student</button>" +
                                 "<button class='btn btn-danger' onclick='triggerRevertFlow(\"Pending_Principal\")'>Revert Student</button>";
         } else {
           container.innerHTML = "<p style='color: var(--text-muted); font-size: 0.85rem; font-style: italic;'>Locked. Status: " + status + ".</p>";
@@ -2297,23 +2305,6 @@
       closeBtn.onclick = function() { closeModal(); };
       container.appendChild(closeBtn);
       
-      // If the student has already paid PTA fee, show the Print Receipt button for all roles!
-      if (student["PTA_Amount"] && parseFloat(student["PTA_Amount"]) > 0) {
-        var hasPrintBtn = false;
-        var buttons = container.querySelectorAll("button");
-        buttons.forEach(function(btn) {
-          if (btn.innerText.includes("Receipt")) {
-            hasPrintBtn = true;
-          }
-        });
-        if (!hasPrintBtn) {
-          var printBtn = document.createElement("button");
-          printBtn.className = "btn btn-primary";
-          printBtn.innerText = "Print PTA Receipt";
-          printBtn.onclick = function() { printPTAReceipt(); };
-          container.appendChild(printBtn);
-        }
-      }
     }
 
     // Action handlers for Faculty
@@ -2428,9 +2419,33 @@
       });
     }
 
-    // Action handlers for Principal
-    function principalAdmit() {
+    // Action handlers for Principal — Step 1: Admit Student
+    function principalAdmitStudent() {
       var admNo = document.getElementById("wf-admission-number").value;
+      var remarks = document.getElementById("wf-principal-remarks").value;
+      
+      if (!admNo.trim()) {
+        showToast("Please enter the Admission Number before admitting.", true);
+        return;
+      }
+      
+      var dataToUpdate = compileUpdatedProfileData();
+      dataToUpdate["Admission_Number"] = admNo;
+      dataToUpdate["Principal_Remarks"] = remarks;
+      dataToUpdate["Current_Status"] = "Admitted";
+      
+      sendUpdate(dataToUpdate, function(res) {
+        showToast("Student Admitted successfully! (Adm No: " + admNo + ")");
+        activeStudent["Admission_Number"] = admNo;
+        activeStudent["Principal_Remarks"] = remarks;
+        activeStudent["Current_Status"] = "Admitted";
+        setupWorkflowButtons(activeStudent);
+        setTimeout(function() { loadDepartmentData(); }, 800);
+      });
+    }
+
+    // Action handlers for Principal — Step 2: Issue TC (only for Admitted students)
+    function principalIssueTC() {
       var tcNo = document.getElementById("wf-tc-number").value;
       var leavingSem = document.getElementById("wf-leaving-semester").value;
       var promoStatus = document.getElementById("wf-promotion-status").value;
@@ -2441,17 +2456,12 @@
       var issueDt = formatDateToDDMMYYYY(document.getElementById("wf-issue-date").value);
       var remarks = document.getElementById("wf-principal-remarks").value;
       
-      if (!admNo.trim()) {
-        showToast("Please assign an Admission Number first.", true);
-        return;
-      }
       if (!tcNo.trim()) {
-        showToast("Please assign a TC Number first.", true);
+        showToast("Please enter a TC Number before issuing.", true);
         return;
       }
       
       var dataToUpdate = compileUpdatedProfileData();
-      dataToUpdate["Admission_Number"] = admNo;
       dataToUpdate["Token_Number"] = tcNo;
       dataToUpdate["Leaving_Semester"] = leavingSem;
       dataToUpdate["Promotion_Status"] = promoStatus;
@@ -2465,7 +2475,6 @@
       
       sendUpdate(dataToUpdate, function(res) {
         showToast("TC Issued successfully!");
-        activeStudent["Admission_Number"] = admNo;
         activeStudent["Token_Number"] = tcNo;
         activeStudent["Leaving_Semester"] = leavingSem;
         activeStudent["Promotion_Status"] = promoStatus;
@@ -2477,9 +2486,12 @@
         activeStudent["Principal_Remarks"] = remarks;
         activeStudent["Current_Status"] = "TC Issued";
         setupWorkflowButtons(activeStudent);
-        loadDepartmentData();
+        setTimeout(function() { loadDepartmentData(); }, 800);
       });
     }
+
+    // Legacy alias kept for Update TC/Adm Details button (used on TC Issued students)
+    function principalAdmit() { principalIssueTC(); }
 
     // Generic multi-stage reversion dialog/logic
     function triggerRevertFlow(currentStepStatus) {
