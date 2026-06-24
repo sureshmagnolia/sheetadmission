@@ -1155,12 +1155,21 @@ function emailPTAReceipt(capid, email) {
       return JSON.stringify({ success: false, message: "Student email address is unavailable." });
     }
     
-    // Construct base64 logo if helper function exists
+    // Build the logo as an inline attachment blob (Gmail blocks base64 data URIs in email)
+    var inlineImages = {};
     var logoHtml = "";
-    if (typeof getLogoBase64 === 'function') {
-      logoHtml = "<img src='" + getLogoBase64() + "' style='max-height: 80px; margin-bottom: 10px;' alt='College Logo'/>";
+    try {
+      var logoBase64 = getLogoBase64(); // "data:image/png;base64,<data>"
+      var base64Data = logoBase64.replace(/^data:image\/\w+;base64,/, "");
+      var decoded = Utilities.base64Decode(base64Data);
+      var logoBlobRaw = Utilities.newBlob(decoded, "image/png", "logo.png");
+      inlineImages["college_logo"] = logoBlobRaw;
+      logoHtml = "<img src='cid:college_logo' style='max-height: 70px; margin-bottom: 10px;' alt='College Logo'/>";
+    } catch (logoErr) {
+      // Logo failed silently – email still sends without it
+      logoHtml = "";
     }
-    
+
     // Generate beautiful responsive HTML body
     var htmlBody = 
       "<div style='font-family: \"Segoe UI\", Tahoma, Geneva, Verdana, sans-serif; max-width: 600px; margin: 20px auto; padding: 25px; border: 1px solid #e2e8f0; border-radius: 12px; background: #ffffff; color: #1a202c; box-shadow: 0 4px 6px rgba(0,0,0,0.05);'>" +
@@ -1211,7 +1220,8 @@ function emailPTAReceipt(capid, email) {
     MailApp.sendEmail({
       to: studentEmail,
       subject: "PTA Fund Collection Receipt - " + studentName.toString().toUpperCase() + " (Token: " + token + ")",
-      htmlBody: htmlBody
+      htmlBody: htmlBody,
+      inlineImages: inlineImages
     });
     
     return JSON.stringify({ success: true, message: "Receipt email sent successfully!" });
