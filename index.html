@@ -1008,6 +1008,7 @@
                 <th>Index Mark</th>
                 <th>Verified Index</th>
                 <th>Assigned Slot</th>
+                <th>PTA Fee</th>
                 <th>Current Status</th>
                 <th>Adm. No</th>
                 <th>Actions</th>
@@ -1681,6 +1682,7 @@
         var indexMark = s["Index Marks (as per admit/allotment card)"] || s["Index Mark"] || "-";
         var verifiedIndex = s["Verified_Index_Mark"] || "-";
         var assignedSlot = s["Assigned_Slot"] || "-";
+        var ptaAmount = s["PTA_Amount"] ? ("INR " + s["PTA_Amount"] + "/-") : "-";
         var status = s["Current_Status"] || "Pending_Faculty";
         var admNo = s["Admission_Number"] || "-";
         
@@ -1694,6 +1696,7 @@
                        "<td>" + indexMark + "</td>" +
                        "<td>" + verifiedIndex + "</td>" +
                        "<td>" + assignedSlot + "</td>" +
+                       "<td><strong>" + ptaAmount + "</strong></td>" +
                        "<td><span class='status-badge status-" + status.replace(/\s+/g, '_') + "'>" + status.replace('_', ' ') + "</span></td>" +
                        "<td>" + admNo + "</td>" +
                        "<td><button class='btn btn-secondary' style='padding: 4px 10px; font-size: 0.8rem;'>Verify</button></td>";
@@ -3268,6 +3271,7 @@
         var indexMark = s["Index Marks (as per admit/allotment card)"] || s["Index Mark"] || "-";
         var verifiedIndex = s["Verified_Index_Mark"] || "-";
         var assignedSlot = s["Assigned_Slot"] || "-";
+        var ptaAmount = s["PTA_Amount"] ? ("INR " + s["PTA_Amount"] + "/-") : "-";
         var status = s["Current_Status"] || "Pending_Faculty";
         var admNo = s["Admission_Number"] || "-";
         
@@ -3280,6 +3284,7 @@
           "<td>" + indexMark + "</td>" +
           "<td>" + verifiedIndex + "</td>" +
           "<td>" + assignedSlot + "</td>" +
+          "<td><strong>" + ptaAmount + "</strong></td>" +
           "<td>" + status.replace('_', ' ') + "</td>" +
           "<td>" + admNo + "</td>" +
         "</tr>";
@@ -3307,14 +3312,15 @@
           "<thead>" +
             "<tr>" +
               "<th style='width: 4%;'>Sl</th>" +
-              "<th style='width: 10%;'>Token / TC</th>" +
+              "<th style='width: 9%;'>Token / TC</th>" +
               "<th style='width: 10%;'>CAPID</th>" +
-              "<th style='width: 18%;'>Student Name</th>" +
-              "<th style='width: 12%;'>Department</th>" +
-              "<th style='width: 8%;'>Original Index</th>" +
-              "<th style='width: 8%;'>Verified Index</th>" +
-              "<th style='width: 8%;'>Assigned Slot</th>" +
-              "<th style='width: 12%;'>Current Status</th>" +
+              "<th style='width: 16%;'>Student Name</th>" +
+              "<th style='width: 11%;'>Department</th>" +
+              "<th style='width: 7%;'>Original Index</th>" +
+              "<th style='width: 7%;'>Verified Index</th>" +
+              "<th style='width: 7%;'>Assigned Slot</th>" +
+              "<th style='width: 8%;'>PTA Fee</th>" +
+              "<th style='width: 11%;'>Current Status</th>" +
               "<th style='width: 10%;'>Admission No</th>" +
             "</tr>" +
           "</thead>" +
