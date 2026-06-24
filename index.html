@@ -2263,11 +2263,9 @@
       else if (userRole === "PTA") {
         var actionText = (status === "Pending_PTA") ? "Collect Fee & Forward to Principal" : "Update PTA Fee";
         container.innerHTML = "<button class='btn btn-success' onclick='ptaCollect()'>" + actionText + "</button>";
-        
-        if (student["PTA_Amount"] || status !== "Pending_PTA") {
-          container.innerHTML += "<button class='btn btn-primary' onclick='printPTAReceipt()'>Print/Reprint Receipt</button>";
-          container.innerHTML += "<button class='btn btn-success' id='btn-email-receipt' onclick='emailPTAReceipt()'>Email Receipt</button>";
-        }
+        // Always show Print & Email Receipt buttons on PTA desk
+        container.innerHTML += "<button class='btn btn-primary' onclick='printPTAReceipt()'>Print/Reprint Receipt</button>";
+        container.innerHTML += "<button class='btn btn-success' id='btn-email-receipt' onclick='emailPTAReceipt()'>Email Receipt</button>";
         if (status === "Pending_PTA") {
           container.innerHTML += "<button class='btn btn-danger' onclick='triggerRevertFlow(\"Pending_PTA\")'>Revert Student</button>";
         }
@@ -2420,7 +2418,8 @@
         activeStudent["Current_Status"] = "Pending_Principal";
         setupWorkflowButtons(activeStudent);
         printPTAReceipt();
-        loadDepartmentData();
+        // Defer data reload until after receipt tab is opened to avoid blocking UI
+        setTimeout(function() { loadDepartmentData(); }, 1500);
       });
     }
 
@@ -2915,7 +2914,8 @@
       var slots = ["OPEN", "ETB", "MU", "LC", "EWS", "OBH", "SC", "ST", "TLM", "SP", "PWD", "UTL", "OBX", "SSQ"];
       
       seatMatrixData.forEach(function(item) {
-        if (item.Department.toLowerCase() === "total") return;
+        if (!item || !item.Department) return;
+        if (item.Department.toString().toLowerCase() === "total") return;
         
         var tr = document.createElement("tr");
         var html = "<td style='font-weight: 500; font-size: 0.85rem; white-space: nowrap;'>" + item.Department + "</td>";
