@@ -2263,9 +2263,11 @@
       else if (userRole === "PTA") {
         var actionText = (status === "Pending_PTA") ? "Collect Fee & Forward to Principal" : "Update PTA Fee";
         container.innerHTML = "<button class='btn btn-success' onclick='ptaCollect()'>" + actionText + "</button>";
-        // Always show Print & Email Receipt buttons on PTA desk
-        container.innerHTML += "<button class='btn btn-primary' onclick='printPTAReceipt()'>Print/Reprint Receipt</button>";
-        container.innerHTML += "<button class='btn btn-success' id='btn-email-receipt' onclick='emailPTAReceipt()'>Email Receipt</button>";
+        // Show Print & Email Receipt only after fee has been collected
+        if (student["PTA_Amount"]) {
+          container.innerHTML += "<button class='btn btn-primary' onclick='printPTAReceipt()'>Print/Reprint Receipt</button>";
+          container.innerHTML += "<button class='btn btn-success' id='btn-email-receipt' onclick='emailPTAReceipt()'>Email Receipt to Student</button>";
+        }
         if (status === "Pending_PTA") {
           container.innerHTML += "<button class='btn btn-danger' onclick='triggerRevertFlow(\"Pending_PTA\")'>Revert Student</button>";
         }
