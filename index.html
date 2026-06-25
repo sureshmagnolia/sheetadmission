@@ -1471,9 +1471,8 @@
         <!-- Single Student Filter Input -->
         <div class="form-group" id="id-filter-student-group" style="margin-bottom: 15px;">
           <label style="display: block; margin-bottom: 5px; font-weight: 500; font-size: 0.9rem;">Select Student (Admitted only)</label>
-          <select class="form-control" id="id-select-student" style="width: 100%; background: var(--bg-dark); color: var(--text-main); border: 1px solid var(--card-border); padding: 8px 12px; border-radius: 6px;">
-            <!-- Dynamically loaded -->
-          </select>
+          <input type="text" id="id-select-student" class="form-control" list="id-student-list" placeholder="Type to search (Name or CAP ID)..." style="width: 100%; background: var(--bg-dark); color: var(--text-main); border: 1px solid var(--card-border); padding: 8px 12px; border-radius: 6px;">
+          <datalist id="id-student-list"></datalist>
         </div>
         
         <!-- Department Filter Input -->
@@ -4272,9 +4271,9 @@
         modal.style.display = "flex";
         
         // Populate select-student with admitted students
-        var studentSelect = document.getElementById("id-select-student");
+        var studentSelect = document.getElementById("id-student-list");
         if (studentSelect) {
-          studentSelect.innerHTML = "<option value=''>-- Select Student --</option>";
+          studentSelect.innerHTML = "";
           
           var admittedStudents = (allStudents || []).filter(function(s) {
             return s && s["Current_Status"] === "Admitted";
@@ -4291,8 +4290,7 @@
             var name = s["Name (As per your certificate)"] || s["Name"] || "";
             var admNo = s["Admission_Number"] || "";
             var opt = document.createElement("option");
-            opt.value = capid;
-            opt.innerText = name.toUpperCase() + " (" + capid + ") - Adm: " + admNo;
+            opt.value = name.toUpperCase() + " (" + capid + ") - Adm: " + admNo;
             studentSelect.appendChild(opt);
           });
         }
@@ -4380,11 +4378,14 @@
       var selectedStudents = [];
       
       if (filterType === "student") {
-        var selectedCap = document.getElementById("id-select-student").value;
-        if (!selectedCap) {
+        var selectedInput = document.getElementById("id-select-student").value;
+        if (!selectedInput) {
           showToast("Please select a student.", true);
           return;
         }
+        var regex = /\(([^)]+)\)/;
+        var match = selectedInput.match(regex);
+        var selectedCap = match ? match[1] : selectedInput;
         selectedStudents = allStudents.filter(function(s) {
           return s["Current_Status"] === "Admitted" && 
                  ((s["CAP id (Enter the full cap id without any spaces)"] || s["CAPID"] || "").toString().trim().toLowerCase() === selectedCap.trim().toLowerCase());
@@ -4523,8 +4524,7 @@
           "* { box-sizing: border-box; font-family: 'Outfit', sans-serif; margin: 0; padding: 0; }" +
           "body { background: #fff; padding: 0; margin: 0; }" +
           
-          /* Print setup: exact size of CR80 card */
-          ".id-card-page { width: 100vw; height: 100vh; display: flex; align-items: center; justify-content: center; page-break-after: always; }" +
+          ".id-card-page { display: inline-flex; margin: 4mm; page-break-inside: avoid; }" +
           
           ".id-card-front {" +
             "width: 54mm; height: 86mm; border: 1px solid #111; position: relative; display: flex; flex-direction: column;" +
@@ -4596,14 +4596,20 @@
           ".student-barcode { width: 32mm; height: auto; max-height: 12mm; }" +
           ".student-qrcode { width: 10mm; height: 10mm; display: flex; justify-content: center; align-items: center; }" +
           
-          /* Print configuration to hide margins */
           "@media print {" +
-            "body { background: none; }" +
-            ".id-card-page { page-break-after: always; }" +
+            "body { background: #fff !important; padding: 0 !important; }" +
+            ".no-print { display: none !important; }" +
+            ".a4-container { box-shadow: none !important; margin: 0 !important; padding: 0 !important; }" +
           "}" +
         "</style>" +
-        "</head><body>" +
+        "</head><body style='text-align:center; background:#e2e8f0; padding-top:20px; font-family: Outfit, sans-serif;'>" +
+        "<div class='no-print' style='margin-bottom:20px;'>" +
+          "<button onclick='window.print()' style='padding: 12px 24px; font-size: 16px; cursor: pointer; background: #2563eb; color: white; border: none; border-radius: 6px; font-weight:bold; box-shadow: 0 4px 6px rgba(0,0,0,0.1);'>🖨️ Print ID Cards</button>" +
+          "<p style='margin-top:10px; color:#475569; font-size:14px;'>Use 'Save as PDF' or print directly to A4 paper. Make sure 'Scale' is set to Default.</p>" +
+        "</div>" +
+        "<div class='a4-container' style='max-width:210mm; margin:0 auto; background:#fff; padding:10mm; text-align:left; box-shadow:0 0 15px rgba(0,0,0,0.15); border-radius:8px; display: flex; flex-wrap: wrap; justify-content: flex-start;'>" +
         idCardsHtml +
+        "</div>" +
         "<" + "script>" +
           "window.onload = function() {" +
             "var barcodes = document.querySelectorAll('.student-barcode');" +
@@ -4632,10 +4638,6 @@
                 "});" +
               "}" +
             "});" +
-            "setTimeout(function() {" +
-              "window.print();" +
-              "window.close();" +
-            "}, 1200);" +
           "};" +
         "</" + "script>" +
         "</body></html>";
