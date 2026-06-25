@@ -4260,84 +4260,117 @@
 
     // Modal control and generator logic for ID Cards
     function openIDCardsModal() {
-      document.getElementById("idcards-modal").style.display = "flex";
-      
-      // Populate select-student with admitted students
-      var studentSelect = document.getElementById("id-select-student");
-      studentSelect.innerHTML = "<option value=''>-- Select Student --</option>";
-      
-      var admittedStudents = allStudents.filter(function(s) {
-        return s["Current_Status"] === "Admitted";
-      });
-      
-      admittedStudents.sort(function(a, b) {
-        var nameA = (a["Name (As per your certificate)"] || a["Name"] || "").toString();
-        var nameB = (b["Name (As per your certificate)"] || b["Name"] || "").toString();
-        return nameA.localeCompare(nameB);
-      });
-      
-      admittedStudents.forEach(function(s) {
-        var capid = s["CAP id (Enter the full cap id without any spaces)"] || s["CAPID"] || "";
-        var name = s["Name (As per your certificate)"] || s["Name"] || "";
-        var admNo = s["Admission_Number"] || "";
-        var opt = document.createElement("option");
-        opt.value = capid;
-        opt.innerText = name.toUpperCase() + " (" + capid + ") - Adm: " + admNo;
-        studentSelect.appendChild(opt);
-      });
-      
-      // Populate departments list
-      var deptSelect = document.getElementById("id-select-dept");
-      deptSelect.innerHTML = "<option value=''>-- Select Department --</option>";
-      var uniqueDepts = [];
-      allStudents.forEach(function(s) {
-        if (s["Current_Status"] === "Admitted" && s["Department"]) {
-          var d = s["Department"].toString().trim();
-          if (uniqueDepts.indexOf(d) === -1) {
-            uniqueDepts.push(d);
-          }
+      try {
+        var modal = document.getElementById("idcards-modal");
+        if (!modal) {
+          console.error("idcards-modal element not found");
+          alert("Error: ID Card modal HTML template not found in the DOM.");
+          return;
         }
-      });
-      uniqueDepts.sort().forEach(function(d) {
-        var opt = document.createElement("option");
-        opt.value = d;
-        opt.innerText = d;
-        deptSelect.appendChild(opt);
-      });
-      
-      // Populate class / program list
-      var classSelect = document.getElementById("id-select-class");
-      classSelect.innerHTML = "<option value=''>-- Select Class / Program --</option>";
-      var uniqueClasses = [];
-      allStudents.forEach(function(s) {
-        if (s["Current_Status"] === "Admitted" && s["Admission to the Programme"]) {
-          var c = s["Admission to the Programme"].toString().trim();
-          if (uniqueClasses.indexOf(c) === -1) {
-            uniqueClasses.push(c);
-          }
+        modal.style.display = "flex";
+        
+        // Populate select-student with admitted students
+        var studentSelect = document.getElementById("id-select-student");
+        if (studentSelect) {
+          studentSelect.innerHTML = "<option value=''>-- Select Student --</option>";
+          
+          var admittedStudents = (allStudents || []).filter(function(s) {
+            return s && s["Current_Status"] === "Admitted";
+          });
+          
+          admittedStudents.sort(function(a, b) {
+            var nameA = (a["Name (As per your certificate)"] || a["Name"] || "").toString();
+            var nameB = (b["Name (As per your certificate)"] || b["Name"] || "").toString();
+            return nameA.localeCompare(nameB);
+          });
+          
+          admittedStudents.forEach(function(s) {
+            var capid = s["CAP id (Enter the full cap id without any spaces)"] || s["CAPID"] || "";
+            var name = s["Name (As per your certificate)"] || s["Name"] || "";
+            var admNo = s["Admission_Number"] || "";
+            var opt = document.createElement("option");
+            opt.value = capid;
+            opt.innerText = name.toUpperCase() + " (" + capid + ") - Adm: " + admNo;
+            studentSelect.appendChild(opt);
+          });
         }
-      });
-      uniqueClasses.sort().forEach(function(c) {
-        var opt = document.createElement("option");
-        opt.value = c;
-        opt.innerText = c;
-        classSelect.appendChild(opt);
-      });
-      
-      // Reset filter type to student
-      document.getElementById("id-filter-type").value = "student";
-      toggleIDFilterInputs();
+        
+        // Populate departments list
+        var deptSelect = document.getElementById("id-select-dept");
+        if (deptSelect) {
+          deptSelect.innerHTML = "<option value=''>-- Select Department --</option>";
+          var uniqueDepts = [];
+          (allStudents || []).forEach(function(s) {
+            if (s && s["Current_Status"] === "Admitted" && s["Department"]) {
+              var d = s["Department"].toString().trim();
+              if (uniqueDepts.indexOf(d) === -1) {
+                uniqueDepts.push(d);
+              }
+            }
+          });
+          uniqueDepts.sort().forEach(function(d) {
+            var opt = document.createElement("option");
+            opt.value = d;
+            opt.innerText = d;
+            deptSelect.appendChild(opt);
+          });
+        }
+        
+        // Populate class / program list
+        var classSelect = document.getElementById("id-select-class");
+        if (classSelect) {
+          classSelect.innerHTML = "<option value=''>-- Select Class / Program --</option>";
+          var uniqueClasses = [];
+          (allStudents || []).forEach(function(s) {
+            if (s && s["Current_Status"] === "Admitted" && s["Admission to the Programme"]) {
+              var c = s["Admission to the Programme"].toString().trim();
+              if (uniqueClasses.indexOf(c) === -1) {
+                uniqueClasses.push(c);
+              }
+            }
+          });
+          uniqueClasses.sort().forEach(function(c) {
+            var opt = document.createElement("option");
+            opt.value = c;
+            opt.innerText = c;
+            classSelect.appendChild(opt);
+          });
+        }
+        
+        var filterTypeSelect = document.getElementById("id-filter-type");
+        if (filterTypeSelect) {
+          filterTypeSelect.value = "student";
+        }
+        toggleIDFilterInputs();
+      } catch (err) {
+        console.error("Error in openIDCardsModal:", err);
+        alert("Failed to initialize ID Cards Generator: " + err.message);
+      }
     }
     
     function closeIDCardsModal() {
-      document.getElementById("idcards-modal").style.display = "none";
+      var modal = document.getElementById("idcards-modal");
+      if (modal) {
+        modal.style.display = "none";
+      }
     }
     
     function toggleIDFilterInputs() {
-      var filterType = document.getElementById("id-filter-type").value;
-      document.getElementById("id-filter-student-group").style.display = (filterType === "student") ? "block" : "none";
-      document.getElementById("id-filter-dept-group").style.display = (filterType === "department") ? "block" : "none";
-      document.getElementById("id-filter-class-group").style.display = (filterType === "class") ? "block" : "none";
+      try {
+        var filterTypeEl = document.getElementById("id-filter-type");
+        if (!filterTypeEl) return;
+        var filterType = filterTypeEl.value;
+        
+        var studGrp = document.getElementById("id-filter-student-group");
+        var deptGrp = document.getElementById("id-filter-dept-group");
+        var clsGrp = document.getElementById("id-filter-class-group");
+        
+        if (studGrp) studGrp.style.display = (filterType === "student") ? "block" : "none";
+        if (deptGrp) deptGrp.style.display = (filterType === "department") ? "block" : "none";
+        if (clsGrp) clsGrp.style.display = (filterType === "class") ? "block" : "none";
+      } catch (err) {
+        console.error("Error in toggleIDFilterInputs:", err);
+      }
     }
     
     function generateIDCardsPrint() {
