@@ -974,7 +974,6 @@
             <select class="form-control" id="view-dept" style="display: inline-block; width: 220px;" onchange="loadDepartmentData()"></select>
           </div>
           
-          <input type="text" class="form-control search-box" id="search-bar" placeholder="Search by CAPID, Email, or Name..." onkeyup="filterTable()">
           <button class="btn btn-primary" id="btn-nodal-matrix" style="display: none;" onclick="openSeatMatrixModal()">Manage Seat Split Up</button>
           <button class="btn btn-primary" id="btn-pta-config-fee" style="display: none;" onclick="openPTAConfigModal()">Configure Fees</button>
           <button class="btn btn-success" id="btn-pta-balance" style="display: none;" onclick="generateDailyBalanceSheet()">Balance Sheet</button>
@@ -988,6 +987,16 @@
         <h3 style="font-size: 1.05rem; font-weight: 600; margin-bottom: 10px; color: var(--text-main);">Seat Vacancy Status</h3>
         <div id="vacancy-grid" style="display: flex; gap: 15px; flex-wrap: wrap;">
           <!-- Dynamically populated -->
+        </div>
+      </div>
+
+      <!-- Search Container -->
+      <div id="search-container" style="margin-bottom: 1.25rem;">
+        <div class="search-wrapper" style="position: relative; max-width: 450px;">
+          <input type="text" class="form-control search-box" id="search-bar" placeholder="Search by CAPID, Email, or Name..." onkeyup="filterTable()" style="padding-left: 40px; width: 100%;">
+          <span style="position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: var(--text-muted); pointer-events: none; display: flex; align-items: center;">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" style="width: 14px; height: 14px; fill: currentColor;"><path d="M416 208c0 45.9-14.9 88.3-40 122.7L502.6 457.4c12.5 12.5 12.5 32.8 0 45.3s-32.8 12.5-45.3 0L330.7 376c-34.4 25.2-76.8 40-122.7 40C93.1 416 0 322.9 0 208S93.1 0 208 0S416 93.1 416 208zM208 352a144 144 0 1 0 0-288 144 144 0 1 0 0 288z"/></svg>
+          </span>
         </div>
       </div>
 
@@ -1676,6 +1685,17 @@
 
       dashboardTabs.style.display = "flex";
       viewDeptSelector.style.display = "none";
+      
+      // Reposition Search Box dynamically based on role
+      var searchContainer = document.getElementById("search-container");
+      var ptaSummaryContainer = document.getElementById("pta-summary-container");
+      
+      if (userRole === "PTA") {
+        ptaSummaryContainer.parentNode.insertBefore(searchContainer, ptaSummaryContainer.nextSibling);
+      } else {
+        dashboardTabs.parentNode.insertBefore(searchContainer, dashboardTabs);
+      }
+      
       loadDepartmentData();
     }
 
