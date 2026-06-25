@@ -168,7 +168,7 @@ function getDepartmentData(department) {
     }
     var tz = sheet.getSpreadsheetTimeZone();
     var masterSheet = getMasterSheet(sheet);
-    var dbSheet = sheet.getSheetByName(SYSTEM_DB_SHEET_NAME);
+    var dbSheet = getOrCreateSystemDBSheet();
     
     if (!dbSheet) {
       return JSON.stringify({ success: false, message: "System_DB not found." });
@@ -276,7 +276,7 @@ function getAllDepartmentsData() {
     }
     var tz = sheet.getSpreadsheetTimeZone();
     var masterSheet = getMasterSheet(sheet);
-    var dbSheet = sheet.getSheetByName(SYSTEM_DB_SHEET_NAME);
+    var dbSheet = getOrCreateSystemDBSheet();
     
     if (!dbSheet) {
       return JSON.stringify({ success: false, message: "System_DB not found." });
@@ -1262,7 +1262,7 @@ function deduplicateSystemDB(dbSheet) {
 // Retroactively populate missing PTA_Payment_Date, Date_of_Admission, and Date_of_TC entries in System_DB based on Audit_Logs timestamps
 function backfillPTAPaymentDates() {
   var sheet = SpreadsheetApp.getActiveSpreadsheet();
-  var dbSheet = sheet.getSheetByName(SYSTEM_DB_SHEET_NAME);
+  var dbSheet = getOrCreateSystemDBSheet();
   var logSheet = sheet.getSheetByName("Audit_Logs");
   
   if (!dbSheet || !logSheet) return;
