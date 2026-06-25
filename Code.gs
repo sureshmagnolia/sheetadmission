@@ -108,7 +108,7 @@ function getOrCreateSystemDBSheet() {
     "Issue_Date", "Conduct", "PTA_Welfare_Fund", "PTA_Membership", "PTA_Voluntary_Contribution", 
     "PTA_Cooperative_Store", "PTA_ID_Card_Fee", "PTA_Payment_Date",
     "Program_Type", "Assigned_Slot", "Synced_Form_Department", "Verified_Index_Mark",
-    "Date_of_Admission", "Date_of_TC", "Date_of_Transfer"
+    "Date_of_Admission", "Date_of_TC", "Date_of_Transfer", "System_Last_Modified"
   ];
   
   if (!dbSheet) {
@@ -158,7 +158,7 @@ function onFormSubmit(e) {
 }
 
 // Fetch all student records for a department by joining Master Responses & System_DB
-function getDepartmentData(department) {
+function getDepartmentData(department, lastSyncTime) {
   try {
     var sheet = SpreadsheetApp.getActiveSpreadsheet();
     try {
@@ -197,15 +197,39 @@ function getDepartmentData(department) {
     var dbData = {};
     var dbDataListByCid = {};
     
+    var deltaCapids = null;
+    if (lastSyncTime) {
+      deltaCapids = {};
+      var syncTimeMs = parseInt(lastSyncTime, 10);
+      var masterTimeIdx = findHeaderIndex(masterHeaders, "Timestamp");
+      if (masterTimeIdx !== -1) {
+        masterValues.forEach(function(row) {
+          var ts = row[masterTimeIdx];
+          if (ts && ts instanceof Date && ts.getTime() > syncTimeMs) {
+            var cid = capidIndex !== -1 && row[capidIndex] ? row[capidIndex].toString().trim().toLowerCase() : "";
+            if (cid) deltaCapids[cid] = true;
+          }
+        });
+      }
+    }
+    
     if (dbLastRow > 1) {
       var dbValues = dbSheet.getRange(2, 1, dbLastRow - 1, dbSheet.getLastColumn()).getValues();
       var capidColIndex = findHeaderIndex(dbHeaders, "CAPID");
       var deptColIndex = findHeaderIndex(dbHeaders, "Department");
       var statusColIndex = findHeaderIndex(dbHeaders, "Current_Status");
+      var sysLastModIdx = findHeaderIndex(dbHeaders, "System_Last_Modified");
       
       dbValues.forEach(function(row) {
         var cid = capidColIndex !== -1 && row[capidColIndex] ? row[capidColIndex].toString().trim().toLowerCase() : "";
         var dept = deptColIndex !== -1 && row[deptColIndex] ? row[deptColIndex].toString().trim().toLowerCase() : "";
+        
+        if (deltaCapids) {
+          var modTime = (sysLastModIdx !== -1 && row[sysLastModIdx]) ? parseFloat(row[sysLastModIdx]) : 0;
+          if (modTime && modTime > parseInt(lastSyncTime, 10)) {
+            if (cid) deltaCapids[cid] = true;
+          }
+        }
         
         if (cid && dept) {
           var rowObj = {};
@@ -240,6 +264,11 @@ function getDepartmentData(department) {
       if (studentDept.toLowerCase() === department.toLowerCase()) {
         var capid = row[capidIndex] ? row[capidIndex].toString().trim() : "";
         processedCapids[capid.toLowerCase()] = true;
+        
+        if (deltaCapids && !deltaCapids[capid.toLowerCase()]) {
+          return; // Skip unmodified profile
+        }
+        
         var email = "";
         if (emailIndex !== -1 && row[emailIndex]) {
           email = row[emailIndex].toString().trim();
@@ -315,6 +344,9 @@ function getDepartmentData(department) {
       var cid = parts[0];
       var dept = parts[1];
       if (dept.toLowerCase() === department.toLowerCase() && !processedCapids[cid]) {
+        if (deltaCapids && !deltaCapids[cid]) {
+          continue; // Skip unmodified profile
+        }
         var masterRow = masterMapByCapid[cid];
         if (masterRow) {
           var profile = {};
@@ -374,14 +406,14 @@ function getDepartmentData(department) {
       }
     }
     
-    return JSON.stringify({ success: true, data: combinedData });
+    return JSON.stringify({ success: true, data: combinedData, isDelta: !!lastSyncTime, syncTime: new Date().getTime() });
   } catch (error) {
     return JSON.stringify({ success: false, message: error.toString() });
   }
 }
 
 // Fetch all student records across all departments (Central Admin views)
-function getAllDepartmentsData() {
+function getAllDepartmentsData(lastSyncTime) {
   try {
     var sheet = SpreadsheetApp.getActiveSpreadsheet();
     try {
@@ -419,15 +451,39 @@ function getAllDepartmentsData() {
     var dbData = {};
     var dbDataListByCid = {};
     
+    var deltaCapids = null;
+    if (lastSyncTime) {
+      deltaCapids = {};
+      var syncTimeMs = parseInt(lastSyncTime, 10);
+      var masterTimeIdx = findHeaderIndex(masterHeaders, "Timestamp");
+      if (masterTimeIdx !== -1) {
+        masterValues.forEach(function(row) {
+          var ts = row[masterTimeIdx];
+          if (ts && ts instanceof Date && ts.getTime() > syncTimeMs) {
+            var cid = capidIndex !== -1 && row[capidIndex] ? row[capidIndex].toString().trim().toLowerCase() : "";
+            if (cid) deltaCapids[cid] = true;
+          }
+        });
+      }
+    }
+    
     if (dbLastRow > 1) {
       var dbValues = dbSheet.getRange(2, 1, dbLastRow - 1, dbSheet.getLastColumn()).getValues();
       var capidColIndex = findHeaderIndex(dbHeaders, "CAPID");
       var deptColIndex = findHeaderIndex(dbHeaders, "Department");
       var statusColIndex = findHeaderIndex(dbHeaders, "Current_Status");
+      var sysLastModIdx = findHeaderIndex(dbHeaders, "System_Last_Modified");
       
       dbValues.forEach(function(row) {
         var cid = capidColIndex !== -1 && row[capidColIndex] ? row[capidColIndex].toString().trim().toLowerCase() : "";
         var dept = deptColIndex !== -1 && row[deptColIndex] ? row[deptColIndex].toString().trim().toLowerCase() : "";
+        
+        if (deltaCapids) {
+          var modTime = (sysLastModIdx !== -1 && row[sysLastModIdx]) ? parseFloat(row[sysLastModIdx]) : 0;
+          if (modTime && modTime > parseInt(lastSyncTime, 10)) {
+            if (cid) deltaCapids[cid] = true;
+          }
+        }
         
         if (cid && dept) {
           var rowObj = {};
@@ -458,6 +514,11 @@ function getAllDepartmentsData() {
 
     masterValues.forEach(function(row) {
       var capid = row[capidIndex] ? row[capidIndex].toString().trim() : "";
+      
+      if (deltaCapids && !deltaCapids[capid.toLowerCase()]) {
+        return; // Skip unmodified profile
+      }
+      
       var email = "";
       if (emailIndex !== -1 && row[emailIndex]) {
         email = row[emailIndex].toString().trim();
@@ -530,6 +591,9 @@ function getAllDepartmentsData() {
       if (!processedKeys[key]) {
         var parts = key.split("|");
         var cid = parts[0];
+        if (deltaCapids && !deltaCapids[cid]) {
+          continue; // Skip unmodified profile
+        }
         var dept = parts[1];
         var masterRow = masterMapByCapid[cid];
         if (masterRow) {
@@ -590,7 +654,7 @@ function getAllDepartmentsData() {
       }
     }
     
-    return JSON.stringify({ success: true, data: combinedData });
+    return JSON.stringify({ success: true, data: combinedData, isDelta: !!lastSyncTime, syncTime: new Date().getTime() });
   } catch (error) {
     return JSON.stringify({ success: false, message: error.toString() });
   }
@@ -833,6 +897,12 @@ function updateStudentData(department, capid, email, updatedData, operatorRole, 
           changes.push("Date_of_Transfer: '" + dateFormatted + "'");
         }
       }
+    }
+
+    // 4. Set System_Last_Modified to track for incremental sync
+    var lastModColIdx = findHeaderIndex(dbHeaders, "System_Last_Modified");
+    if (lastModColIdx !== -1) {
+      rowValues[lastModColIdx] = new Date().getTime();
     }
     
     rowRange.setValues([rowValues]);

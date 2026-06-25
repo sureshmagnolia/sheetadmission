@@ -1512,6 +1512,67 @@
 
   <!-- Client-side logic -->
   <script>
+    // --- IndexedDB Cache Utility ---
+    var idbName = "CollegeERP_DB";
+    var idbStoreName = "CacheStore";
+    function openDB() {
+      return new Promise(function(resolve, reject) {
+        var request = window.indexedDB.open(idbName, 1);
+        request.onupgradeneeded = function(e) {
+          var db = e.target.result;
+          if (!db.objectStoreNames.contains(idbStoreName)) {
+            db.createObjectStore(idbStoreName);
+          }
+        };
+        request.onsuccess = function(e) { resolve(e.target.result); };
+        request.onerror = function(e) { reject(e.target.error); };
+      });
+    }
+    function idbGet(key) {
+      return openDB().then(function(db) {
+        return new Promise(function(resolve, reject) {
+          var tx = db.transaction(idbStoreName, "readonly");
+          var store = tx.objectStore(idbStoreName);
+          var req = store.get(key);
+          req.onsuccess = function() { resolve(req.result); };
+          req.onerror = function() { reject(req.error); };
+        });
+      });
+    }
+    function idbSet(key, value) {
+      return openDB().then(function(db) {
+        return new Promise(function(resolve, reject) {
+          var tx = db.transaction(idbStoreName, "readwrite");
+          var store = tx.objectStore(idbStoreName);
+          var req = store.put(value, key);
+          req.onsuccess = function() { resolve(); };
+          req.onerror = function() { reject(req.error); };
+        });
+      });
+    }
+    function idbRemove(key) {
+      return openDB().then(function(db) {
+        return new Promise(function(resolve, reject) {
+          var tx = db.transaction(idbStoreName, "readwrite");
+          var store = tx.objectStore(idbStoreName);
+          var req = store.delete(key);
+          req.onsuccess = function() { resolve(); };
+          req.onerror = function() { reject(req.error); };
+        });
+      });
+    }
+    function idbClear() {
+      return openDB().then(function(db) {
+        return new Promise(function(resolve, reject) {
+          var tx = db.transaction(idbStoreName, "readwrite");
+          var store = tx.objectStore(idbStoreName);
+          var req = store.clear();
+          req.onsuccess = function() { resolve(); };
+          req.onerror = function() { reject(req.error); };
+        });
+      });
+    }
+
     // --- CONFIGURE YOUR GOOGLE APPS SCRIPT WEB APP URL HERE ---
     var webAppUrl = "YOUR_WEB_APP_URL"; 
 
@@ -1746,6 +1807,7 @@
     function logout() {
       localStorage.removeItem("erp_role");
       localStorage.removeItem("erp_dept");
+      idbClear().catch(function(e) {});
       userRole = "";
       userDept = "";
       currentSelectedDept = "";
@@ -1860,10 +1922,8 @@
       var isCentral = (userRole === "Nodal Officer" || userRole === "PTA" || userRole === "Principal");
       var cacheKey = isCentral ? "gvc_erp_students_data_central" : ("gvc_erp_students_data_" + currentSelectedDept);
       var cacheTimeKey = isCentral ? "gvc_erp_students_time_central" : ("gvc_erp_students_time_" + currentSelectedDept);
-      try {
-        sessionStorage.removeItem(cacheKey);
-        sessionStorage.removeItem(cacheTimeKey);
-      } catch(e) {}
+        idbRemove(cacheKey).catch(function(e) {});
+        idbRemove(cacheTimeKey).catch(function(e) {});
     }
 
     // Load student records
@@ -1872,53 +1932,94 @@
       var cacheKey = isCentral ? "gvc_erp_students_data_central" : ("gvc_erp_students_data_" + currentSelectedDept);
       var cacheTimeKey = isCentral ? "gvc_erp_students_time_central" : ("gvc_erp_students_time_" + currentSelectedDept);
       
-      try {
-        var cachedData = sessionStorage.getItem(cacheKey);
-        var cacheTime = sessionStorage.getItem(cacheTimeKey);
-        var now = new Date().getTime();
-        if (cachedData && cacheTime && (now - parseInt(cacheTime)) < 5 * 60 * 1000) {
+      Promise.all([idbGet(cacheKey), idbGet(cacheTimeKey)]).then(function(results) {
+        var cachedData = results[0];
+        var cacheTime = results[1];
+        
+        if (cachedData && cacheTime) {
           allStudents = JSON.parse(cachedData);
           filterTable();
           loadSeatMatrix();
-          return;
-        }
-      } catch(e) {}
-
-      var msg = isCentral ? "Fetching all student profiles..." : ("Fetching Department data for " + currentSelectedDept + "...");
-      showLoader(msg);
-      
-      var handler = function(responseJson) {
-        hideLoader();
-        var res = JSON.parse(responseJson);
-        if (res.success) {
-          allStudents = res.data;
-          try {
-            sessionStorage.setItem(cacheKey, JSON.stringify(res.data));
-            sessionStorage.setItem(cacheTimeKey, new Date().getTime().toString());
-          } catch(e) {}
-          filterTable();
-          loadSeatMatrix();
+          showToast("Syncing latest changes...", false);
         } else {
-          showToast(res.message, true);
+          var msg = isCentral ? "Fetching all student profiles..." : ("Fetching Department data for " + currentSelectedDept + "...");
+          showLoader(msg);
         }
-      };
-      
-      var errHandler = function(err) {
-        hideLoader();
-        showToast(err.toString(), true);
-      };
-      
-      if (isCentral) {
-        google.script.run
-          .withSuccessHandler(handler)
-          .withFailureHandler(errHandler)
-          .getAllDepartmentsData();
-      } else {
-        google.script.run
-          .withSuccessHandler(handler)
-          .withFailureHandler(errHandler)
-          .getDepartmentData(currentSelectedDept);
-      }
+        
+        var handler = function(responseJson) {
+          if (!cachedData || !cacheTime) hideLoader();
+          var res = JSON.parse(responseJson);
+          if (res.success) {
+            if (res.isDelta && cachedData) {
+               var deltaArr = res.data;
+               if (deltaArr.length > 0) {
+                 var masterMap = {};
+                 allStudents.forEach(function(s, idx) {
+                    var cid = s["CAP id (Enter the full cap id without any spaces)"] || s["CAPID"];
+                    if (cid) masterMap[cid.toString().toLowerCase()] = idx;
+                 });
+                 deltaArr.forEach(function(s) {
+                    var cid = s["CAP id (Enter the full cap id without any spaces)"] || s["CAPID"];
+                    if (cid && masterMap.hasOwnProperty(cid.toString().toLowerCase())) {
+                       allStudents[masterMap[cid.toString().toLowerCase()]] = s;
+                    } else {
+                       allStudents.push(s);
+                    }
+                 });
+                 showToast("Updated " + deltaArr.length + " modified record(s)", false);
+               }
+            } else {
+               allStudents = res.data;
+            }
+            idbSet(cacheKey, JSON.stringify(allStudents)).catch(function(e) {});
+            idbSet(cacheTimeKey, res.syncTime ? res.syncTime.toString() : new Date().getTime().toString()).catch(function(e) {});
+            filterTable();
+            loadSeatMatrix();
+          } else {
+            showToast("Failed to load: " + res.message, true);
+          }
+        };
+        
+        var errHandler = function(err) {
+          if (!cachedData || !cacheTime) hideLoader();
+          showToast(err.toString(), true);
+        };
+        
+        var timeParam = cacheTime || null;
+        if (isCentral) {
+          google.script.run
+            .withSuccessHandler(handler)
+            .withFailureHandler(errHandler)
+            .getAllDepartmentsData(timeParam);
+        } else {
+          google.script.run
+            .withSuccessHandler(handler)
+            .withFailureHandler(errHandler)
+            .getDepartmentData(currentSelectedDept, timeParam);
+        }
+      }).catch(function(err) {
+          console.error("IndexedDB error", err);
+          // Fallback if IndexedDB fails completely
+          var msg = isCentral ? "Fetching all student profiles..." : ("Fetching Department data for " + currentSelectedDept + "...");
+          showLoader(msg);
+          var errHandler = function(e) { hideLoader(); showToast(e.toString(), true); };
+          var handler = function(responseJson) {
+            hideLoader();
+            var res = JSON.parse(responseJson);
+            if (res.success) {
+               allStudents = res.data;
+               filterTable();
+               loadSeatMatrix();
+            } else {
+               showToast("Failed to load: " + res.message, true);
+            }
+          };
+          if (isCentral) {
+            google.script.run.withSuccessHandler(handler).withFailureHandler(errHandler).getAllDepartmentsData(null);
+          } else {
+            google.script.run.withSuccessHandler(handler).withFailureHandler(errHandler).getDepartmentData(currentSelectedDept, null);
+          }
+      });
     }
 
     // Populate UI table
@@ -3045,7 +3146,6 @@
           hideLoader();
           var res = JSON.parse(responseJson);
           if (res.success) {
-            clearCache();
             if (successCallback) successCallback(res);
           } else {
             showToast("Update Failed: " + res.message, true);
