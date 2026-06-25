@@ -159,6 +159,11 @@ function onFormSubmit(e) {
 function getDepartmentData(department) {
   try {
     var sheet = SpreadsheetApp.getActiveSpreadsheet();
+    try {
+      backfillPTAPaymentDates();
+    } catch(backfillErr) {
+      Logger.log("Backfill error: " + backfillErr.toString());
+    }
     var tz = sheet.getSpreadsheetTimeZone();
     var masterSheet = getMasterSheet(sheet);
     var dbSheet = sheet.getSheetByName(SYSTEM_DB_SHEET_NAME);
@@ -262,6 +267,11 @@ function getDepartmentData(department) {
 function getAllDepartmentsData() {
   try {
     var sheet = SpreadsheetApp.getActiveSpreadsheet();
+    try {
+      backfillPTAPaymentDates();
+    } catch(backfillErr) {
+      Logger.log("Backfill error: " + backfillErr.toString());
+    }
     var tz = sheet.getSpreadsheetTimeZone();
     var masterSheet = getMasterSheet(sheet);
     var dbSheet = sheet.getSheetByName(SYSTEM_DB_SHEET_NAME);
@@ -1204,3 +1214,73 @@ function deduplicateSystemDB(dbSheet) {
     }
   }
 }
+
+// Retroactively populate missing PTA_Payment_Date entries in System_DB based on Audit_Logs timestamps
+function backfillPTAPaymentDates() {
+  var sheet = SpreadsheetApp.getActiveSpreadsheet();
+  var dbSheet = sheet.getSheetByName(SYSTEM_DB_SHEET_NAME);
+  var logSheet = sheet.getSheetByName("Audit_Logs");
+  
+  if (!dbSheet || !logSheet) return;
+  
+  var dbLastRow = dbSheet.getLastRow();
+  var logLastRow = logSheet.getLastRow();
+  if (dbLastRow < 2 || logLastRow < 2) return;
+  
+  var dbHeaders = dbSheet.getRange(1, 1, 1, dbSheet.getLastColumn()).getValues()[0];
+  var capidColIdx = findHeaderIndex(dbHeaders, "CAPID");
+  var ptaAmtColIdx = findHeaderIndex(dbHeaders, "PTA_Amount");
+  var ptaDateColIdx = findHeaderIndex(dbHeaders, "PTA_Payment_Date");
+  
+  if (capidColIdx === -1 || ptaDateColIdx === -1) return;
+  
+  var dbRange = dbSheet.getRange(2, 1, dbLastRow - 1, dbHeaders.length);
+  var dbValues = dbRange.getValues();
+  
+  // Read all audit logs to build a map of CAPID -> earliest Pending_Principal timestamp
+  var logHeaders = logSheet.getRange(1, 1, 1, logSheet.getLastColumn()).getValues()[0];
+  var logCapidColIdx = findHeaderIndex(logHeaders, "CAPID");
+  var logStatusColIdx = findHeaderIndex(logHeaders, "New Status");
+  var logTimeColIdx = findHeaderIndex(logHeaders, "Timestamp");
+  
+  if (logCapidColIdx === -1 || logStatusColIdx === -1 || logTimeColIdx === -1) return;
+  
+  var logValues = logSheet.getRange(2, 1, logLastRow - 1, logHeaders.length).getValues();
+  var paymentDatesMap = {};
+  var tz = sheet.getSpreadsheetTimeZone();
+  
+  logValues.forEach(function(row) {
+    var capid = row[logCapidColIdx] ? row[logCapidColIdx].toString().trim().toLowerCase() : "";
+    var newStatus = row[logStatusColIdx] ? row[logStatusColIdx].toString().trim() : "";
+    var timestamp = row[logTimeColIdx];
+    
+    if (capid && newStatus === "Pending_Principal" && timestamp instanceof Date) {
+      var dateStr = Utilities.formatDate(timestamp, tz, "yyyy-MM-dd");
+      if (!paymentDatesMap[capid]) {
+        paymentDatesMap[capid] = dateStr;
+      }
+    }
+  });
+  
+  var updated = false;
+  for (var i = 0; i < dbValues.length; i++) {
+    var row = dbValues[i];
+    var capid = row[capidColIdx] ? row[capidColIdx].toString().trim().toLowerCase() : "";
+    var ptaAmt = parseFloat(row[ptaAmtColIdx]) || 0;
+    var payDateVal = row[ptaDateColIdx];
+    
+    if (capid && ptaAmt > 0 && (!payDateVal || payDateVal.toString().trim() === "")) {
+      var loggedDate = paymentDatesMap[capid];
+      if (loggedDate) {
+        row[ptaDateColIdx] = loggedDate;
+        updated = true;
+      }
+    }
+  }
+  
+  if (updated) {
+    dbRange.setValues(dbValues);
+    Logger.log("Successfully backfilled missing PTA payment dates.");
+  }
+}
+
