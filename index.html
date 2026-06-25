@@ -7,6 +7,9 @@
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <!-- Chart.js CDN -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- Barcode & QR Code generators for ID Card generation -->
+  <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
   
   <style>
     :root {
@@ -977,6 +980,7 @@
           <button class="btn btn-primary" id="btn-nodal-matrix" style="display: none;" onclick="openSeatMatrixModal()">Manage Seat Split Up</button>
           <button class="btn btn-primary" id="btn-pta-config-fee" style="display: none;" onclick="openPTAConfigModal()">Configure Fees</button>
           <button class="btn btn-success" id="btn-pta-balance" style="display: none;" onclick="generateDailyBalanceSheet()">Balance Sheet</button>
+          <button class="btn btn-primary" id="btn-principal-idcards" style="display: none;" onclick="openIDCardsModal()">Generate ID Cards</button>
           <button class="btn btn-primary" onclick="printStudentList()">Print Student List</button>
           <button class="btn btn-secondary" onclick="loadDepartmentData()">Refresh</button>
         </div>
@@ -1441,6 +1445,56 @@
         <button class="btn btn-primary" onclick="saveSeatMatrix()">Save Matrix</button>
       </div>
     </div>
+  <!-- ID Card Generator Modal -->
+  <div class="modal-overlay" id="idcards-modal">
+    <div class="modal" style="max-width: 600px; width: 95%;">
+      <div class="modal-header">
+        <h2 style="font-size: 1.25rem;">Generate Student ID Cards</h2>
+        <button class="close-btn" onclick="closeIDCardsModal()">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 20px;">
+          Generate printable double-sided ID cards for admitted students. You can filter by Department, Class, or generate for a specific student.
+        </p>
+        
+        <div class="form-group" style="margin-bottom: 15px;">
+          <label style="display: block; margin-bottom: 5px; font-weight: 500; font-size: 0.9rem;">Filter Type</label>
+          <select class="form-control" id="id-filter-type" onchange="toggleIDFilterInputs()" style="width: 100%; background: var(--bg-dark); color: var(--text-main); border: 1px solid var(--card-border); padding: 8px 12px; border-radius: 6px;">
+            <option value="student">Single Student</option>
+            <option value="department">By Department</option>
+            <option value="class">By Class / Program</option>
+          </select>
+        </div>
+        
+        <!-- Single Student Filter Input -->
+        <div class="form-group" id="id-filter-student-group" style="margin-bottom: 15px;">
+          <label style="display: block; margin-bottom: 5px; font-weight: 500; font-size: 0.9rem;">Select Student (Admitted only)</label>
+          <select class="form-control" id="id-select-student" style="width: 100%; background: var(--bg-dark); color: var(--text-main); border: 1px solid var(--card-border); padding: 8px 12px; border-radius: 6px;">
+            <!-- Dynamically loaded -->
+          </select>
+        </div>
+        
+        <!-- Department Filter Input -->
+        <div class="form-group" id="id-filter-dept-group" style="margin-bottom: 15px; display: none;">
+          <label style="display: block; margin-bottom: 5px; font-weight: 500; font-size: 0.9rem;">Select Department</label>
+          <select class="form-control" id="id-select-dept" style="width: 100%; background: var(--bg-dark); color: var(--text-main); border: 1px solid var(--card-border); padding: 8px 12px; border-radius: 6px;">
+            <!-- Dynamically loaded -->
+          </select>
+        </div>
+        
+        <!-- Class Filter Input -->
+        <div class="form-group" id="id-filter-class-group" style="margin-bottom: 15px; display: none;">
+          <label style="display: block; margin-bottom: 5px; font-weight: 500; font-size: 0.9rem;">Select Class / Program</label>
+          <select class="form-control" id="id-select-class" style="width: 100%; background: var(--bg-dark); color: var(--text-main); border: 1px solid var(--card-border); padding: 8px 12px; border-radius: 6px;">
+            <!-- Dynamically loaded -->
+          </select>
+        </div>
+      </div>
+      <div class="modal-footer" style="padding-top: 15px; text-align: right; border-top: 1px solid var(--card-border);">
+        <button class="btn btn-secondary" onclick="closeIDCardsModal()" style="margin-right: 10px;">Cancel</button>
+        <button class="btn btn-success" onclick="generateIDCardsPrint()">Generate & Print</button>
+      </div>
+    </div>
   </div>
 
   <!-- Print Area Layout (rendered for printing only) -->
@@ -1716,21 +1770,31 @@
       var vacancyContainer = document.getElementById("vacancy-summary-container");
       
       var ptaSummaryContainer = document.getElementById("pta-summary-container");
+       var idCardsBtn = document.getElementById("btn-principal-idcards");
       if (userRole === "PTA") {
         balanceBtn.style.display = "inline-block";
         configFeeBtn.style.display = "inline-block";
         matrixBtn.style.display = "none";
+        if (idCardsBtn) idCardsBtn.style.display = "none";
         if (ptaSummaryContainer) ptaSummaryContainer.style.display = "block";
         loadPTAConfig();
       } else if (userRole === "Nodal Officer") {
         balanceBtn.style.display = "none";
         configFeeBtn.style.display = "none";
         matrixBtn.style.display = "inline-block";
+        if (idCardsBtn) idCardsBtn.style.display = "none";
+        if (ptaSummaryContainer) ptaSummaryContainer.style.display = "none";
+      } else if (userRole === "Principal") {
+        balanceBtn.style.display = "none";
+        configFeeBtn.style.display = "none";
+        matrixBtn.style.display = "none";
+        if (idCardsBtn) idCardsBtn.style.display = "inline-block";
         if (ptaSummaryContainer) ptaSummaryContainer.style.display = "none";
       } else {
         balanceBtn.style.display = "none";
         configFeeBtn.style.display = "none";
         matrixBtn.style.display = "none";
+        if (idCardsBtn) idCardsBtn.style.display = "none";
         if (ptaSummaryContainer) ptaSummaryContainer.style.display = "none";
       }
       
@@ -4192,6 +4256,356 @@
         printWindow.print();
         printWindow.close();
       }, 500);
+    }
+
+    // Modal control and generator logic for ID Cards
+    function openIDCardsModal() {
+      document.getElementById("idcards-modal").style.display = "flex";
+      
+      // Populate select-student with admitted students
+      var studentSelect = document.getElementById("id-select-student");
+      studentSelect.innerHTML = "<option value=''>-- Select Student --</option>";
+      
+      var admittedStudents = allStudents.filter(function(s) {
+        return s["Current_Status"] === "Admitted";
+      });
+      
+      admittedStudents.sort(function(a, b) {
+        var nameA = (a["Name (As per your certificate)"] || a["Name"] || "").toString();
+        var nameB = (b["Name (As per your certificate)"] || b["Name"] || "").toString();
+        return nameA.localeCompare(nameB);
+      });
+      
+      admittedStudents.forEach(function(s) {
+        var capid = s["CAP id (Enter the full cap id without any spaces)"] || s["CAPID"] || "";
+        var name = s["Name (As per your certificate)"] || s["Name"] || "";
+        var admNo = s["Admission_Number"] || "";
+        var opt = document.createElement("option");
+        opt.value = capid;
+        opt.innerText = name.toUpperCase() + " (" + capid + ") - Adm: " + admNo;
+        studentSelect.appendChild(opt);
+      });
+      
+      // Populate departments list
+      var deptSelect = document.getElementById("id-select-dept");
+      deptSelect.innerHTML = "<option value=''>-- Select Department --</option>";
+      var uniqueDepts = [];
+      allStudents.forEach(function(s) {
+        if (s["Current_Status"] === "Admitted" && s["Department"]) {
+          var d = s["Department"].toString().trim();
+          if (uniqueDepts.indexOf(d) === -1) {
+            uniqueDepts.push(d);
+          }
+        }
+      });
+      uniqueDepts.sort().forEach(function(d) {
+        var opt = document.createElement("option");
+        opt.value = d;
+        opt.innerText = d;
+        deptSelect.appendChild(opt);
+      });
+      
+      // Populate class / program list
+      var classSelect = document.getElementById("id-select-class");
+      classSelect.innerHTML = "<option value=''>-- Select Class / Program --</option>";
+      var uniqueClasses = [];
+      allStudents.forEach(function(s) {
+        if (s["Current_Status"] === "Admitted" && s["Admission to the Programme"]) {
+          var c = s["Admission to the Programme"].toString().trim();
+          if (uniqueClasses.indexOf(c) === -1) {
+            uniqueClasses.push(c);
+          }
+        }
+      });
+      uniqueClasses.sort().forEach(function(c) {
+        var opt = document.createElement("option");
+        opt.value = c;
+        opt.innerText = c;
+        classSelect.appendChild(opt);
+      });
+      
+      // Reset filter type to student
+      document.getElementById("id-filter-type").value = "student";
+      toggleIDFilterInputs();
+    }
+    
+    function closeIDCardsModal() {
+      document.getElementById("idcards-modal").style.display = "none";
+    }
+    
+    function toggleIDFilterInputs() {
+      var filterType = document.getElementById("id-filter-type").value;
+      document.getElementById("id-filter-student-group").style.display = (filterType === "student") ? "block" : "none";
+      document.getElementById("id-filter-dept-group").style.display = (filterType === "department") ? "block" : "none";
+      document.getElementById("id-filter-class-group").style.display = (filterType === "class") ? "block" : "none";
+    }
+    
+    function generateIDCardsPrint() {
+      var filterType = document.getElementById("id-filter-type").value;
+      var selectedStudents = [];
+      
+      if (filterType === "student") {
+        var selectedCap = document.getElementById("id-select-student").value;
+        if (!selectedCap) {
+          showToast("Please select a student.", true);
+          return;
+        }
+        selectedStudents = allStudents.filter(function(s) {
+          return s["Current_Status"] === "Admitted" && 
+                 ((s["CAP id (Enter the full cap id without any spaces)"] || s["CAPID"] || "").toString().trim().toLowerCase() === selectedCap.trim().toLowerCase());
+        });
+      } else if (filterType === "department") {
+        var selectedDept = document.getElementById("id-select-dept").value;
+        if (!selectedDept) {
+          showToast("Please select a department.", true);
+          return;
+        }
+        selectedStudents = allStudents.filter(function(s) {
+          return s["Current_Status"] === "Admitted" && 
+                 (s["Department"] && s["Department"].toString().trim().toLowerCase() === selectedDept.trim().toLowerCase());
+        });
+      } else if (filterType === "class") {
+        var selectedClass = document.getElementById("id-select-class").value;
+        if (!selectedClass) {
+          showToast("Please select a class/program.", true);
+          return;
+        }
+        selectedStudents = allStudents.filter(function(s) {
+          return s["Current_Status"] === "Admitted" && 
+                 (s["Admission to the Programme"] && s["Admission to the Programme"].toString().trim().toLowerCase() === selectedClass.trim().toLowerCase());
+        });
+      }
+      
+      if (selectedStudents.length === 0) {
+        showToast("No admitted students found matching selected filters.", true);
+        return;
+      }
+      
+      var printWindow = window.open("", "_blank");
+      
+      var idCardsHtml = "";
+      selectedStudents.forEach(function(s) {
+        var capid = s["CAP id (Enter the full cap id without any spaces)"] || s["CAPID"] || "";
+        var name = (s["Name (As per your certificate)"] || s["Name"] || "").toString().toUpperCase();
+        var admNo = s["Admission_Number"] || "";
+        var course = s["Admission to the Programme"] || "";
+        var parent = s["Parent/Guardian Name"] || "N/A";
+        var address = s["Address"] || "N/A";
+        var mobile = s["Mobile No"] || s["Mobile number"] || "N/A";
+        var dob = s["Date of Birth (As per SSLC)"] || s["Date of Birth (SSLC)"] || "N/A";
+        var blood = s["Blood Group"] || s["Blood"] || "O+";
+        
+        // Calculate Batch based on Admission Year
+        var yr = s["Year_of_Admission"] || s["Year of Admission"] || new Date().getFullYear();
+        var progType = (s["Program_Type"] || s["Admission to the Programme"] || "").toString().trim().toUpperCase();
+        var isUG = progType.indexOf("B") === 0;
+        var batch = isUG ? (yr + "-" + (parseInt(yr) + 3)) : (yr + "-" + (parseInt(yr) + 2));
+        
+        // Convert DOB to DD-MM-YYYY format
+        if (dob && dob !== "N/A") {
+          dob = formatDateToDDMMYYYY(dob);
+        }
+        
+        // Photo parsing
+        var photoUrl = "";
+        var driveUrl = s["Upload passport size photo"] || s["Photograph Drive URL"] || "";
+        var fileIdMatch = driveUrl ? driveUrl.match(/[-\w]{25,}/) : null;
+        if (fileIdMatch) {
+          photoUrl = "https://lh3.googleusercontent.com/d/" + fileIdMatch[0];
+        } else {
+          photoUrl = "https://via.placeholder.com/150?text=No+Photo";
+        }
+        
+        idCardsHtml += 
+          // FRONT PAGE
+          "<div class='id-card-page'>" +
+            "<div class='id-card-front'>" +
+              "<div class='id-header'>" +
+                "<img src='<?!= getLogoBase64() ?>' class='id-logo' alt='College Logo'>" +
+                "<div class='id-header-text'>" +
+                  "<h1>GOVT. VICTORIA COLLEGE</h1>" +
+                  "<h2>PALAKKAD, KERALA - 678001</h2>" +
+                  "<h3>LABUNTUR ET IMPUTANTUR</h3>" +
+                "</div>" +
+              "</div>" +
+              "<div class='id-banner'>" +
+                "Affiliated to the University of Calicut<br>Re-Accredited by NAAC with A Grade" +
+              "</div>" +
+              "<div class='id-photo-container'>" +
+                "<img src='" + photoUrl + "' class='id-photo' onerror='this.src=\"https://via.placeholder.com/150?text=Student+Photo\"'>" +
+              "</div>" +
+              "<div class='id-name-box'>" + name + "</div>" +
+              "<div class='id-details-grid'>" +
+                "<div class='id-detail-row'><span class='id-label'>Admn No</span><span class='id-colon'>:</span><span class='id-value'>" + admNo + "</span></div>" +
+                "<div class='id-detail-row'><span class='id-label'>Course</span><span class='id-colon'>:</span><span class='id-value'>" + course + "</span></div>" +
+                "<div class='id-detail-row'><span class='id-label'>Batch</span><span class='id-colon'>:</span><span class='id-value'>" + batch + "</span></div>" +
+              "</div>" +
+              "<div class='id-signature-area'>" +
+                "<div class='id-seal-stamp'>" +
+                  "<div class='seal-text'>GOVT. VICTORIA COLLEGE</div>" +
+                  "<div class='seal-subtext'>PALAKKAD</div>" +
+                "</div>" +
+                "<div class='id-signature'>" +
+                  "<div style='font-family: cursive, sans-serif; font-size: 8.5pt; font-weight: bold; color: #1e40af;'>Principal</div>" +
+                  "<div class='sig-title'>PRINCIPAL<br>GOVT. VICTORIA COLLEGE<br>PALAKKAD</div>" +
+                "</div>" +
+              "</div>" +
+              "<div class='id-footer'>" +
+                "Phone Number: 04912576773<br>E.Mail: victoriapkd@gmail.com | Website: www.gvc.ac.in" +
+              "</div>" +
+            "</div>" +
+          "</div>" +
+          
+          // BACK PAGE
+          "<div class='id-card-page'>" +
+            "<div class='id-card-back'>" +
+              "<div class='back-seal-container'>" +
+                "<img src='<?!= getLogoBase64() ?>' class='back-seal-logo'>" +
+                "<div class='back-seal-title'>GOVERNMENT VICTORIA COLLEGE</div>" +
+                "<div class='back-seal-subtitle'>PALAKKAD</div>" +
+              "</div>" +
+              "<div class='back-details'>" +
+                "<div class='back-row'><span class='back-label'>Residential Address</span><span class='back-colon'>:</span><span class='back-val'>" + address + "</span></div>" +
+                "<div class='back-row'><span class='back-label'>Mobile No</span><span class='back-colon'>:</span><span class='back-val'>" + mobile + "</span></div>" +
+                "<div class='back-row'><span class='back-label'>Blood Group</span><span class='back-colon'>:</span><span class='back-val'>" + blood + "</span></div>" +
+                "<div class='back-row'><span class='back-label'>Date of Birth</span><span class='back-colon'>:</span><span class='back-val'>" + dob + "</span></div>" +
+                "<div class='back-row'><span class='back-label'>Parent Name</span><span class='back-colon'>:</span><span class='back-val'>" + parent + "</span></div>" +
+              "</div>" +
+              "<div class='back-codes'>" +
+                "<canvas class='student-barcode' data-text='" + admNo + "'></canvas>" +
+                "<div class='student-qrcode' data-text='" + admNo + "'></div>" +
+              "</div>" +
+            "</div>" +
+          "</div>";
+      });
+      
+      var printContent = 
+        "<html><head><title>Student ID Cards</title>" +
+        "<script src='https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js'></script>" +
+        "<script src='https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js'></script>" +
+        "<style>" +
+          "@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap');" +
+          "* { box-sizing: border-box; font-family: 'Outfit', sans-serif; margin: 0; padding: 0; }" +
+          "body { background: #fff; padding: 0; margin: 0; }" +
+          
+          /* Print setup: exact size of CR80 card */
+          ".id-card-page { width: 100vw; height: 100vh; display: flex; align-items: center; justify-content: center; page-break-after: always; }" +
+          
+          ".id-card-front {" +
+            "width: 54mm; height: 86mm; border: 1px solid #111; position: relative; display: flex; flex-direction: column;" +
+            "background: #fff; padding: 1mm 1.5mm; overflow: hidden; border-radius: 4px; box-shadow: 0 0 5px rgba(0,0,0,0.1);" +
+          "}" +
+          
+          ".id-header { display: flex; align-items: center; gap: 1mm; margin-bottom: 0.5mm; }" +
+          ".id-logo { width: 9.5mm; height: 9.5mm; object-fit: contain; }" +
+          ".id-header-text { display: flex; flex-direction: column; justify-content: center; }" +
+          ".id-header-text h1 { font-size: 5.5pt; font-weight: 800; color: #0b1329; line-height: 1.1; letter-spacing: 0.1px; }" +
+          ".id-header-text h2 { font-size: 4pt; font-weight: 700; color: #334155; line-height: 1.1; }" +
+          ".id-header-text h3 { font-size: 3.2pt; font-weight: 600; color: #475569; line-height: 1.1; }" +
+          
+          ".id-banner {" +
+            "background: #0f172a; color: #fff; font-size: 3.8pt; text-align: center; font-weight: 500; padding: 0.6mm 0;" +
+            "margin: 0.3mm -1.5mm 1mm -1.5mm; line-height: 1.25; letter-spacing: 0.2px;" +
+          "}" +
+          
+          ".id-photo-container { display: flex; justify-content: center; margin-bottom: 1.2mm; }" +
+          ".id-photo { width: 23mm; height: 28mm; object-fit: cover; border-radius: 3px; border: 0.5px solid #cbd5e1; }" +
+          
+          ".id-name-box {" +
+            "background: #ccfbf1; color: #dc2626; font-size: 6.8pt; font-weight: 700; text-align: center;" +
+            "padding: 0.8mm 1mm; margin: 0 -1.5mm 1.5mm -1.5mm; border-top: 1px solid #99f6e4; border-bottom: 1px solid #99f6e4;" +
+            "white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-transform: uppercase;" +
+          "}" +
+          
+          ".id-details-grid { display: flex; flex-direction: column; gap: 0.8mm; padding: 0 0.5mm; margin-bottom: auto; }" +
+          ".id-detail-row { display: flex; align-items: flex-start; font-size: 5.8pt; line-height: 1.2; }" +
+          ".id-label { width: 11mm; font-weight: 700; color: #334155; }" +
+          ".id-colon { width: 1.5mm; font-weight: 700; color: #334155; text-align: center; }" +
+          ".id-value { flex: 1; font-weight: 800; color: #000; text-transform: uppercase; word-break: break-all; }" +
+          
+          ".id-signature-area { display: flex; justify-content: space-between; align-items: flex-end; padding: 0 0.5mm 0.5mm 0.5mm; margin-bottom: 0.8mm; }" +
+          
+          ".id-seal-stamp {" +
+            "width: 9.5mm; height: 9.5mm; border: 0.8px dashed #94a3b8; border-radius: 50%; display: flex; flex-direction: column;" +
+            "align-items: center; justify-content: center; text-align: center; opacity: 0.85;" +
+          "}" +
+          ".id-seal-stamp .seal-text { font-size: 1.8pt; font-weight: bold; color: #64748b; line-height: 1.1; width: 8.5mm; }" +
+          ".id-seal-stamp .seal-subtext { font-size: 1.5pt; font-weight: bold; color: #64748b; }" +
+          
+          ".id-signature { text-align: center; }" +
+          ".id-signature .sig-title { font-size: 2.8pt; font-weight: bold; color: #475569; line-height: 1.2; margin-top: 0.5mm; }" +
+          
+          ".id-footer {" +
+            "background: #0f172a; color: #fff; font-size: 3.2pt; text-align: center; padding: 0.6mm 0;" +
+            "margin: auto -1.5mm -1mm -1.5mm; line-height: 1.25; border-radius: 0 0 3px 3px;" +
+          "}" +
+          
+          /* BACK OF CARD */
+          ".id-card-back {" +
+            "width: 54mm; height: 86mm; border: 1.2px solid #000; position: relative; display: flex; flex-direction: column;" +
+            "background: #fff; padding: 2.5mm 2.2mm; overflow: hidden; border-radius: 4px; box-shadow: 0 0 5px rgba(0,0,0,0.1);" +
+          "}" +
+          
+          ".back-seal-container { display: flex; flex-direction: column; align-items: center; text-align: center; margin-bottom: 2.5mm; }" +
+          ".back-seal-logo { width: 14mm; height: 14mm; object-fit: contain; margin-bottom: 0.8mm; }" +
+          ".back-seal-title { font-size: 6.5pt; font-weight: 800; color: #0b1329; line-height: 1.1; letter-spacing: 0.1px; }" +
+          ".back-seal-subtitle { font-size: 4.8pt; font-weight: 700; color: #475569; line-height: 1.1; }" +
+          
+          ".back-details { display: flex; flex-direction: column; gap: 1.2mm; margin-bottom: auto; padding: 0 0.5mm; }" +
+          ".back-row { display: flex; align-items: flex-start; font-size: 5.6pt; line-height: 1.25; }" +
+          ".back-label { width: 22mm; font-weight: 700; color: #475569; }" +
+          ".back-colon { width: 1.5mm; font-weight: 700; color: #475569; text-align: center; }" +
+          ".back-val { flex: 1; font-weight: 800; color: #000; text-transform: uppercase; word-break: break-word; }" +
+          
+          ".back-codes { display: flex; align-items: center; justify-content: space-between; border-top: 0.5px solid #cbd5e1; padding-top: 2mm; margin-top: 1mm; }" +
+          ".student-barcode { width: 28mm; height: 8mm; }" +
+          ".student-qrcode { width: 10mm; height: 10mm; display: flex; justify-content: center; align-items: center; }" +
+          
+          /* Print configuration to hide margins */
+          "@media print {" +
+            "body { background: none; }" +
+            ".id-card-page { page-break-after: always; }" +
+          "}" +
+        "</style>" +
+        "</head><body>" +
+        idCardsHtml +
+        "<script>" +
+          "window.onload = function() {" +
+            "var barcodes = document.querySelectorAll('.student-barcode');" +
+            "barcodes.forEach(function(canvas) {" +
+              "var text = canvas.getAttribute('data-text');" +
+              "if (text) {" +
+                "JsBarcode(canvas, text, {" +
+                  "format: 'CODE128'," +
+                  "width: 1.1," +
+                  "height: 25," +
+                  "displayValue: false," +
+                  "margin: 0" +
+                "});" +
+              "}" +
+            "});" +
+            "var qrcodes = document.querySelectorAll('.student-qrcode');" +
+            "qrcodes.forEach(function(container) {" +
+              "var text = container.getAttribute('data-text');" +
+              "if (text) {" +
+                "new QRCode(container, {" +
+                  "text: text," +
+                  "width: 38," +
+                  "height: 38," +
+                  "correctLevel: QRCode.CorrectLevel.M" +
+                "});" +
+              "}" +
+            "});" +
+            "setTimeout(function() {" +
+              "window.print();" +
+              "window.close();" +
+            "}, 1200);" +
+          "};" +
+        "</script>" +
+        "</body></html>";
+      
+      printWindow.document.write(printContent);
+      printWindow.document.close();
     }
   </script>
 </body>
