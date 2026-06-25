@@ -1241,6 +1241,57 @@
                       <input type="number" class="form-control" id="wf-pta-amount" style="font-weight: bold; color: #10b981;" readonly>
                     </div>
                   </div>
+                  <div id="pta-transfer-comparison" style="display: none; background: rgba(255, 255, 255, 0.03); border: 1px solid var(--card-border); padding: 12px; border-radius: 6px; margin-top: 15px; font-size: 0.8rem;">
+                    <div style="font-weight: 600; color: #60a5fa; margin-bottom: 8px;">Transfer Fee Adjustment Summary</div>
+                    <table style="width: 100%; border-collapse: collapse; font-size: 0.75rem;">
+                      <thead>
+                        <tr style="border-bottom: 1px solid var(--card-border); color: var(--text-muted);">
+                          <th style="text-align: left; padding: 4px 0;">Fee Category</th>
+                          <th style="text-align: right; padding: 4px 0;">New Dept Fee</th>
+                          <th style="text-align: right; padding: 4px 0;">Paid (Old Dept)</th>
+                          <th style="text-align: right; padding: 4px 0;">Balance</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr>
+                          <td style="padding: 4px 0;">Welfare Fund</td>
+                          <td style="text-align: right;" id="fee-new-welfare">0</td>
+                          <td style="text-align: right;" id="fee-old-welfare">0</td>
+                          <td style="text-align: right; font-weight: 600;" id="fee-bal-welfare">0</td>
+                        </tr>
+                        <tr>
+                          <td style="padding: 4px 0;">Membership</td>
+                          <td style="text-align: right;" id="fee-new-member">0</td>
+                          <td style="text-align: right;" id="fee-old-member">0</td>
+                          <td style="text-align: right; font-weight: 600;" id="fee-bal-member">0</td>
+                        </tr>
+                        <tr>
+                          <td style="padding: 4px 0;">Voluntary Contribution</td>
+                          <td style="text-align: right;" id="fee-new-voluntary">0</td>
+                          <td style="text-align: right;" id="fee-old-voluntary">0</td>
+                          <td style="text-align: right; font-weight: 600;" id="fee-bal-voluntary">0</td>
+                        </tr>
+                        <tr>
+                          <td style="padding: 4px 0;">Cooperative Store</td>
+                          <td style="text-align: right;" id="fee-new-coop">0</td>
+                          <td style="text-align: right;" id="fee-old-coop">0</td>
+                          <td style="text-align: right; font-weight: 600;" id="fee-bal-coop">0</td>
+                        </tr>
+                        <tr>
+                          <td style="padding: 4px 0;">ID Card Fee</td>
+                          <td style="text-align: right;" id="fee-new-id">0</td>
+                          <td style="text-align: right;" id="fee-old-id">0</td>
+                          <td style="text-align: right; font-weight: 600;" id="fee-bal-id">0</td>
+                        </tr>
+                        <tr style="border-top: 1px solid var(--card-border); font-weight: bold; font-size: 0.8rem;">
+                          <td style="padding: 6px 0;" id="fee-adjustment-label">Net Balance to Pay:</td>
+                          <td style="text-align: right;"></td>
+                          <td style="text-align: right;"></td>
+                          <td style="text-align: right; color: #f59e0b;" id="fee-bal-total">INR 0/-</td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
                 </div>
 
                 <!-- Principal Remarks & Admission Number input -->
@@ -1828,9 +1879,21 @@
                        "<td>" + verifiedIndex + "</td>" +
                        "<td>" + assignedSlot + "</td>" +
                        "<td><strong>" + ptaAmount + "</strong></td>" +
-                       "<td><span class='status-badge status-" + status.replace(/\s+/g, '_') + "'>" + status.replace('_', ' ') + "</span></td>" +
-                       "<td>" + admNo + "</td>" +
-                       "<td><button class='btn btn-secondary' style='padding: 4px 10px; font-size: 0.8rem;'>Verify</button></td>";
+                        "<td><span class='status-badge status-" + status.replace(/\s+/g, '_') + "'>" + status.replace('_', ' ') + "</span>" +
+                        (function() {
+                          if (s["Already_Admitted_Dept"]) {
+                            return "<br/><span style='font-size: 0.7rem; background: rgba(59, 130, 246, 0.2); color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.4); border-radius: 4px; padding: 2px 4px; display: inline-block; margin-top: 4px; font-weight: 600;'>Admitted in " + s["Already_Admitted_Dept"] + "</span>";
+                          } else if (s["Transfer_Pending_Dept"]) {
+                            return "<br/><span style='font-size: 0.7rem; background: rgba(245, 158, 11, 0.2); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.4); border-radius: 4px; padding: 2px 4px; display: inline-block; margin-top: 4px; font-weight: 600;'>Transfer Pending: " + s["Transfer_Pending_Dept"] + "</span>";
+                          } else if (s["Transferred_To_Dept"]) {
+                            return "<br/><span style='font-size: 0.7rem; background: rgba(239, 68, 68, 0.2); color: #fca5a5; border: 1px solid rgba(239, 68, 68, 0.4); border-radius: 4px; padding: 2px 4px; display: inline-block; margin-top: 4px; font-weight: 600;'>Transferred to " + s["Transferred_To_Dept"] + "</span>";
+                          } else if (s["Transferred_From_Dept"]) {
+                            return "<br/><span style='font-size: 0.7rem; background: rgba(16, 185, 129, 0.2); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.4); border-radius: 4px; padding: 2px 4px; display: inline-block; margin-top: 4px; font-weight: 600;'>Transferred from " + s["Transferred_From_Dept"] + "</span>";
+                          }
+                          return "";
+                        })() + "</td>" +
+                        "<td>" + admNo + "</td>" +
+                        "<td><button class='btn btn-secondary' style='padding: 4px 10px; font-size: 0.8rem;'>Verify</button></td>";
         tbody.appendChild(tr);
       });
     }
@@ -2332,12 +2395,18 @@
       document.getElementById("hist-principal-remarks").innerText = student["Principal_Remarks"] || "N/A";
 
       // Setup inputs depending on user role
-      document.getElementById("wf-assigned-slot").value = student["Assigned_Slot"] || "";
+       document.getElementById("wf-assigned-slot").value = student["Assigned_Slot"] || "";
       document.getElementById("wf-verified-index-mark").value = student["Verified_Index_Mark"] || student["Index Marks (as per admit/allotment card)"] || student["Index Mark"] || "";
       document.getElementById("wf-faculty-remarks").value = student["Faculty_Remarks"] || "";
       document.getElementById("wf-nodal-remarks").value = student["Nodal_Remarks"] || "";
       document.getElementById("wf-pta-amount").value = student["PTA_Amount"] || "";
-      document.getElementById("wf-admission-number").value = student["Admission_Number"] || "";
+      
+      if (student["Already_Admitted_Dept"] && !student["Admission_Number"]) {
+        document.getElementById("wf-admission-number").value = student["Old_Admission_Number"] || "";
+      } else {
+        document.getElementById("wf-admission-number").value = student["Admission_Number"] || "";
+      }
+      
       document.getElementById("wf-tc-number").value = student["Token_Number"] || "";
       document.getElementById("wf-leaving-semester").value = student["Leaving_Semester"] || "VI Semester";
       document.getElementById("wf-promotion-status").value = student["Promotion_Status"] || "Course Completed";
@@ -2345,6 +2414,23 @@
       document.getElementById("wf-conduct").value = student["Conduct"] || "Good";
       document.getElementById("wf-leaving-date").value = formatDateToDDMMYYYY(student["Leaving_Date"]) || formatDateToDDMMYYYY(new Date());
       document.getElementById("wf-app-date").value = formatDateToDDMMYYYY(student["Application_Date"]) || formatDateToDDMMYYYY(new Date());
+      
+      // Display prominent transfer warning banner if already admitted in another department
+      var transferBanner = document.getElementById("transfer-warning-banner");
+      if (!transferBanner) {
+        transferBanner = document.createElement("div");
+        transferBanner.id = "transfer-warning-banner";
+        transferBanner.style.cssText = "background: rgba(37, 99, 235, 0.15); border: 1.5px solid rgba(37, 99, 235, 0.4); border-radius: 8px; padding: 12px 16px; margin-bottom: 20px; font-size: 0.9rem; color: #93c5fd; display: none;";
+        var modalBody = document.querySelector(".modal-body");
+        modalBody.insertBefore(transferBanner, modalBody.firstChild);
+      }
+      
+      if (student["Already_Admitted_Dept"]) {
+        transferBanner.innerHTML = "<strong>TRANSFER NOTICE:</strong> This student is already admitted to the <strong>" + student["Already_Admitted_Dept"] + "</strong> department (Admission No: <strong>" + (student["Old_Admission_Number"] || "N/A") + "</strong>). Admitting them here will automatically trigger a department transfer.";
+        transferBanner.style.display = "block";
+      } else {
+        transferBanner.style.display = "none";
+      }
       document.getElementById("wf-issue-date").value = formatDateToDDMMYYYY(student["Issue_Date"]) || formatDateToDDMMYYYY(new Date());
       document.getElementById("wf-principal-remarks").value = student["Principal_Remarks"] || "";
 
@@ -2530,7 +2616,8 @@
       else if (userRole === "Principal") {
         if (status === "Pending_Principal") {
           // Step 1: Admit Student (enters admission number)
-          container.innerHTML = "<button class='btn btn-success' onclick='principalAdmitStudent()'>&#10003; Admit Student</button>" +
+          var btnText = student["Already_Admitted_Dept"] ? "&#10003; Transfer & Admit Student" : "&#10003; Admit Student";
+          container.innerHTML = "<button class='btn btn-success' onclick='principalAdmitStudent()'>" + btnText + "</button>" +
                                 "<button class='btn btn-danger' onclick='triggerRevertFlow(\"Pending_Principal\")'>Revert Student</button>";
         } else {
           container.innerHTML = "<p style='color: var(--text-muted); font-size: 0.85rem; font-style: italic;'>Locked. Status: " + status + ".</p>";
@@ -3090,7 +3177,64 @@
       var voluntary = parseFloat(document.getElementById("pta-donation").value) || 0;
       var coopStore = parseFloat(document.getElementById("pta-cooperative-store").value) || 0;
       var idCard = parseFloat(document.getElementById("pta-id-card-fee").value) || 0;
-      document.getElementById("wf-pta-amount").value = welfare + membership + voluntary + coopStore + idCard;
+      
+      var total = welfare + membership + voluntary + coopStore + idCard;
+      document.getElementById("wf-pta-amount").value = total;
+      
+      // Update comparison table if student has an old admitted department
+      var comparisonDiv = document.getElementById("pta-transfer-comparison");
+      if (activeStudent && activeStudent["Already_Admitted_Dept"] && userRole === "PTA") {
+        var oldWelfare = parseFloat(activeStudent["Old_PTA_Welfare_Fund"]) || 0;
+        var oldMember = parseFloat(activeStudent["Old_PTA_Membership"]) || 0;
+        var oldVoluntary = parseFloat(activeStudent["Old_PTA_Voluntary_Contribution"]) || 0;
+        var oldCoop = parseFloat(activeStudent["Old_PTA_Cooperative_Store"]) || 0;
+        var oldId = parseFloat(activeStudent["Old_PTA_ID_Card_Fee"]) || 0;
+        var oldTotal = parseFloat(activeStudent["Old_PTA_Amount"]) || 0;
+        
+        var balWelfare = welfare - oldWelfare;
+        var balMember = membership - oldMember;
+        var balVoluntary = voluntary - oldVoluntary;
+        var balCoop = coopStore - oldCoop;
+        var balId = idCard - oldId;
+        var balTotal = total - oldTotal;
+        
+        document.getElementById("fee-new-welfare").innerText = welfare;
+        document.getElementById("fee-old-welfare").innerText = oldWelfare;
+        document.getElementById("fee-bal-welfare").innerText = (balWelfare > 0 ? "+" : "") + balWelfare;
+        
+        document.getElementById("fee-new-member").innerText = membership;
+        document.getElementById("fee-old-member").innerText = oldMember;
+        document.getElementById("fee-bal-member").innerText = (balMember > 0 ? "+" : "") + balMember;
+        
+        document.getElementById("fee-new-voluntary").innerText = voluntary;
+        document.getElementById("fee-old-voluntary").innerText = oldVoluntary;
+        document.getElementById("fee-bal-voluntary").innerText = (balVoluntary > 0 ? "+" : "") + balVoluntary;
+        
+        document.getElementById("fee-new-coop").innerText = coopStore;
+        document.getElementById("fee-old-coop").innerText = oldCoop;
+        document.getElementById("fee-bal-coop").innerText = (balCoop > 0 ? "+" : "") + balCoop;
+        
+        document.getElementById("fee-new-id").innerText = idCard;
+        document.getElementById("fee-old-id").innerText = oldId;
+        document.getElementById("fee-bal-id").innerText = (balId > 0 ? "+" : "") + balId;
+        
+        var netLabel = document.getElementById("fee-adjustment-label");
+        var netTotalEl = document.getElementById("fee-bal-total");
+        
+        if (balTotal >= 0) {
+          netLabel.innerText = "Net Balance to Pay:";
+          netTotalEl.innerText = "INR " + balTotal + "/-";
+          netTotalEl.style.color = "#f59e0b";
+        } else {
+          netLabel.innerText = "Refund Due to Student:";
+          netTotalEl.innerText = "INR " + Math.abs(balTotal) + "/-";
+          netTotalEl.style.color = "#10b981";
+        }
+        
+        comparisonDiv.style.display = "block";
+      } else {
+        comparisonDiv.style.display = "none";
+      }
     }
 
     // Print Daily PTA Collection Balance Sheet

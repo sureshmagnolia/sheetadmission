@@ -195,30 +195,51 @@ function getDepartmentData(department) {
     var dbLastRow = dbSheet.getLastRow();
     var dbHeaders = dbSheet.getRange(1, 1, 1, dbSheet.getLastColumn()).getValues()[0];
     var dbData = {};
+    var dbDataListByCid = {};
     
     if (dbLastRow > 1) {
       var dbValues = dbSheet.getRange(2, 1, dbLastRow - 1, dbSheet.getLastColumn()).getValues();
       var capidColIndex = findHeaderIndex(dbHeaders, "CAPID");
-      if (capidColIndex !== -1) {
-        dbValues.forEach(function(row) {
-          var cid = row[capidColIndex] ? row[capidColIndex].toString().trim().toLowerCase() : "";
-          if (cid) {
-            var rowObj = {};
-            for (var c = 0; c < dbHeaders.length; c++) {
-              rowObj[dbHeaders[c]] = row[c];
-            }
-            dbData[cid] = rowObj;
+      var deptColIndex = findHeaderIndex(dbHeaders, "Department");
+      var statusColIndex = findHeaderIndex(dbHeaders, "Current_Status");
+      
+      dbValues.forEach(function(row) {
+        var cid = capidColIndex !== -1 && row[capidColIndex] ? row[capidColIndex].toString().trim().toLowerCase() : "";
+        var dept = deptColIndex !== -1 && row[deptColIndex] ? row[deptColIndex].toString().trim().toLowerCase() : "";
+        
+        if (cid && dept) {
+          var rowObj = {};
+          for (var c = 0; c < dbHeaders.length; c++) {
+            rowObj[dbHeaders[c]] = row[c];
           }
-        });
-      }
+          dbData[cid + "|" + dept] = rowObj;
+          
+          if (!dbDataListByCid[cid]) {
+            dbDataListByCid[cid] = [];
+          }
+          dbDataListByCid[cid].push(rowObj);
+        }
+      });
     }
     
     // Reconstruct student profiles for the department
     var combinedData = [];
+    var processedCapids = {};
+    
+    // Map master values by CAPID for quick lookup
+    var masterMapByCapid = {};
+    masterValues.forEach(function(row) {
+      var capid = row[capidIndex] ? row[capidIndex].toString().trim().toLowerCase() : "";
+      if (capid) {
+        masterMapByCapid[capid] = row;
+      }
+    });
+
     masterValues.forEach(function(row) {
       var studentDept = row[deptIndex] ? row[deptIndex].toString().trim() : "";
       if (studentDept.toLowerCase() === department.toLowerCase()) {
         var capid = row[capidIndex] ? row[capidIndex].toString().trim() : "";
+        processedCapids[capid.toLowerCase()] = true;
         var email = "";
         if (emailIndex !== -1 && row[emailIndex]) {
           email = row[emailIndex].toString().trim();
@@ -237,7 +258,7 @@ function getDepartmentData(department) {
         }
         
         // 2. Mix in system state details from System_DB
-        var systemState = dbData[capid.toLowerCase()];
+        var systemState = dbData[capid.toLowerCase() + "|" + studentDept.toLowerCase()];
         dbHeaders.forEach(function(h) {
           var cleanH = h ? h.toString().trim() : "";
           if (cleanH && cleanH !== "Student_Key" && cleanH !== "CAPID" && cleanH !== "Email" && cleanH !== "Program") {
@@ -245,6 +266,35 @@ function getDepartmentData(department) {
               profile["System_Department"] = systemState ? systemState[h] : "";
             } else {
               profile[cleanH] = systemState ? systemState[h] : "";
+            }
+          }
+        });
+        
+        // 3. Match with other department records for transfer tags
+        var otherDbRows = dbDataListByCid[capid.toLowerCase()] || [];
+        otherDbRows.forEach(function(otherRow) {
+          var otherDept = otherRow["Department"] ? otherRow["Department"].toString().trim() : "";
+          if (otherDept.toLowerCase() !== studentDept.toLowerCase()) {
+            var otherStatus = otherRow["Current_Status"] ? otherRow["Current_Status"].toString().trim() : "Pending_Faculty";
+            var currentStatus = profile["Current_Status"] || "Pending_Faculty";
+            
+            if (otherStatus === "Admitted") {
+              profile["Already_Admitted_Dept"] = otherDept;
+              profile["Old_Admission_Number"] = otherRow["Admission_Number"] || "";
+              profile["Old_PTA_Amount"] = otherRow["PTA_Amount"] || "0";
+              profile["Old_PTA_Welfare_Fund"] = otherRow["PTA_Welfare_Fund"] || "0";
+              profile["Old_PTA_Membership"] = otherRow["PTA_Membership"] || "0";
+              profile["Old_PTA_Voluntary_Contribution"] = otherRow["PTA_Voluntary_Contribution"] || otherRow["PTA_Donation"] || "0";
+              profile["Old_PTA_Cooperative_Store"] = otherRow["PTA_Cooperative_Store"] || "0";
+              profile["Old_PTA_ID_Card_Fee"] = otherRow["PTA_ID_Card_Fee"] || "0";
+            } else if (otherStatus.indexOf("Pending_") === 0 || otherStatus.indexOf("Reverted") === 0) {
+              if (currentStatus === "Admitted") {
+                profile["Transfer_Pending_Dept"] = otherDept;
+              }
+            } else if (otherStatus === "Admitted" && currentStatus === "TC Issued") {
+              profile["Transferred_To_Dept"] = otherDept;
+            } else if (otherStatus === "TC Issued" && currentStatus === "Admitted") {
+              profile["Transferred_From_Dept"] = otherDept;
             }
           }
         });
@@ -258,6 +308,71 @@ function getDepartmentData(department) {
         combinedData.push(sanitizeStudentProfile(profile, tz));
       }
     });
+
+    // Add records from System_DB for this department that were not processed (i.e. edited form to another dept)
+    for (var key in dbData) {
+      var parts = key.split("|");
+      var cid = parts[0];
+      var dept = parts[1];
+      if (dept.toLowerCase() === department.toLowerCase() && !processedCapids[cid]) {
+        var masterRow = masterMapByCapid[cid];
+        if (masterRow) {
+          var profile = {};
+          for (var c = 0; c < masterHeaders.length; c++) {
+            var cleanKey = masterHeaders[c] ? masterHeaders[c].toString().trim() : "";
+            if (cleanKey) {
+              profile[cleanKey] = masterRow[c];
+            }
+          }
+          
+          var systemState = dbData[key];
+          dbHeaders.forEach(function(h) {
+            var cleanH = h ? h.toString().trim() : "";
+            if (cleanH && cleanH !== "Student_Key" && cleanH !== "CAPID" && cleanH !== "Email" && cleanH !== "Program") {
+              if (cleanH === "Department") {
+                profile["System_Department"] = systemState ? systemState[h] : "";
+              } else {
+                profile[cleanH] = systemState ? systemState[h] : "";
+              }
+            }
+          });
+          
+          var otherDbRows = dbDataListByCid[cid] || [];
+          otherDbRows.forEach(function(otherRow) {
+            var otherDept = otherRow["Department"] ? otherRow["Department"].toString().trim() : "";
+            if (otherDept.toLowerCase() !== dept.toLowerCase()) {
+              var otherStatus = otherRow["Current_Status"] ? otherRow["Current_Status"].toString().trim() : "Pending_Faculty";
+              var currentStatus = profile["Current_Status"] || "Pending_Faculty";
+              
+              if (otherStatus === "Admitted") {
+                profile["Already_Admitted_Dept"] = otherDept;
+                profile["Old_Admission_Number"] = otherRow["Admission_Number"] || "";
+                profile["Old_PTA_Amount"] = otherRow["PTA_Amount"] || "0";
+                profile["Old_PTA_Welfare_Fund"] = otherRow["PTA_Welfare_Fund"] || "0";
+                profile["Old_PTA_Membership"] = otherRow["PTA_Membership"] || "0";
+                profile["Old_PTA_Voluntary_Contribution"] = otherRow["PTA_Voluntary_Contribution"] || otherRow["PTA_Donation"] || "0";
+                profile["Old_PTA_Cooperative_Store"] = otherRow["PTA_Cooperative_Store"] || "0";
+                profile["Old_PTA_ID_Card_Fee"] = otherRow["PTA_ID_Card_Fee"] || "0";
+              } else if (otherStatus.indexOf("Pending_") === 0 || otherStatus.indexOf("Reverted") === 0) {
+                if (currentStatus === "Admitted") {
+                  profile["Transfer_Pending_Dept"] = otherDept;
+                }
+              } else if (otherStatus === "Admitted" && currentStatus === "TC Issued") {
+                profile["Transferred_To_Dept"] = otherDept;
+              } else if (otherStatus === "TC Issued" && currentStatus === "Admitted") {
+                profile["Transferred_From_Dept"] = otherDept;
+              }
+            }
+          });
+          
+          if (!profile["Current_Status"]) {
+            profile["Current_Status"] = "Pending_Faculty";
+          }
+          profile["Department"] = department;
+          combinedData.push(sanitizeStudentProfile(profile, tz));
+        }
+      }
+    }
     
     return JSON.stringify({ success: true, data: combinedData });
   } catch (error) {
@@ -302,25 +417,45 @@ function getAllDepartmentsData() {
     var dbLastRow = dbSheet.getLastRow();
     var dbHeaders = dbSheet.getRange(1, 1, 1, dbSheet.getLastColumn()).getValues()[0];
     var dbData = {};
+    var dbDataListByCid = {};
     
     if (dbLastRow > 1) {
       var dbValues = dbSheet.getRange(2, 1, dbLastRow - 1, dbSheet.getLastColumn()).getValues();
       var capidColIndex = findHeaderIndex(dbHeaders, "CAPID");
-      if (capidColIndex !== -1) {
-        dbValues.forEach(function(row) {
-          var cid = row[capidColIndex] ? row[capidColIndex].toString().trim().toLowerCase() : "";
-          if (cid) {
-            var rowObj = {};
-            for (var c = 0; c < dbHeaders.length; c++) {
-              rowObj[dbHeaders[c]] = row[c];
-            }
-            dbData[cid] = rowObj;
+      var deptColIndex = findHeaderIndex(dbHeaders, "Department");
+      var statusColIndex = findHeaderIndex(dbHeaders, "Current_Status");
+      
+      dbValues.forEach(function(row) {
+        var cid = capidColIndex !== -1 && row[capidColIndex] ? row[capidColIndex].toString().trim().toLowerCase() : "";
+        var dept = deptColIndex !== -1 && row[deptColIndex] ? row[deptColIndex].toString().trim().toLowerCase() : "";
+        
+        if (cid && dept) {
+          var rowObj = {};
+          for (var c = 0; c < dbHeaders.length; c++) {
+            rowObj[dbHeaders[c]] = row[c];
           }
-        });
-      }
+          dbData[cid + "|" + dept] = rowObj;
+          
+          if (!dbDataListByCid[cid]) {
+            dbDataListByCid[cid] = [];
+          }
+          dbDataListByCid[cid].push(rowObj);
+        }
+      });
     }
     
     var combinedData = [];
+    var processedKeys = {}; // Key format: "capid|dept"
+
+    // Map master values by CAPID for quick lookup
+    var masterMapByCapid = {};
+    masterValues.forEach(function(row) {
+      var capid = row[capidIndex] ? row[capidIndex].toString().trim().toLowerCase() : "";
+      if (capid) {
+        masterMapByCapid[capid] = row;
+      }
+    });
+
     masterValues.forEach(function(row) {
       var capid = row[capidIndex] ? row[capidIndex].toString().trim() : "";
       var email = "";
@@ -331,6 +466,7 @@ function getAllDepartmentsData() {
       }
       var studentKey = capid + "|" + email;
       var studentDept = row[deptIndex] ? row[deptIndex].toString().trim() : "";
+      processedKeys[capid.toLowerCase() + "|" + studentDept.toLowerCase()] = true;
       
       var profile = {};
       // 1. Copy raw submission details with trimmed keys
@@ -341,7 +477,7 @@ function getAllDepartmentsData() {
         }
       }
       
-      var systemState = dbData[capid.toLowerCase()];
+      var systemState = dbData[capid.toLowerCase() + "|" + studentDept.toLowerCase()];
       dbHeaders.forEach(function(h) {
         var cleanH = h ? h.toString().trim() : "";
         if (cleanH && cleanH !== "Student_Key" && cleanH !== "CAPID" && cleanH !== "Email" && cleanH !== "Program") {
@@ -353,12 +489,106 @@ function getAllDepartmentsData() {
         }
       });
       
+      // Match with other department records for transfer tags
+      var otherDbRows = dbDataListByCid[capid.toLowerCase()] || [];
+      otherDbRows.forEach(function(otherRow) {
+        var otherDept = otherRow["Department"] ? otherRow["Department"].toString().trim() : "";
+        if (otherDept.toLowerCase() !== studentDept.toLowerCase()) {
+          var otherStatus = otherRow["Current_Status"] ? otherRow["Current_Status"].toString().trim() : "Pending_Faculty";
+          var currentStatus = profile["Current_Status"] || "Pending_Faculty";
+          
+          if (otherStatus === "Admitted") {
+            profile["Already_Admitted_Dept"] = otherDept;
+            profile["Old_Admission_Number"] = otherRow["Admission_Number"] || "";
+            profile["Old_PTA_Amount"] = otherRow["PTA_Amount"] || "0";
+            profile["Old_PTA_Welfare_Fund"] = otherRow["PTA_Welfare_Fund"] || "0";
+            profile["Old_PTA_Membership"] = otherRow["PTA_Membership"] || "0";
+            profile["Old_PTA_Voluntary_Contribution"] = otherRow["PTA_Voluntary_Contribution"] || otherRow["PTA_Donation"] || "0";
+            profile["Old_PTA_Cooperative_Store"] = otherRow["PTA_Cooperative_Store"] || "0";
+            profile["Old_PTA_ID_Card_Fee"] = otherRow["PTA_ID_Card_Fee"] || "0";
+          } else if (otherStatus.indexOf("Pending_") === 0 || otherStatus.indexOf("Reverted") === 0) {
+            if (currentStatus === "Admitted") {
+              profile["Transfer_Pending_Dept"] = otherDept;
+            }
+          } else if (otherStatus === "Admitted" && currentStatus === "TC Issued") {
+            profile["Transferred_To_Dept"] = otherDept;
+          } else if (otherStatus === "TC Issued" && currentStatus === "Admitted") {
+            profile["Transferred_From_Dept"] = otherDept;
+          }
+        }
+      });
+      
       if (!profile["Current_Status"]) {
         profile["Current_Status"] = "Pending_Faculty";
       }
       profile["Department"] = studentDept;
       combinedData.push(sanitizeStudentProfile(profile, tz));
     });
+
+    // Add records from System_DB that were not processed (i.e. old department rows after form edit)
+    for (var key in dbData) {
+      if (!processedKeys[key]) {
+        var parts = key.split("|");
+        var cid = parts[0];
+        var dept = parts[1];
+        var masterRow = masterMapByCapid[cid];
+        if (masterRow) {
+          var profile = {};
+          for (var c = 0; c < masterHeaders.length; c++) {
+            var cleanKey = masterHeaders[c] ? masterHeaders[c].toString().trim() : "";
+            if (cleanKey) {
+              profile[cleanKey] = masterRow[c];
+            }
+          }
+          
+          var systemState = dbData[key];
+          dbHeaders.forEach(function(h) {
+            var cleanH = h ? h.toString().trim() : "";
+            if (cleanH && cleanH !== "Student_Key" && cleanH !== "CAPID" && cleanH !== "Email" && cleanH !== "Program") {
+              if (cleanH === "Department") {
+                profile["System_Department"] = systemState ? systemState[h] : "";
+              } else {
+                profile[cleanH] = systemState ? systemState[h] : "";
+              }
+            }
+          });
+          
+          var otherDbRows = dbDataListByCid[cid] || [];
+          otherDbRows.forEach(function(otherRow) {
+            var otherDept = otherRow["Department"] ? otherRow["Department"].toString().trim() : "";
+            if (otherDept.toLowerCase() !== dept.toLowerCase()) {
+              var otherStatus = otherRow["Current_Status"] ? otherRow["Current_Status"].toString().trim() : "Pending_Faculty";
+              var currentStatus = profile["Current_Status"] || "Pending_Faculty";
+              
+              if (otherStatus === "Admitted") {
+                profile["Already_Admitted_Dept"] = otherDept;
+                profile["Old_Admission_Number"] = otherRow["Admission_Number"] || "";
+                profile["Old_PTA_Amount"] = otherRow["PTA_Amount"] || "0";
+                profile["Old_PTA_Welfare_Fund"] = otherRow["PTA_Welfare_Fund"] || "0";
+                profile["Old_PTA_Membership"] = otherRow["PTA_Membership"] || "0";
+                profile["Old_PTA_Voluntary_Contribution"] = otherRow["PTA_Voluntary_Contribution"] || otherRow["PTA_Donation"] || "0";
+                profile["Old_PTA_Cooperative_Store"] = otherRow["PTA_Cooperative_Store"] || "0";
+                profile["Old_PTA_ID_Card_Fee"] = otherRow["PTA_ID_Card_Fee"] || "0";
+              } else if (otherStatus.indexOf("Pending_") === 0 || otherStatus.indexOf("Reverted") === 0) {
+                if (currentStatus === "Admitted") {
+                  profile["Transfer_Pending_Dept"] = otherDept;
+                }
+              } else if (otherStatus === "Admitted" && currentStatus === "TC Issued") {
+                profile["Transferred_To_Dept"] = otherDept;
+              } else if (otherStatus === "TC Issued" && currentStatus === "Admitted") {
+                profile["Transferred_From_Dept"] = otherDept;
+              }
+            }
+          });
+          
+          if (!profile["Current_Status"]) {
+            profile["Current_Status"] = "Pending_Faculty";
+          }
+          profile["Department"] = dept;
+          combinedData.push(sanitizeStudentProfile(profile, tz));
+        }
+      }
+    }
     
     return JSON.stringify({ success: true, data: combinedData });
   } catch (error) {
@@ -412,13 +642,19 @@ function updateStudentData(department, capid, email, updatedData, operatorRole, 
     
     var dbHeaders = dbSheet.getRange(1, 1, 1, dbSheet.getLastColumn()).getValues()[0];
     var capidIndex = findHeaderIndex(dbHeaders, "CAPID");
-    var capidValues = (capidIndex !== -1 && lastRow > 1) ? dbSheet.getRange(2, capidIndex + 1, lastRow - 1, 1).getValues() : [];
+    var deptIndex = findHeaderIndex(dbHeaders, "Department");
     
-    var studentKey = capid + "|" + email;
+    var dbValuesAll = (lastRow > 1) ? dbSheet.getRange(2, 1, lastRow - 1, dbHeaders.length).getValues() : [];
+    var studentKey = capid + "|" + department;
     var targetRowIndex = -1;
+    
     var capidLower = capid.toString().trim().toLowerCase();
-    for (var i = 0; i < capidValues.length; i++) {
-      if (capidValues[i][0] && capidValues[i][0].toString().trim().toLowerCase() === capidLower) {
+    var deptLower = department.toString().trim().toLowerCase();
+    
+    for (var i = 0; i < dbValuesAll.length; i++) {
+      var rowCid = dbValuesAll[i][capidIndex] ? dbValuesAll[i][capidIndex].toString().trim().toLowerCase() : "";
+      var rowDept = dbValuesAll[i][deptIndex] ? dbValuesAll[i][deptIndex].toString().trim().toLowerCase() : "";
+      if (rowCid === capidLower && rowDept === deptLower) {
         targetRowIndex = i + 2;
         break;
       }
@@ -600,6 +836,41 @@ function updateStudentData(department, capid, email, updatedData, operatorRole, 
     }
     
     rowRange.setValues([rowValues]);
+    
+    // Auto-release student from old department if newly Admitted here
+    if (nextStatus === "Admitted") {
+      var capidLower = capid.toString().trim().toLowerCase();
+      var deptLower = department.toString().trim().toLowerCase();
+      var statusColIdx = findHeaderIndex(dbHeaders, "Current_Status");
+      var deptColIdx = findHeaderIndex(dbHeaders, "Department");
+      var capidColIdx = findHeaderIndex(dbHeaders, "CAPID");
+      
+      var dbValuesAll2 = dbSheet.getRange(2, 1, dbSheet.getLastRow() - 1, dbHeaders.length).getValues();
+      for (var r = 0; r < dbValuesAll2.length; r++) {
+        var rowCid = dbValuesAll2[r][capidColIdx] ? dbValuesAll2[r][capidColIdx].toString().trim().toLowerCase() : "";
+        var rowDept = dbValuesAll2[r][deptColIdx] ? dbValuesAll2[r][deptColIdx].toString().trim().toLowerCase() : "";
+        var rowStatus = dbValuesAll2[r][statusColIdx] ? dbValuesAll2[r][statusColIdx].toString().trim() : "";
+        
+        if (rowCid === capidLower && rowDept !== deptLower && rowStatus === "Admitted") {
+          var otherRowIdx = r + 2;
+          var otherRowRange = dbSheet.getRange(otherRowIdx, 1, 1, dbHeaders.length);
+          var otherRowVals = otherRowRange.getValues()[0];
+          
+          otherRowVals[statusColIdx] = "TC Issued";
+          
+          var otherTcCol = findHeaderIndex(dbHeaders, "Date_of_TC");
+          var otherTransferCol = findHeaderIndex(dbHeaders, "Date_of_Transfer");
+          var dateFormatted = formatDateToDDMMYY(new Date(), tz);
+          
+          if (otherTcCol !== -1) otherRowVals[otherTcCol] = dateFormatted;
+          if (otherTransferCol !== -1) otherRowVals[otherTransferCol] = dateFormatted;
+          
+          otherRowRange.setValues([otherRowVals]);
+          logActivity(capid, email, studentName, rowDept, "Admitted", "TC Issued", "System (Transfer)", operatorDept, "TC auto-issued due to department transfer to " + department);
+          break;
+        }
+      }
+    }
     
     // Write audit log entry
     var changesStr = changes.join(", ");
