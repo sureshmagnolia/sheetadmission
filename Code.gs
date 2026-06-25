@@ -107,7 +107,8 @@ function getOrCreateSystemDBSheet() {
     "Promotion_Status", "Dues_Status", "Leaving_Date", "Application_Date", 
     "Issue_Date", "Conduct", "PTA_Welfare_Fund", "PTA_Membership", "PTA_Voluntary_Contribution", 
     "PTA_Cooperative_Store", "PTA_ID_Card_Fee", "PTA_Payment_Date",
-    "Program_Type", "Assigned_Slot", "Synced_Form_Department", "Verified_Index_Mark"
+    "Program_Type", "Assigned_Slot", "Synced_Form_Department", "Verified_Index_Mark",
+    "Date_of_Admission", "Date_of_TC", "Date_of_Transfer"
   ];
   
   if (!dbSheet) {
@@ -134,7 +135,8 @@ function getOrCreateSystemDBSheet() {
       "Promotion_Status", "Dues_Status", "Leaving_Date", "Application_Date",
       "Issue_Date", "Conduct", "PTA_Welfare_Fund", "PTA_Membership",
       "PTA_Voluntary_Contribution", "PTA_Cooperative_Store", "PTA_ID_Card_Fee", "PTA_Payment_Date",
-      "Program_Type", "Assigned_Slot", "Principal_Remarks"
+      "Program_Type", "Assigned_Slot", "Principal_Remarks",
+      "Date_of_Admission", "Date_of_TC", "Date_of_Transfer"
     ];
     colsToMigrate.forEach(function(col) {
       // Re-read headers each iteration so lengths stay accurate after additions
@@ -552,6 +554,48 @@ function updateStudentData(department, capid, email, updatedData, operatorRole, 
       var syncedDeptColIdx = findHeaderIndex(dbHeaders, "Synced_Form_Department");
       if (syncedDeptColIdx !== -1) {
         rowValues[syncedDeptColIdx] = department; // Align synced form department
+      }
+    }
+
+    var tz = sheet.getSpreadsheetTimeZone();
+
+    // 1. Set Date of Admission when status transitions to "Admitted"
+    if (nextStatus === "Admitted") {
+      var admDateColIdx = findHeaderIndex(dbHeaders, "Date_of_Admission");
+      if (admDateColIdx !== -1 && (!rowValues[admDateColIdx] || rowValues[admDateColIdx].toString().trim() === "")) {
+        var dateFormatted = formatDateToDDMMYY(new Date(), tz);
+        rowValues[admDateColIdx] = dateFormatted;
+        changes.push("Date_of_Admission: '" + dateFormatted + "'");
+      }
+    }
+
+    // 2. Set Date of TC when status transitions to "TC Issued"
+    if (nextStatus === "TC Issued") {
+      var tcDateColIdx = findHeaderIndex(dbHeaders, "Date_of_TC");
+      if (tcDateColIdx !== -1 && (!rowValues[tcDateColIdx] || rowValues[tcDateColIdx].toString().trim() === "")) {
+        var dateFormatted = formatDateToDDMMYY(new Date(), tz);
+        rowValues[tcDateColIdx] = dateFormatted;
+        changes.push("Date_of_TC: '" + dateFormatted + "'");
+      }
+    }
+
+    // 3. Set Date of Transfer when department changes
+    var deptColIdx = findHeaderIndex(dbHeaders, "Department");
+    if (deptColIdx !== -1) {
+      var oldDept = rowValues[deptColIdx];
+      var newDept = updatedData["Department"] || oldDept;
+      
+      if (nextStatus === "TC Issued" && department !== oldDept) {
+        newDept = department;
+      }
+      
+      if (oldDept && newDept && oldDept.toString().trim().toLowerCase() !== newDept.toString().trim().toLowerCase()) {
+        var transferDateColIdx = findHeaderIndex(dbHeaders, "Date_of_Transfer");
+        if (transferDateColIdx !== -1) {
+          var dateFormatted = formatDateToDDMMYY(new Date(), tz);
+          rowValues[transferDateColIdx] = dateFormatted;
+          changes.push("Date_of_Transfer: '" + dateFormatted + "'");
+        }
       }
     }
     
@@ -1283,4 +1327,15 @@ function backfillPTAPaymentDates() {
     Logger.log("Successfully backfilled missing PTA payment dates.");
   }
 }
+
+// Helper to format date as dd-MM-yy (DD MM YY)
+function formatDateToDDMMYY(date, tz) {
+  if (!date) return "";
+  try {
+    return Utilities.formatDate(date, tz, "dd-MM-yy");
+  } catch (e) {
+    return Utilities.formatDate(date, "GMT+5:30", "dd-MM-yy");
+  }
+}
+
 
