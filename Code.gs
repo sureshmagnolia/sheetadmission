@@ -1259,7 +1259,7 @@ function deduplicateSystemDB(dbSheet) {
   }
 }
 
-// Retroactively populate missing PTA_Payment_Date entries in System_DB based on Audit_Logs timestamps
+// Retroactively populate missing PTA_Payment_Date, Date_of_Admission, and Date_of_TC entries in System_DB based on Audit_Logs timestamps
 function backfillPTAPaymentDates() {
   var sheet = SpreadsheetApp.getActiveSpreadsheet();
   var dbSheet = sheet.getSheetByName(SYSTEM_DB_SHEET_NAME);
@@ -1275,13 +1275,15 @@ function backfillPTAPaymentDates() {
   var capidColIdx = findHeaderIndex(dbHeaders, "CAPID");
   var ptaAmtColIdx = findHeaderIndex(dbHeaders, "PTA_Amount");
   var ptaDateColIdx = findHeaderIndex(dbHeaders, "PTA_Payment_Date");
+  var admDateColIdx = findHeaderIndex(dbHeaders, "Date_of_Admission");
+  var tcDateColIdx = findHeaderIndex(dbHeaders, "Date_of_TC");
   
-  if (capidColIdx === -1 || ptaDateColIdx === -1) return;
+  if (capidColIdx === -1) return;
   
   var dbRange = dbSheet.getRange(2, 1, dbLastRow - 1, dbHeaders.length);
   var dbValues = dbRange.getValues();
   
-  // Read all audit logs to build a map of CAPID -> earliest Pending_Principal timestamp
+  // Read all audit logs to build maps of CAPID -> earliest status timestamps
   var logHeaders = logSheet.getRange(1, 1, 1, logSheet.getLastColumn()).getValues()[0];
   var logCapidColIdx = findHeaderIndex(logHeaders, "CAPID");
   var logStatusColIdx = findHeaderIndex(logHeaders, "New Status");
@@ -1290,7 +1292,9 @@ function backfillPTAPaymentDates() {
   if (logCapidColIdx === -1 || logStatusColIdx === -1 || logTimeColIdx === -1) return;
   
   var logValues = logSheet.getRange(2, 1, logLastRow - 1, logHeaders.length).getValues();
-  var paymentDatesMap = {};
+  var ptaDatesMap = {};
+  var admissionDatesMap = {};
+  var tcDatesMap = {};
   var tz = sheet.getSpreadsheetTimeZone();
   
   logValues.forEach(function(row) {
@@ -1298,10 +1302,20 @@ function backfillPTAPaymentDates() {
     var newStatus = row[logStatusColIdx] ? row[logStatusColIdx].toString().trim() : "";
     var timestamp = row[logTimeColIdx];
     
-    if (capid && newStatus === "Pending_Principal" && timestamp instanceof Date) {
-      var dateStr = Utilities.formatDate(timestamp, tz, "yyyy-MM-dd");
-      if (!paymentDatesMap[capid]) {
-        paymentDatesMap[capid] = dateStr;
+    if (capid && timestamp instanceof Date) {
+      // PTA Payment Date uses yyyy-MM-dd
+      var ptaDateStr = Utilities.formatDate(timestamp, tz, "yyyy-MM-dd");
+      // Other workflow dates use dd-MM-yy format
+      var workflowDateStr = Utilities.formatDate(timestamp, tz, "dd-MM-yy");
+      
+      if (newStatus === "Pending_Principal" && !ptaDatesMap[capid]) {
+        ptaDatesMap[capid] = ptaDateStr;
+      }
+      if (newStatus === "Admitted" && !admissionDatesMap[capid]) {
+        admissionDatesMap[capid] = workflowDateStr;
+      }
+      if (newStatus === "TC Issued" && !tcDatesMap[capid]) {
+        tcDatesMap[capid] = workflowDateStr;
       }
     }
   });
@@ -1310,21 +1324,50 @@ function backfillPTAPaymentDates() {
   for (var i = 0; i < dbValues.length; i++) {
     var row = dbValues[i];
     var capid = row[capidColIdx] ? row[capidColIdx].toString().trim().toLowerCase() : "";
-    var ptaAmt = parseFloat(row[ptaAmtColIdx]) || 0;
-    var payDateVal = row[ptaDateColIdx];
     
-    if (capid && ptaAmt > 0 && (!payDateVal || payDateVal.toString().trim() === "")) {
-      var loggedDate = paymentDatesMap[capid];
-      if (loggedDate) {
-        row[ptaDateColIdx] = loggedDate;
-        updated = true;
+    // 1. Backfill PTA Payment Date
+    if (ptaDateColIdx !== -1) {
+      var ptaAmt = parseFloat(row[ptaAmtColIdx]) || 0;
+      var payDateVal = row[ptaDateColIdx];
+      if (capid && ptaAmt > 0 && (!payDateVal || payDateVal.toString().trim() === "")) {
+        var loggedDate = ptaDatesMap[capid];
+        if (loggedDate) {
+          row[ptaDateColIdx] = loggedDate;
+          updated = true;
+        }
+      }
+    }
+    
+    // 2. Backfill Date of Admission
+    if (admDateColIdx !== -1) {
+      var status = row[findHeaderIndex(dbHeaders, "Current_Status")] || "";
+      var admDateVal = row[admDateColIdx];
+      if (capid && (status === "Admitted" || status === "TC Issued") && (!admDateVal || admDateVal.toString().trim() === "")) {
+        var loggedDate = admissionDatesMap[capid];
+        if (loggedDate) {
+          row[admDateColIdx] = loggedDate;
+          updated = true;
+        }
+      }
+    }
+    
+    // 3. Backfill Date of TC
+    if (tcDateColIdx !== -1) {
+      var status = row[findHeaderIndex(dbHeaders, "Current_Status")] || "";
+      var tcDateVal = row[tcDateColIdx];
+      if (capid && status === "TC Issued" && (!tcDateVal || tcDateVal.toString().trim() === "")) {
+        var loggedDate = tcDatesMap[capid];
+        if (loggedDate) {
+          row[tcDateColIdx] = loggedDate;
+          updated = true;
+        }
       }
     }
   }
   
   if (updated) {
     dbRange.setValues(dbValues);
-    Logger.log("Successfully backfilled missing PTA payment dates.");
+    Logger.log("Successfully backfilled missing dates in System_DB.");
   }
 }
 
