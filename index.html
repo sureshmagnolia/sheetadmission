@@ -3850,6 +3850,12 @@
     }
 
     function loadAnalyticsData() {
+      if (allStudents && allStudents.length > 0 && seatMatrixPG && seatMatrixUG && (seatMatrixPG.length > 0 || seatMatrixUG.length > 0)) {
+        console.log("Analytics loaded from memory cache");
+        renderCharts(seatMatrixPG, seatMatrixUG, allStudents);
+        return;
+      }
+      
       showLoader("Loading Analytics...");
       
       google.script.run
