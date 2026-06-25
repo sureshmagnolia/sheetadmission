@@ -4524,7 +4524,8 @@
           "* { box-sizing: border-box; font-family: 'Outfit', sans-serif; margin: 0; padding: 0; }" +
           "body { background: #fff; padding: 0; margin: 0; }" +
           
-          ".id-card-page { display: inline-flex; margin: 4mm; page-break-inside: avoid; }" +
+          /* Print setup: exact size of CR80 card (1 per page) */
+          ".id-card-page { width: 54mm; height: 86mm; display: flex; align-items: center; justify-content: center; page-break-after: always; margin: 0 auto 20px auto; }" +
           
           ".id-card-front {" +
             "width: 54mm; height: 86mm; border: 1px solid #111; position: relative; display: flex; flex-direction: column;" +
@@ -4597,17 +4598,19 @@
           ".student-qrcode { width: 10mm; height: 10mm; display: flex; justify-content: center; align-items: center; }" +
           
           "@media print {" +
+            "@page { size: 54mm 86mm; margin: 0; }" +
             "body { background: #fff !important; padding: 0 !important; }" +
             ".no-print { display: none !important; }" +
-            ".a4-container { box-shadow: none !important; margin: 0 !important; padding: 0 !important; }" +
+            ".a4-container { box-shadow: none !important; margin: 0 !important; padding: 0 !important; background: transparent !important; }" +
+            ".id-card-page { margin: 0 !important; }" +
           "}" +
         "</style>" +
         "</head><body style='text-align:center; background:#e2e8f0; padding-top:20px; font-family: Outfit, sans-serif;'>" +
         "<div class='no-print' style='margin-bottom:20px;'>" +
-          "<button onclick='window.print()' style='padding: 12px 24px; font-size: 16px; cursor: pointer; background: #2563eb; color: white; border: none; border-radius: 6px; font-weight:bold; box-shadow: 0 4px 6px rgba(0,0,0,0.1);'>🖨️ Print ID Cards</button>" +
-          "<p style='margin-top:10px; color:#475569; font-size:14px;'>Use 'Save as PDF' or print directly to A4 paper. Make sure 'Scale' is set to Default.</p>" +
+          "<button onclick='window.print()' style='padding: 12px 24px; font-size: 16px; cursor: pointer; background: #2563eb; color: white; border: none; border-radius: 6px; font-weight:bold; box-shadow: 0 4px 6px rgba(0,0,0,0.1);'>🖨️ Print / Save as PDF (1 per page)</button>" +
+          "<p style='margin-top:10px; color:#475569; font-size:14px;'>Click to print directly to a PVC Card Printer or use 'Save as PDF'. The page size is configured exactly for ID Cards (54x86mm).</p>" +
         "</div>" +
-        "<div class='a4-container' style='max-width:210mm; margin:0 auto; background:#fff; padding:10mm; text-align:left; box-shadow:0 0 15px rgba(0,0,0,0.15); border-radius:8px; display: flex; flex-wrap: wrap; justify-content: flex-start;'>" +
+        "<div class='a4-container' style='margin:0 auto; background:#e2e8f0; padding:10px; text-align:center; display: flex; flex-direction: column; align-items: center;'>" +
         idCardsHtml +
         "</div>" +
         "<" + "script>" +
