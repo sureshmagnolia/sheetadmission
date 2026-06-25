@@ -974,7 +974,7 @@
           <!-- Department dropdown selector for central admin roles -->
           <div id="central-dept-selector" style="display: none;">
             <label for="view-dept" style="font-size: 0.85rem; color: var(--text-muted); font-weight: 500; margin-right: 8px;">Switch Department:</label>
-            <select class="form-control" id="view-dept" style="display: inline-block; width: 220px;" onchange="loadDepartmentData()"></select>
+            <select class="form-control" id="view-dept" style="display: inline-block; width: 220px;" onchange="clearCache(); loadDepartmentData()"></select>
           </div>
           
           <button class="btn btn-primary" id="btn-nodal-matrix" style="display: none;" onclick="openSeatMatrixModal()">Manage Seat Split Up</button>
@@ -982,7 +982,7 @@
           <button class="btn btn-success" id="btn-pta-balance" style="display: none;" onclick="generateDailyBalanceSheet()">Balance Sheet</button>
           <button class="btn btn-primary" id="btn-principal-idcards" style="display: none;" onclick="openIDCardsModal()">Generate ID Cards</button>
           <button class="btn btn-primary" onclick="printStudentList()">Print Student List</button>
-          <button class="btn btn-secondary" onclick="loadDepartmentData()">Refresh</button>
+          <button class="btn btn-secondary" onclick="clearCache(); loadDepartmentData()">Refresh</button>
         </div>
       </div>
 
@@ -1855,10 +1855,35 @@
         .getDepartmentsList();
     }
 
+    // Clear Cache
+    function clearCache() {
+      var isCentral = (userRole === "Nodal Officer" || userRole === "PTA" || userRole === "Principal");
+      var cacheKey = isCentral ? "gvc_erp_students_data_central" : ("gvc_erp_students_data_" + currentSelectedDept);
+      var cacheTimeKey = isCentral ? "gvc_erp_students_time_central" : ("gvc_erp_students_time_" + currentSelectedDept);
+      try {
+        sessionStorage.removeItem(cacheKey);
+        sessionStorage.removeItem(cacheTimeKey);
+      } catch(e) {}
+    }
+
     // Load student records
     function loadDepartmentData() {
       var isCentral = (userRole === "Nodal Officer" || userRole === "PTA" || userRole === "Principal");
+      var cacheKey = isCentral ? "gvc_erp_students_data_central" : ("gvc_erp_students_data_" + currentSelectedDept);
+      var cacheTimeKey = isCentral ? "gvc_erp_students_time_central" : ("gvc_erp_students_time_" + currentSelectedDept);
       
+      try {
+        var cachedData = sessionStorage.getItem(cacheKey);
+        var cacheTime = sessionStorage.getItem(cacheTimeKey);
+        var now = new Date().getTime();
+        if (cachedData && cacheTime && (now - parseInt(cacheTime)) < 5 * 60 * 1000) {
+          allStudents = JSON.parse(cachedData);
+          filterTable();
+          loadSeatMatrix();
+          return;
+        }
+      } catch(e) {}
+
       var msg = isCentral ? "Fetching all student profiles..." : ("Fetching Department data for " + currentSelectedDept + "...");
       showLoader(msg);
       
@@ -1867,6 +1892,10 @@
         var res = JSON.parse(responseJson);
         if (res.success) {
           allStudents = res.data;
+          try {
+            sessionStorage.setItem(cacheKey, JSON.stringify(res.data));
+            sessionStorage.setItem(cacheTimeKey, new Date().getTime().toString());
+          } catch(e) {}
           filterTable();
           loadSeatMatrix();
         } else {
@@ -3016,6 +3045,7 @@
           hideLoader();
           var res = JSON.parse(responseJson);
           if (res.success) {
+            clearCache();
             if (successCallback) successCallback(res);
           } else {
             showToast("Update Failed: " + res.message, true);
