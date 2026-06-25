@@ -105,7 +105,8 @@ function getOrCreateSystemDBSheet() {
     "Current_Status", "Faculty_Remarks", "Nodal_Remarks", "PTA_Amount", "Principal_Remarks", 
     "Admission_Number", "Token_Number", "Joined_Semester", "Leaving_Semester", 
     "Promotion_Status", "Dues_Status", "Leaving_Date", "Application_Date", 
-    "Issue_Date", "Conduct", "PTA_Welfare_Fund", "PTA_Membership", "PTA_Donation", 
+    "Issue_Date", "Conduct", "PTA_Welfare_Fund", "PTA_Membership", "PTA_Voluntary_Contribution", 
+    "PTA_Cooperative_Store", "PTA_ID_Card_Fee", "PTA_Payment_Date",
     "Program_Type", "Assigned_Slot", "Synced_Form_Department", "Verified_Index_Mark"
   ];
   
@@ -119,12 +120,21 @@ function getOrCreateSystemDBSheet() {
   } else {
     // Auto-migrate: ensure all required columns exist in the existing System_DB sheet
     var existingHeaders = dbSheet.getRange(1, 1, 1, dbSheet.getLastColumn()).getValues()[0];
+    
+    // Rename PTA_Donation to PTA_Voluntary_Contribution if present
+    var donationIdx = findHeaderIndex(existingHeaders, "PTA_Donation");
+    if (donationIdx !== -1) {
+      dbSheet.getRange(1, donationIdx + 1).setValue("PTA_Voluntary_Contribution");
+      existingHeaders[donationIdx] = "PTA_Voluntary_Contribution";
+    }
+
     var colsToMigrate = [
       "Synced_Form_Department", "Verified_Index_Mark",
       "Admission_Number", "Token_Number", "Joined_Semester", "Leaving_Semester",
       "Promotion_Status", "Dues_Status", "Leaving_Date", "Application_Date",
       "Issue_Date", "Conduct", "PTA_Welfare_Fund", "PTA_Membership",
-      "PTA_Donation", "Program_Type", "Assigned_Slot", "Principal_Remarks"
+      "PTA_Voluntary_Contribution", "PTA_Cooperative_Store", "PTA_ID_Card_Fee", "PTA_Payment_Date",
+      "Program_Type", "Assigned_Slot", "Principal_Remarks"
     ];
     colsToMigrate.forEach(function(col) {
       // Re-read headers each iteration so lengths stay accurate after additions
@@ -721,19 +731,22 @@ function getPTAConfig() {
       needInit = true;
     }
     
+    var headers = ["Program_Type", 
+                   "Welfare_SCST", "Membership_SCST", "Voluntary_Contribution_SCST", "Cooperative_Store_SCST", "ID_Card_Fee_SCST",
+                   "Welfare_NonSCST", "Membership_NonSCST", "Voluntary_Contribution_NonSCST", "Cooperative_Store_NonSCST", "ID_Card_Fee_NonSCST"];
+
     if (needInit) {
       configSheet.clear();
-      var headers = ["Program_Type", "Welfare_SCST", "Membership_SCST", "Donation_SCST", "Welfare_NonSCST", "Membership_NonSCST", "Donation_NonSCST"];
       configSheet.appendRow(headers);
       
       var defaults = [
-        ["BA", 300, 50, 0, 1500, 500, 0],
-        ["B.Sc.", 300, 50, 0, 2000, 500, 0],
-        ["B.Com.", 300, 50, 0, 1500, 500, 0],
-        ["MA", 300, 50, 0, 2000, 500, 0],
-        ["M.Sc.", 300, 50, 0, 2500, 500, 0],
-        ["M.Com.", 300, 50, 0, 2000, 500, 0],
-        ["Ph.D.", 300, 50, 0, 3000, 500, 0]
+        ["BA", 300, 50, 0, 0, 0, 1500, 500, 0, 0, 0],
+        ["B.Sc.", 300, 50, 0, 0, 0, 2000, 500, 0, 0, 0],
+        ["B.Com.", 300, 50, 0, 0, 0, 1500, 500, 0, 0, 0],
+        ["MA", 300, 50, 0, 0, 0, 2000, 500, 0, 0, 0],
+        ["M.Sc.", 300, 50, 0, 0, 0, 2500, 500, 0, 0, 0],
+        ["M.Com.", 300, 50, 0, 0, 0, 2000, 500, 0, 0, 0],
+        ["Ph.D.", 300, 50, 0, 0, 0, 3000, 500, 0, 0, 0]
       ];
       
       defaults.forEach(function(row) {
@@ -743,18 +756,56 @@ function getPTAConfig() {
       var headerRange = configSheet.getRange(1, 1, 1, headers.length);
       headerRange.setFontWeight("bold");
       headerRange.setBackground("#f1f3f4");
+    } else {
+      // Auto-migrate headers in PTA_Config without losing data
+      var currentHeaders = configSheet.getRange(1, 1, 1, configSheet.getLastColumn()).getValues()[0];
+      
+      // Rename Donation_SCST to Voluntary_Contribution_SCST
+      var scstDonationIdx = findHeaderIndex(currentHeaders, "Donation_SCST");
+      if (scstDonationIdx !== -1) {
+        configSheet.getRange(1, scstDonationIdx + 1).setValue("Voluntary_Contribution_SCST");
+        currentHeaders[scstDonationIdx] = "Voluntary_Contribution_SCST";
+      }
+      // Rename Donation_NonSCST to Voluntary_Contribution_NonSCST
+      var nonscstDonationIdx = findHeaderIndex(currentHeaders, "Donation_NonSCST");
+      if (nonscstDonationIdx !== -1) {
+        configSheet.getRange(1, nonscstDonationIdx + 1).setValue("Voluntary_Contribution_NonSCST");
+        currentHeaders[nonscstDonationIdx] = "Voluntary_Contribution_NonSCST";
+      }
+      
+      // Add missing headers
+      var missingHeaders = [
+        "Voluntary_Contribution_SCST", "Cooperative_Store_SCST", "ID_Card_Fee_SCST",
+        "Voluntary_Contribution_NonSCST", "Cooperative_Store_NonSCST", "ID_Card_Fee_NonSCST"
+      ];
+      missingHeaders.forEach(function(col) {
+        var freshHeaders = configSheet.getRange(1, 1, 1, configSheet.getLastColumn()).getValues()[0];
+        if (findHeaderIndex(freshHeaders, col) === -1) {
+          // Append column
+          configSheet.getRange(1, freshHeaders.length + 1).setValue(col)
+            .setFontWeight("bold")
+            .setBackground("#f1f3f4");
+          // Fill rows with 0 default
+          var lastRowVal = configSheet.getLastRow();
+          if (lastRowVal > 1) {
+            configSheet.getRange(2, freshHeaders.length + 1, lastRowVal - 1, 1).setValues(
+              Array.apply(null, Array(lastRowVal - 1)).map(function() { return [0]; })
+            );
+          }
+        }
+      });
     }
     
     var lastRow = configSheet.getLastRow();
     var dataRange = configSheet.getRange(1, 1, lastRow, configSheet.getLastColumn());
     var values = dataRange.getValues();
-    var headers = values[0];
+    var finalHeaders = values[0];
     
     var data = [];
     for (var r = 1; r < values.length; r++) {
       var rowObj = {};
-      for (var c = 0; c < headers.length; c++) {
-        rowObj[headers[c]] = values[r][c];
+      for (var c = 0; c < finalHeaders.length; c++) {
+        rowObj[finalHeaders[c]] = values[r][c];
       }
       data.push(rowObj);
     }
@@ -776,7 +827,9 @@ function updatePTAConfig(configData) {
     }
     
     configSheet.clear();
-    var headers = ["Program_Type", "Welfare_SCST", "Membership_SCST", "Donation_SCST", "Welfare_NonSCST", "Membership_NonSCST", "Donation_NonSCST"];
+    var headers = ["Program_Type", 
+                   "Welfare_SCST", "Membership_SCST", "Voluntary_Contribution_SCST", "Cooperative_Store_SCST", "ID_Card_Fee_SCST",
+                   "Welfare_NonSCST", "Membership_NonSCST", "Voluntary_Contribution_NonSCST", "Cooperative_Store_NonSCST", "ID_Card_Fee_NonSCST"];
     configSheet.appendRow(headers);
     
     var headerRange = configSheet.getRange(1, 1, 1, headers.length);
@@ -788,10 +841,14 @@ function updatePTAConfig(configData) {
         item.Program_Type,
         item.Welfare_SCST,
         item.Membership_SCST,
-        item.Donation_SCST,
+        item.Voluntary_Contribution_SCST !== undefined ? item.Voluntary_Contribution_SCST : (item.Donation_SCST || 0),
+        item.Cooperative_Store_SCST || 0,
+        item.ID_Card_Fee_SCST || 0,
         item.Welfare_NonSCST,
         item.Membership_NonSCST,
-        item.Donation_NonSCST
+        item.Voluntary_Contribution_NonSCST !== undefined ? item.Voluntary_Contribution_NonSCST : (item.Donation_NonSCST || 0),
+        item.Cooperative_Store_NonSCST || 0,
+        item.ID_Card_Fee_NonSCST || 0
       ];
       configSheet.appendRow(row);
     });
@@ -942,13 +999,17 @@ function emailPTAReceipt(capid, email) {
     
     var welfare = dbRow[findHeaderIndex(dbHeaders, "PTA_Welfare_Fund")] || "0";
     var membership = dbRow[findHeaderIndex(dbHeaders, "PTA_Membership")] || "0";
-    var donation = dbRow[findHeaderIndex(dbHeaders, "PTA_Donation")] || "0";
+    var voluntaryIdx = findHeaderIndex(dbHeaders, "PTA_Voluntary_Contribution");
+    if (voluntaryIdx === -1) voluntaryIdx = findHeaderIndex(dbHeaders, "PTA_Donation");
+    var voluntary = (voluntaryIdx !== -1 ? dbRow[voluntaryIdx] : "0") || "0";
+    var coopStore = dbRow[findHeaderIndex(dbHeaders, "PTA_Cooperative_Store")] || "0";
+    var idCard = dbRow[findHeaderIndex(dbHeaders, "PTA_ID_Card_Fee")] || "0";
     var total = dbRow[findHeaderIndex(dbHeaders, "PTA_Amount")] || "0";
     var token = dbRow[findHeaderIndex(dbHeaders, "Token_Number")] || "N/A";
     var progType = dbRow[findHeaderIndex(dbHeaders, "Program_Type")] || "N/A";
     
     if (!studentEmail) {
-      return JSON.stringify({ success: false, message: "Student email address is unavailable." });
+      return JSON.stringify({ success: false, message: "student email address is unavailable." });
     }
     
     // Build the logo as an inline attachment blob (Gmail blocks base64 data URIs in email)
@@ -998,8 +1059,16 @@ function emailPTAReceipt(capid, email) {
               "<td style='padding: 10px 0; text-align: right;'>INR " + membership + "/-</td>" +
             "</tr>" +
             "<tr style='border-bottom: 1px solid #edf2f7;'>" +
-              "<td style='padding: 10px 0;'>3. Donation / Other (Optional)</td>" +
-              "<td style='padding: 10px 0; text-align: right;'>INR " + donation + "/-</td>" +
+              "<td style='padding: 10px 0;'>3. Voluntary Contribution (Optional)</td>" +
+              "<td style='padding: 10px 0; text-align: right;'>INR " + voluntary + "/-</td>" +
+            "</tr>" +
+            "<tr style='border-bottom: 1px solid #edf2f7;'>" +
+              "<td style='padding: 10px 0;'>4. Cooperative Store Fund (Optional)</td>" +
+              "<td style='padding: 10px 0; text-align: right;'>INR " + coopStore + "/-</td>" +
+            "</tr>" +
+            "<tr style='border-bottom: 1px solid #edf2f7;'>" +
+              "<td style='padding: 10px 0;'>5. ID Card Fee (Optional)</td>" +
+              "<td style='padding: 10px 0; text-align: right;'>INR " + idCard + "/-</td>" +
             "</tr>" +
             "<tr style='font-weight: bold; font-size: 15px; color: #059669;'>" +
               "<td style='padding: 15px 0 0 0;'>TOTAL AMOUNT PAID:</td>" +

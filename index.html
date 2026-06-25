@@ -999,6 +999,32 @@
         <button class="tab-btn" id="tab-analytics-btn" onclick="switchTab('analytics')" style="background: none; border: none; color: var(--text-muted); font-weight: 500; padding: 10px 0; border-bottom: 2px solid transparent; cursor: pointer; font-size: 0.95rem; transition: var(--transition);">Analytics Dashboard</button>
       </div>
 
+      <!-- PTA Summary Widget for PTA Desk -->
+      <div id="pta-summary-container" style="display: none; background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 12px; padding: 20px; margin-bottom: 20px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);">
+        <h3 style="font-size: 1.15rem; font-weight: 600; margin-bottom: 15px; color: var(--text-main); display: flex; align-items: center; gap: 8px;">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512" style="width: 18px; height: 18px; fill: var(--accent-yellow);"><path d="M64 64C28.7 64 0 92.7 0 128V384c0 35.3 28.7 64 64 64H512c35.3 0 64-28.7 64-64V128c0-35.3-28.7-64-64-64H64zm64 320H64V320c35.3 0 64 28.7 64 64zM64 192V128h64c0 35.3-28.7 64-64 64zm384 192c0-35.3 28.7-64 64-64v64H448zm64-192c-35.3 0-64-28.7-64-64h64v64zM288 160a96 96 0 1 1 0 192 96 96 0 1 1 0-192z"/></svg>
+          PTA Collections Summary
+        </h3>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
+          <!-- Daily Collection Card -->
+          <div style="background: rgba(255, 255, 255, 0.03); border: 1px solid var(--card-border); border-radius: 8px; padding: 15px;">
+            <h4 style="font-size: 0.85rem; color: var(--text-muted); font-weight: 500; margin-bottom: 8px;">Today's Collection</h4>
+            <div style="font-size: 1.5rem; font-weight: 700; color: #f59e0b; margin-bottom: 8px;" id="pta-daily-total">INR 0/-</div>
+            <div style="font-size: 0.75rem; color: var(--text-muted); line-height: 1.4;" id="pta-daily-breakdown">
+              Welfare: 0 | Member: 0<br/>Voluntary: 0 | Coop Store: 0 | ID Card: 0
+            </div>
+          </div>
+          <!-- Total Collection Card -->
+          <div style="background: rgba(255, 255, 255, 0.03); border: 1px solid var(--card-border); border-radius: 8px; padding: 15px;">
+            <h4 style="font-size: 0.85rem; color: var(--text-muted); font-weight: 500; margin-bottom: 8px;">Total Collection (All-time)</h4>
+            <div style="font-size: 1.5rem; font-weight: 700; color: #10b981; margin-bottom: 8px;" id="pta-total-total">INR 0/-</div>
+            <div style="font-size: 0.75rem; color: var(--text-muted); line-height: 1.4;" id="pta-total-breakdown">
+              Welfare: 0 | Member: 0<br/>Voluntary: 0 | Coop Store: 0 | ID Card: 0
+            </div>
+          </div>
+        </div>
+      </div>
+
       <div class="card" id="student-table-card">
         <div class="table-responsive">
           <table>
@@ -1178,10 +1204,20 @@
                       <input type="number" class="form-control" id="pta-membership" oninput="calculatePTAFee()">
                     </div>
                   </div>
+                   <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px;">
+                    <div>
+                      <label for="pta-donation" style="font-size: 0.75rem;">Voluntary Contribution (Optional)</label>
+                      <input type="number" class="form-control" id="pta-donation" value="0" oninput="calculatePTAFee()">
+                    </div>
+                    <div>
+                      <label for="pta-cooperative-store" style="font-size: 0.75rem;">Cooperative Store Fund (Optional)</label>
+                      <input type="number" class="form-control" id="pta-cooperative-store" value="0" oninput="calculatePTAFee()">
+                    </div>
+                  </div>
                   <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px;">
                     <div>
-                      <label for="pta-donation" style="font-size: 0.75rem;">Donation (Optional)</label>
-                      <input type="number" class="form-control" id="pta-donation" value="0" oninput="calculatePTAFee()">
+                      <label for="pta-id-card-fee" style="font-size: 0.75rem;">ID Card Fee (Optional)</label>
+                      <input type="number" class="form-control" id="pta-id-card-fee" value="0" oninput="calculatePTAFee()">
                     </div>
                     <div>
                       <label for="wf-pta-amount" style="font-size: 0.75rem; font-weight: bold; color: #10b981;">Total PTA Fee (INR)</label>
@@ -1263,16 +1299,20 @@
             <thead>
               <tr>
                 <th rowspan="2" style="vertical-align: middle;">Program Type</th>
-                <th colspan="3" style="text-align: center; background: rgba(16, 185, 129, 0.1); border-bottom: 1px solid var(--card-border); color: #60a5fa;">SC / ST Category (INR)</th>
-                <th colspan="3" style="text-align: center; background: rgba(37, 99, 235, 0.1); border-bottom: 1px solid var(--card-border); color: #34d399;">Non-SC / ST Category (INR)</th>
+                <th colspan="5" style="text-align: center; background: rgba(16, 185, 129, 0.1); border-bottom: 1px solid var(--card-border); color: #60a5fa;">SC / ST Category (INR)</th>
+                <th colspan="5" style="text-align: center; background: rgba(37, 99, 235, 0.1); border-bottom: 1px solid var(--card-border); color: #34d399;">Non-SC / ST Category (INR)</th>
               </tr>
               <tr>
                 <th style="font-size: 0.75rem; background: rgba(16, 185, 129, 0.05); color: #94a3b8;">Welfare</th>
                 <th style="font-size: 0.75rem; background: rgba(16, 185, 129, 0.05); color: #94a3b8;">Member</th>
-                <th style="font-size: 0.75rem; background: rgba(16, 185, 129, 0.05); color: #94a3b8;">Donation</th>
+                <th style="font-size: 0.75rem; background: rgba(16, 185, 129, 0.05); color: #94a3b8;">Voluntary</th>
+                <th style="font-size: 0.75rem; background: rgba(16, 185, 129, 0.05); color: #94a3b8;">Coop Store</th>
+                <th style="font-size: 0.75rem; background: rgba(16, 185, 129, 0.05); color: #94a3b8;">ID Card</th>
                 <th style="font-size: 0.75rem; background: rgba(37, 99, 235, 0.05); color: #94a3b8;">Welfare</th>
                 <th style="font-size: 0.75rem; background: rgba(37, 99, 235, 0.05); color: #94a3b8;">Member</th>
-                <th style="font-size: 0.75rem; background: rgba(37, 99, 235, 0.05); color: #94a3b8;">Donation</th>
+                <th style="font-size: 0.75rem; background: rgba(37, 99, 235, 0.05); color: #94a3b8;">Voluntary</th>
+                <th style="font-size: 0.75rem; background: rgba(37, 99, 235, 0.05); color: #94a3b8;">Coop Store</th>
+                <th style="font-size: 0.75rem; background: rgba(37, 99, 235, 0.05); color: #94a3b8;">ID Card</th>
               </tr>
             </thead>
             <tbody id="pta-config-table-body">
@@ -1606,19 +1646,23 @@
       var dashboardTabs = document.getElementById("dashboard-tabs");
       var vacancyContainer = document.getElementById("vacancy-summary-container");
       
+      var ptaSummaryContainer = document.getElementById("pta-summary-container");
       if (userRole === "PTA") {
         balanceBtn.style.display = "inline-block";
         configFeeBtn.style.display = "inline-block";
         matrixBtn.style.display = "none";
+        if (ptaSummaryContainer) ptaSummaryContainer.style.display = "block";
         loadPTAConfig();
       } else if (userRole === "Nodal Officer") {
         balanceBtn.style.display = "none";
         configFeeBtn.style.display = "none";
         matrixBtn.style.display = "inline-block";
+        if (ptaSummaryContainer) ptaSummaryContainer.style.display = "none";
       } else {
         balanceBtn.style.display = "none";
         configFeeBtn.style.display = "none";
         matrixBtn.style.display = "none";
+        if (ptaSummaryContainer) ptaSummaryContainer.style.display = "none";
       }
       
       if (userRole === "Faculty" || userRole === "HOD") {
@@ -1825,6 +1869,66 @@
       }
       
       populateTable(filtered);
+      if (userRole === "PTA") {
+        updatePTASummary(allStudents);
+      }
+    }
+
+    // Update PTA collections summary widget (Daily & Total collections)
+    function updatePTASummary(studentsList) {
+      var sourceList = studentsList || allStudents || [];
+      var todayStr = new Date().toLocaleDateString('en-CA'); // yyyy-mm-dd
+      
+      var dailyWelfare = 0, dailyMember = 0, dailyVoluntary = 0, dailyCoop = 0, dailyIdCard = 0, dailyTotal = 0;
+      var totalWelfare = 0, totalMember = 0, totalVoluntary = 0, totalCoop = 0, totalIdCard = 0, totalTotal = 0;
+      
+      sourceList.forEach(function(s) {
+        var welfare = parseFloat(s["PTA_Welfare_Fund"]) || 0;
+        var member = parseFloat(s["PTA_Membership"]) || 0;
+        var voluntary = parseFloat(s["PTA_Voluntary_Contribution"] || s["PTA_Donation"]) || 0;
+        var coop = parseFloat(s["PTA_Cooperative_Store"]) || 0;
+        var idCard = parseFloat(s["PTA_ID_Card_Fee"]) || 0;
+        var total = parseFloat(s["PTA_Amount"]) || 0;
+        
+        if (total > 0) {
+          // Total collections
+          totalWelfare += welfare;
+          totalMember += member;
+          totalVoluntary += voluntary;
+          totalCoop += coop;
+          totalIdCard += idCard;
+          totalTotal += total;
+          
+          // Daily collections based on PTA_Payment_Date matching today's date
+          var payDt = (s["PTA_Payment_Date"] || "").toString().trim();
+          if (payDt === todayStr) {
+            dailyWelfare += welfare;
+            dailyMember += member;
+            dailyVoluntary += voluntary;
+            dailyCoop += coop;
+            dailyIdCard += idCard;
+            dailyTotal += total;
+          }
+        }
+      });
+      
+      var dailyTotalEl = document.getElementById("pta-daily-total");
+      var dailyBdEl = document.getElementById("pta-daily-breakdown");
+      var totalTotalEl = document.getElementById("pta-total-total");
+      var totalBdEl = document.getElementById("pta-total-breakdown");
+      
+      if (dailyTotalEl) dailyTotalEl.innerText = "INR " + dailyTotal + "/-";
+      if (dailyBdEl) {
+        dailyBdEl.innerHTML = 
+          "Welfare: " + dailyWelfare + " | Member: " + dailyMember + " | Voluntary: " + dailyVoluntary + "<br/>" +
+          "Cooperative Store: " + dailyCoop + " | ID Card Fee: " + dailyIdCard;
+      }
+      if (totalTotalEl) totalTotalEl.innerText = "INR " + totalTotal + "/-";
+      if (totalBdEl) {
+        totalBdEl.innerHTML = 
+          "Welfare: " + totalWelfare + " | Member: " + totalMember + " | Voluntary: " + totalVoluntary + "<br/>" +
+          "Cooperative Store: " + totalCoop + " | ID Card Fee: " + totalIdCard;
+      }
     }
 
     // Convert drive link to direct preview/embed link
@@ -2207,7 +2311,9 @@
         if (student["PTA_Welfare_Fund"] !== undefined && student["PTA_Welfare_Fund"] !== "") {
           document.getElementById("pta-welfare-fund").value = student["PTA_Welfare_Fund"];
           document.getElementById("pta-membership").value = student["PTA_Membership"];
-          document.getElementById("pta-donation").value = student["PTA_Donation"];
+          document.getElementById("pta-donation").value = student["PTA_Voluntary_Contribution"] || student["PTA_Donation"] || "0";
+          document.getElementById("pta-cooperative-store").value = student["PTA_Cooperative_Store"] || "0";
+          document.getElementById("pta-id-card-fee").value = student["PTA_ID_Card_Fee"] || "0";
           calculatePTAFee();
         } else {
           applyPTAConfigDefaults();
@@ -2272,6 +2378,13 @@
 
       // If TC Issued — Print TC only (no admit/PTA buttons)
       if (status === "TC Issued") {
+        if (userRole === "PTA") {
+          container.innerHTML = "<p style='color: var(--text-muted); font-size: 0.85rem; font-style: italic;'>Student Admitted & TC Issued.</p>" +
+                                "<button class='btn btn-primary' onclick='printPTAReceipt()'>Reprint PTA Receipt</button>" +
+                                "<button class='btn btn-success' onclick='emailPTAReceipt()'>Email Receipt to Student</button>" +
+                                "<button class='btn btn-secondary' onclick='closeModal()'>Close</button>";
+          return;
+        }
         container.innerHTML = "<button class='btn btn-success' onclick='printTC()'>Print Transfer Certificate (TC)</button>" +
                               "<button class='btn btn-secondary' onclick='closeModal()'>Close</button>";
         if (userRole === "Principal" || userRole === "Nodal Officer") {
@@ -2280,15 +2393,6 @@
           revBtn.innerText = "Revert Student";
           revBtn.onclick = function() { triggerRevertFlow(status); };
           container.insertBefore(revBtn, container.firstChild);
-        }
-        if (userRole === "PTA") {
-          if (student["PTA_Amount"]) {
-            var reprintBtn = document.createElement("button");
-            reprintBtn.className = "btn btn-primary";
-            reprintBtn.innerText = "Reprint PTA Receipt";
-            reprintBtn.onclick = function() { printPTAReceipt(); };
-            container.insertBefore(reprintBtn, container.firstChild);
-          }
         }
         return;
       }
@@ -2299,16 +2403,14 @@
           container.innerHTML = "<button class='btn btn-success' onclick='principalIssueTC()'>Issue TC</button>" +
                                 "<button class='btn btn-danger' onclick='triggerRevertFlow(\"Admitted\")'>Revert Student</button>" +
                                 "<button class='btn btn-secondary' onclick='closeModal()'>Close</button>";
+        } else if (userRole === "PTA") {
+          container.innerHTML = "<p style='color: var(--accent-green); font-size: 0.85rem; font-style: italic; font-weight: 500;'>Student Admitted successfully.</p>" +
+                                "<button class='btn btn-primary' onclick='printPTAReceipt()'>Reprint PTA Receipt</button>" +
+                                "<button class='btn btn-success' onclick='emailPTAReceipt()'>Email Receipt to Student</button>" +
+                                "<button class='btn btn-secondary' onclick='closeModal()'>Close</button>";
         } else {
           container.innerHTML = "<p style='color: var(--text-muted); font-size: 0.85rem; font-style: italic;'>Student Admitted. Awaiting TC issuance by Principal.</p>" +
                                 "<button class='btn btn-secondary' onclick='closeModal()'>Close</button>";
-          if (userRole === "PTA" && student["PTA_Amount"]) {
-            var reprintBtn2 = document.createElement("button");
-            reprintBtn2.className = "btn btn-primary";
-            reprintBtn2.innerText = "Reprint PTA Receipt";
-            reprintBtn2.onclick = function() { printPTAReceipt(); };
-            container.insertBefore(reprintBtn2, container.firstChild);
-          }
           if ((userRole === "Nodal Officer") ) {
             var revBtn2 = document.createElement("button");
             revBtn2.className = "btn btn-danger";
@@ -2459,13 +2561,19 @@
       var welfareFund = document.getElementById("pta-welfare-fund").value;
       var membership = document.getElementById("pta-membership").value;
       var donation = document.getElementById("pta-donation").value;
+      var coopStore = document.getElementById("pta-cooperative-store").value;
+      var idCard = document.getElementById("pta-id-card-fee").value;
       var progType = document.getElementById("pta-program-type").value;
+      var todayStr = new Date().toLocaleDateString('en-CA'); // yyyy-mm-dd
       
       var dataToUpdate = compileUpdatedProfileData();
       dataToUpdate["PTA_Amount"] = amt;
       dataToUpdate["PTA_Welfare_Fund"] = welfareFund;
       dataToUpdate["PTA_Membership"] = membership;
-      dataToUpdate["PTA_Donation"] = donation;
+      dataToUpdate["PTA_Voluntary_Contribution"] = donation;
+      dataToUpdate["PTA_Cooperative_Store"] = coopStore;
+      dataToUpdate["PTA_ID_Card_Fee"] = idCard;
+      dataToUpdate["PTA_Payment_Date"] = todayStr;
       dataToUpdate["Program_Type"] = progType;
       dataToUpdate["Current_Status"] = "Pending_Principal";
       
@@ -2474,7 +2582,10 @@
         activeStudent["PTA_Amount"] = amt;
         activeStudent["PTA_Welfare_Fund"] = welfareFund;
         activeStudent["PTA_Membership"] = membership;
-        activeStudent["PTA_Donation"] = donation;
+        activeStudent["PTA_Voluntary_Contribution"] = donation;
+        activeStudent["PTA_Cooperative_Store"] = coopStore;
+        activeStudent["PTA_ID_Card_Fee"] = idCard;
+        activeStudent["PTA_Payment_Date"] = todayStr;
         activeStudent["Program_Type"] = progType;
         activeStudent["Current_Status"] = "Pending_Principal";
         setupWorkflowButtons(activeStudent);
@@ -2614,7 +2725,9 @@
         dataToUpdate["PTA_Amount"] = document.getElementById("wf-pta-amount").value;
         dataToUpdate["PTA_Welfare_Fund"] = document.getElementById("pta-welfare-fund").value;
         dataToUpdate["PTA_Membership"] = document.getElementById("pta-membership").value;
-        dataToUpdate["PTA_Donation"] = document.getElementById("pta-donation").value;
+        dataToUpdate["PTA_Voluntary_Contribution"] = document.getElementById("pta-donation").value;
+        dataToUpdate["PTA_Cooperative_Store"] = document.getElementById("pta-cooperative-store").value;
+        dataToUpdate["PTA_ID_Card_Fee"] = document.getElementById("pta-id-card-fee").value;
         dataToUpdate["Program_Type"] = document.getElementById("pta-program-type").value;
       } else if (userRole === "Principal") {
         dataToUpdate["Admission_Number"] = document.getElementById("wf-admission-number").value;
@@ -2703,7 +2816,9 @@
       
       var welfare = activeStudent["PTA_Welfare_Fund"] || document.getElementById("pta-welfare-fund").value || "0";
       var membership = activeStudent["PTA_Membership"] || document.getElementById("pta-membership").value || "0";
-      var donation = activeStudent["PTA_Donation"] || document.getElementById("pta-donation").value || "0";
+      var voluntary = activeStudent["PTA_Voluntary_Contribution"] || activeStudent["PTA_Donation"] || document.getElementById("pta-donation").value || "0";
+      var coopStore = activeStudent["PTA_Cooperative_Store"] || document.getElementById("pta-cooperative-store").value || "0";
+      var idCard = activeStudent["PTA_ID_Card_Fee"] || document.getElementById("pta-id-card-fee").value || "0";
       var total = activeStudent["PTA_Amount"] || document.getElementById("wf-pta-amount").value || "0";
 
       var printWindow = window.open("", "_blank");
@@ -2745,7 +2860,9 @@
             "<tbody>" +
               "<tr><td>1. Welfare Fund (Mandatory)</td><td>INR " + welfare + "/-</td></tr>" +
               "<tr><td>2. Membership Fee (Mandatory)</td><td>INR " + membership + "/-</td></tr>" +
-              "<tr><td>3. Donation / Other (Optional)</td><td>INR " + donation + "/-</td></tr>" +
+              "<tr><td>3. Voluntary Contribution (Optional)</td><td>INR " + voluntary + "/-</td></tr>" +
+              "<tr><td>4. Cooperative Store Fund (Optional)</td><td>INR " + coopStore + "/-</td></tr>" +
+              "<tr><td>5. ID Card Fee (Optional)</td><td>INR " + idCard + "/-</td></tr>" +
               "<tr style='font-weight:bold; font-size:11pt;'><td style='border-bottom:none; padding-top:4mm;'>TOTAL AMOUNT PAID:</td><td style='border-bottom:none; padding-top:4mm; text-align:right;'>INR " + total + "/-</td></tr>" +
             "</tbody>" +
           "</table>" +
@@ -2892,8 +3009,10 @@
     function calculatePTAFee() {
       var welfare = parseFloat(document.getElementById("pta-welfare-fund").value) || 0;
       var membership = parseFloat(document.getElementById("pta-membership").value) || 0;
-      var donation = parseFloat(document.getElementById("pta-donation").value) || 0;
-      document.getElementById("wf-pta-amount").value = welfare + membership + donation;
+      var voluntary = parseFloat(document.getElementById("pta-donation").value) || 0;
+      var coopStore = parseFloat(document.getElementById("pta-cooperative-store").value) || 0;
+      var idCard = parseFloat(document.getElementById("pta-id-card-fee").value) || 0;
+      document.getElementById("wf-pta-amount").value = welfare + membership + voluntary + coopStore + idCard;
     }
 
     // Print Daily PTA Collection Balance Sheet
@@ -2903,8 +3022,9 @@
         return;
       }
       
+      var todayStr = new Date().toLocaleDateString('en-CA');
       var ptaList = allStudents.filter(function(s) {
-        return s["PTA_Amount"] && parseFloat(s["PTA_Amount"]) > 0;
+        return s["PTA_Amount"] && parseFloat(s["PTA_Amount"]) > 0 && (s["PTA_Payment_Date"] || "").toString().trim() === todayStr;
       });
       
       if (ptaList.length === 0) {
@@ -2913,6 +3033,11 @@
       }
       
       var totalSum = 0;
+      var welfareSum = 0;
+      var memberSum = 0;
+      var voluntarySum = 0;
+      var coopSum = 0;
+      var idCardSum = 0;
       var tableRowsHtml = "";
       
       ptaList.forEach(function(s, index) {
@@ -2920,8 +3045,18 @@
         var capid = s["CAP id (Enter the full cap id without any spaces)"] || s["CAPID"] || "N/A";
         var category = s["Actual Category"] || s["Reservation Category"] || "N/A";
         var amount = parseFloat(s["PTA_Amount"]) || 0;
+        var welfare = parseFloat(s["PTA_Welfare_Fund"]) || 0;
+        var member = parseFloat(s["PTA_Membership"]) || 0;
+        var voluntary = parseFloat(s["PTA_Voluntary_Contribution"] || s["PTA_Donation"]) || 0;
+        var coop = parseFloat(s["PTA_Cooperative_Store"]) || 0;
+        var idCard = parseFloat(s["PTA_ID_Card_Fee"]) || 0;
         var deptName = s["Department"] || currentSelectedDept || "N/A";
         totalSum += amount;
+        welfareSum += welfare;
+        memberSum += member;
+        voluntarySum += voluntary;
+        coopSum += coop;
+        idCardSum += idCard;
         
         tableRowsHtml += "<tr>" +
           "<td>" + (index + 1) + "</td>" +
@@ -2929,6 +3064,11 @@
           "<td>" + name.toUpperCase() + "</td>" +
           "<td>" + deptName + "</td>" +
           "<td>" + category + "</td>" +
+          "<td>" + welfare + "</td>" +
+          "<td>" + member + "</td>" +
+          "<td>" + voluntary + "</td>" +
+          "<td>" + coop + "</td>" +
+          "<td>" + idCard + "</td>" +
           "<td>INR " + amount + "/-</td>" +
         "</tr>";
       });
@@ -2947,15 +3087,25 @@
                 "<th>Sl. No</th>" +
                 "<th>CAPID</th>" +
                 "<th>Student Name</th>" +
-                "<th>Programme / Department</th>" +
+                "<th>Department</th>" +
                 "<th>Category</th>" +
-                "<th>PTA Fee Collected</th>" +
+                "<th>Welfare</th>" +
+                "<th>Member</th>" +
+                "<th>Voluntary</th>" +
+                "<th>Coop Store</th>" +
+                "<th>ID Card</th>" +
+                "<th>Total</th>" +
               "</tr>" +
             "</thead>" +
             "<tbody>" +
               tableRowsHtml +
               "<tr style='font-weight: bold; background-color: #f2f2f2;'>" +
                 "<td colspan='5' style='text-align: right;'>TOTAL COLLECTION:</td>" +
+                "<td>" + welfareSum + "</td>" +
+                "<td>" + memberSum + "</td>" +
+                "<td>" + voluntarySum + "</td>" +
+                "<td>" + coopSum + "</td>" +
+                "<td>" + idCardSum + "</td>" +
                 "<td>INR " + totalSum + "/-</td>" +
               "</tr>" +
             "</tbody>" +
@@ -3226,14 +3376,25 @@
         tbody.innerHTML = "";
         ptaConfig.forEach(function(item) {
           var tr = document.createElement("tr");
+          var volSCST = item.Voluntary_Contribution_SCST !== undefined ? item.Voluntary_Contribution_SCST : (item.Donation_SCST || 0);
+          var volNonSCST = item.Voluntary_Contribution_NonSCST !== undefined ? item.Voluntary_Contribution_NonSCST : (item.Donation_NonSCST || 0);
+          var coopSCST = item.Cooperative_Store_SCST || 0;
+          var coopNonSCST = item.Cooperative_Store_NonSCST || 0;
+          var idSCST = item.ID_Card_Fee_SCST || 0;
+          var idNonSCST = item.ID_Card_Fee_NonSCST || 0;
+          
           tr.innerHTML = 
             "<td><strong>" + item.Program_Type + "</strong></td>" +
             "<td><input type='number' class='form-control' style='padding:5px; text-align:center;' data-prog='" + item.Program_Type + "' data-key='Welfare_SCST' value='" + item.Welfare_SCST + "'></td>" +
             "<td><input type='number' class='form-control' style='padding:5px; text-align:center;' data-prog='" + item.Program_Type + "' data-key='Membership_SCST' value='" + item.Membership_SCST + "'></td>" +
-            "<td><input type='number' class='form-control' style='padding:5px; text-align:center;' data-prog='" + item.Program_Type + "' data-key='Donation_SCST' value='" + item.Donation_SCST + "'></td>" +
+            "<td><input type='number' class='form-control' style='padding:5px; text-align:center;' data-prog='" + item.Program_Type + "' data-key='Voluntary_Contribution_SCST' value='" + volSCST + "'></td>" +
+            "<td><input type='number' class='form-control' style='padding:5px; text-align:center;' data-prog='" + item.Program_Type + "' data-key='Cooperative_Store_SCST' value='" + coopSCST + "'></td>" +
+            "<td><input type='number' class='form-control' style='padding:5px; text-align:center;' data-prog='" + item.Program_Type + "' data-key='ID_Card_Fee_SCST' value='" + idSCST + "'></td>" +
             "<td><input type='number' class='form-control' style='padding:5px; text-align:center;' data-prog='" + item.Program_Type + "' data-key='Welfare_NonSCST' value='" + item.Welfare_NonSCST + "'></td>" +
             "<td><input type='number' class='form-control' style='padding:5px; text-align:center;' data-prog='" + item.Program_Type + "' data-key='Membership_NonSCST' value='" + item.Membership_NonSCST + "'></td>" +
-            "<td><input type='number' class='form-control' style='padding:5px; text-align:center;' data-prog='" + item.Program_Type + "' data-key='Donation_NonSCST' value='" + item.Donation_NonSCST + "'></td>";
+            "<td><input type='number' class='form-control' style='padding:5px; text-align:center;' data-prog='" + item.Program_Type + "' data-key='Voluntary_Contribution_NonSCST' value='" + volNonSCST + "'></td>" +
+            "<td><input type='number' class='form-control' style='padding:5px; text-align:center;' data-prog='" + item.Program_Type + "' data-key='Cooperative_Store_NonSCST' value='" + coopNonSCST + "'></td>" +
+            "<td><input type='number' class='form-control' style='padding:5px; text-align:center;' data-prog='" + item.Program_Type + "' data-key='ID_Card_Fee_NonSCST' value='" + idNonSCST + "'></td>";
           tbody.appendChild(tr);
         });
         document.getElementById("pta-config-modal").style.display = "flex";
@@ -3290,7 +3451,9 @@
       
       var welfare = 2000;
       var membership = 500;
-      var donation = 0;
+      var voluntary = 0;
+      var coopStore = 0;
+      var idCard = 0;
       
       var matched = ptaConfig.filter(function(item) {
         return normalizeProgType(item.Program_Type) === normalizeProgType(progType);
@@ -3300,16 +3463,22 @@
         if (isSCST) {
           welfare = matched.Welfare_SCST;
           membership = matched.Membership_SCST;
-          donation = matched.Donation_SCST;
+          voluntary = matched.Voluntary_Contribution_SCST !== undefined ? matched.Voluntary_Contribution_SCST : (matched.Donation_SCST || 0);
+          coopStore = matched.Cooperative_Store_SCST || 0;
+          idCard = matched.ID_Card_Fee_SCST || 0;
         } else {
           welfare = matched.Welfare_NonSCST;
           membership = matched.Membership_NonSCST;
-          donation = matched.Donation_NonSCST;
+          voluntary = matched.Voluntary_Contribution_NonSCST !== undefined ? matched.Voluntary_Contribution_NonSCST : (matched.Donation_NonSCST || 0);
+          coopStore = matched.Cooperative_Store_NonSCST || 0;
+          idCard = matched.ID_Card_Fee_NonSCST || 0;
         }
       }
       document.getElementById("pta-welfare-fund").value = welfare;
       document.getElementById("pta-membership").value = membership;
-      document.getElementById("pta-donation").value = donation;
+      document.getElementById("pta-donation").value = voluntary;
+      document.getElementById("pta-cooperative-store").value = coopStore;
+      document.getElementById("pta-id-card-fee").value = idCard;
       calculatePTAFee();
     }
 
