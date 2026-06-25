@@ -5,6 +5,8 @@
   <title>Government College ERP Portal</title>
   <!-- Google Fonts -->
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <!-- Chart.js CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   
   <style>
     :root {
@@ -989,17 +991,20 @@
         </div>
       </div>
 
-      <!-- Tabs for Central Verification Teams -->
+      <!-- Tabs for Central Verification Teams & Departments -->
       <div class="tabs-container" id="dashboard-tabs" style="display: none; margin-bottom: 1.5rem; border-bottom: 1px solid var(--card-border); gap: 20px;">
         <button class="tab-btn" id="tab-pending-btn" onclick="switchTab('pending')" style="background: none; border: none; color: var(--text-main); font-weight: 600; padding: 10px 0; border-bottom: 2px solid var(--primary); cursor: pointer; font-size: 0.95rem; transition: var(--transition);">To Be Verified</button>
-        <button class="tab-btn" id="tab-completed-btn" onclick="switchTab('completed')" style="background: none; border: none; color: var(--text-muted); font-weight: 500; padding: 10px 0; border-bottom: 2px solid transparent; cursor: pointer; font-size: 0.95rem; transition: var(--transition);">Verification Completed</button>
+        <button class="tab-btn" id="tab-completed-ug-btn" onclick="switchTab('completed-ug')" style="background: none; border: none; color: var(--text-muted); font-weight: 500; padding: 10px 0; border-bottom: 2px solid transparent; cursor: pointer; font-size: 0.95rem; transition: var(--transition);">UG Completed</button>
+        <button class="tab-btn" id="tab-completed-pg-btn" onclick="switchTab('completed-pg')" style="background: none; border: none; color: var(--text-muted); font-weight: 500; padding: 10px 0; border-bottom: 2px solid transparent; cursor: pointer; font-size: 0.95rem; transition: var(--transition);">PG Completed</button>
+        <button class="tab-btn" id="tab-analytics-btn" onclick="switchTab('analytics')" style="background: none; border: none; color: var(--text-muted); font-weight: 500; padding: 10px 0; border-bottom: 2px solid transparent; cursor: pointer; font-size: 0.95rem; transition: var(--transition);">Analytics Dashboard</button>
       </div>
 
-      <div class="card">
+      <div class="card" id="student-table-card">
         <div class="table-responsive">
           <table>
             <thead>
               <tr>
+                <th style="width: 50px; text-align: center;">WA</th>
                 <th>Token</th>
                 <th>CAPID</th>
                 <th>Name</th>
@@ -1018,6 +1023,40 @@
               <!-- Dynamically populated rows -->
             </tbody>
           </table>
+        </div>
+      </div>
+
+      <!-- Analytics Dashboard Panels -->
+      <div id="analytics-container" style="display: none; margin-top: 1rem;">
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 20px; margin-bottom: 20px;">
+          <!-- UG Seat Vacancy Chart Card -->
+          <div class="card" style="padding: 20px; background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 12px; box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);">
+            <h3 style="font-size: 1.1rem; font-weight: 600; margin-bottom: 15px; color: var(--text-main); text-align: center;">UG Seat Quota Status</h3>
+            <div style="position: relative; height: 300px; width: 100%;">
+              <canvas id="seatVacancyChartUG"></canvas>
+            </div>
+          </div>
+          <!-- PG Seat Vacancy Chart Card -->
+          <div class="card" style="padding: 20px; background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 12px; box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);">
+            <h3 style="font-size: 1.1rem; font-weight: 600; margin-bottom: 15px; color: var(--text-main); text-align: center;">PG Seat Quota Status</h3>
+            <div style="position: relative; height: 300px; width: 100%;">
+              <canvas id="seatVacancyChartPG"></canvas>
+            </div>
+          </div>
+          <!-- Admission Progress Chart Card -->
+          <div class="card" style="padding: 20px; background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 12px; box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);">
+            <h3 style="font-size: 1.1rem; font-weight: 600; margin-bottom: 15px; color: var(--text-main); text-align: center;">Admission Progress by Status</h3>
+            <div style="position: relative; height: 300px; width: 100%;">
+              <canvas id="admissionProgressChart"></canvas>
+            </div>
+          </div>
+        </div>
+        
+        <div class="card" id="pta-collection-card" style="padding: 20px; background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 12px; box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2); margin-bottom: 20px;">
+          <h3 style="font-size: 1.1rem; font-weight: 600; margin-bottom: 15px; color: var(--text-main); text-align: center;">PTA Fee Collection Analysis</h3>
+          <div style="position: relative; height: 320px; width: 100%;">
+            <canvas id="ptaCollectionChart"></canvas>
+          </div>
         </div>
       </div>
     </main>
@@ -1257,7 +1296,11 @@
         <button class="close-btn" onclick="closeSeatMatrixModal()">&times;</button>
       </div>
       <div class="modal-body">
-        <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 15px;">Define the total available slots (vacancies) for each department under the following categories as defined in the SeatSplitUp sheet.</p>
+        <div style="display: flex; gap: 10px; margin-bottom: 15px; border-bottom: 1px solid var(--card-border); padding-bottom: 15px;">
+          <button class="btn btn-primary" id="btn-matrix-pg" onclick="switchMatrixType('pg')">PG Seat Matrix</button>
+          <button class="btn btn-secondary" id="btn-matrix-ug" onclick="switchMatrixType('ug')">UG Seat Matrix</button>
+        </div>
+        <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 15px;">Define the total available slots (vacancies) for each department under the following categories for the selected admission type.</p>
         <div class="table-responsive">
           <table>
             <thead>
@@ -1406,7 +1449,7 @@
               this._dispatch("getDepartmentData", { department: dept });
             },
             updateStudentData: function(dept, capid, email, data) {
-              this._dispatch("updateStudentData", { department: dept, capid: capid, email: email, updatedData: data });
+              this._dispatch("updateStudentData", { department: dept, capid: capid, email: email, updatedData: data, operatorRole: typeof userRole !== 'undefined' ? userRole : "System", operatorDept: typeof userDept !== 'undefined' ? userDept : "System" });
             },
             emailPTAReceipt: function(capid, email) {
               this._dispatch("emailPTAReceipt", { capid: capid, email: email });
@@ -1667,7 +1710,7 @@
       var isCentral = (userRole !== "Faculty" && userRole !== "HOD");
       
       if (!students || students.length === 0) {
-        tbody.innerHTML = "<tr><td colspan='12' style='text-align: center; color: var(--text-muted);'>No student submissions found.</td></tr>";
+        tbody.innerHTML = "<tr><td colspan='13' style='text-align: center; color: var(--text-muted);'>No student submissions found.</td></tr>";
         return;
       }
 
@@ -1688,7 +1731,22 @@
         
         var deptCell = isCentral ? ("<td>" + (s["Department"] || "-") + "</td>") : "";
 
-        tr.innerHTML = "<td><strong>" + token + "</strong></td>" +
+        var phone = s["Mobile No"] || s["Mobile number"] || "";
+        var waCell = "";
+        if (phone) {
+          var cleanPhone = phone.toString().replace(/\D/g, "");
+          if (cleanPhone.length === 10) cleanPhone = "91" + cleanPhone;
+          waCell = "<td style='text-align: center; vertical-align: middle;' onclick='event.stopPropagation();'>" +
+                     "<a href='https://wa.me/" + cleanPhone + "' target='_blank' style='display: inline-flex; align-items: center; justify-content: center; background: #22c35e; color: white; border-radius: 50%; width: 28px; height: 28px; text-decoration: none; box-shadow: 0 2px 5px rgba(0,0,0,0.2); transition: transform 0.2s;' onmouseover='this.style.transform=\"scale(1.1)\"' onmouseout='this.style.transform=\"scale(1)\"' title='WhatsApp Student'>" +
+                       "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 448 512\" style=\"width:14px; height:14px; fill:white;\"><path d=\"M380.9 97.1C339 55.1 283.2 32 223.9 32c-122.4 0-222 99.6-222 222 0 39.1 10.2 77.3 29.6 111L0 480l117.7-30.9c32.4 17.7 68.9 27 106.1 27h.1c122.3 0 224.1-99.6 224.1-222 0-59.3-25.2-115-67.1-157zm-157 341.6c-33.2 0-65.7-8.9-94-25.7l-6.7-4-69.8 18.3L72 359.2l-4.4-7c-18.5-29.4-28.2-63.3-28.2-98.2 0-101.7 82.8-184.5 184.6-184.5 49.3 0 95.6 19.2 130.4 54.1 34.8 34.9 56.2 81.2 56.1 130.5 0 101.8-84.9 184.6-186.6 184.6zm101.2-138.2c-5.5-2.8-32.8-16.2-37.9-18-5.1-1.9-8.8-2.8-12.5 2.8-3.7 5.6-14.3 18-17.6 21.8-3.2 3.7-6.5 4.2-12 1.4-32.6-16.3-54-29.1-75.5-66-5.7-9.8 5.7-9.1 16.3-30.3 1.8-3.7.9-6.9-.5-9.7-1.4-2.8-12.5-30.1-17.1-41.2-4.5-10.8-9.1-9.3-12.5-9.5-3.2-.2-6.9-.2-10.6-.2-3.7 0-9.7 1.4-14.8 6.9-5.1 5.6-19.4 19-19.4 46.3 0 27.3 19.9 53.7 22.6 57.4 2.8 3.7 39.1 59.7 94.8 83.8 35.2 15.2 49 16.5 66.6 13.9 10.7-1.6 32.8-13.4 37.4-26.4 4.6-13 4.6-24.1 3.2-26.4-1.3-2.5-5-3.9-10.5-6.6z\"/></svg>" +
+                     "</a>" +
+                   "</td>";
+        } else {
+          waCell = "<td style='text-align: center; color: var(--text-muted);'>-</td>";
+        }
+
+        tr.innerHTML = waCell +
+                       "<td><strong>" + token + "</strong></td>" +
                        "<td>" + capid + "</td>" +
                        "<td>" + name + "</td>" +
                        deptCell +
@@ -1709,9 +1767,16 @@
       var query = document.getElementById("search-bar").value.toLowerCase();
       var filtered = [].concat(allStudents);
       
-      // 1. Segregate by Role and Tab
+      // 1. Segregate by Role and Tab (with UG/PG Demarcation for completed lists)
       filtered = filtered.filter(function(s) {
         var status = s["Current_Status"] || "Pending_Faculty";
+        
+        var progType = (s["Program_Type"] || s["Admission to the Programme"] || "").toString().trim().toUpperCase();
+        var isUG = progType.indexOf("B") === 0;
+        
+        if (currentTab === "completed-ug" && !isUG) return false;
+        if (currentTab === "completed-pg" && isUG) return false;
+        
         if (userRole === "Faculty" || userRole === "HOD") {
           if (currentTab === "pending") {
             return status === "Pending_Faculty" || status.includes("Reverted");
@@ -2620,7 +2685,9 @@
           studentDept, 
           activeStudent["CAP id (Enter the full cap id without any spaces)"] || activeStudent["CAPID"], 
           activeStudent["Email Address"] || activeStudent["Email id"] || "",
-          updatedData
+          updatedData,
+          userRole,
+          userDept
         );
     }
 
@@ -2905,14 +2972,17 @@
     }
 
     // --- Seat Matrix Logic ---
-    var seatMatrixData = [];
+    var seatMatrixPG = [];
+    var seatMatrixUG = [];
+    var currentMatrixType = 'pg';
     
     function loadSeatMatrix() {
       google.script.run
         .withSuccessHandler(function(resJson) {
           var res = JSON.parse(resJson);
-          if (res.success && res.data) {
-            seatMatrixData = res.data;
+          if (res.success) {
+            seatMatrixPG = res.pgData || [];
+            seatMatrixUG = res.ugData || [];
             if (userRole === "Faculty" || userRole === "HOD") {
               renderVacancySummary();
             }
@@ -2924,13 +2994,35 @@
         .getSeatMatrix();
     }
 
+    function switchMatrixType(type) {
+      currentMatrixType = type;
+      var pgBtn = document.getElementById("btn-matrix-pg");
+      var ugBtn = document.getElementById("btn-matrix-ug");
+      
+      if (type === 'pg') {
+        pgBtn.className = "btn btn-primary";
+        ugBtn.className = "btn btn-secondary";
+      } else {
+        pgBtn.className = "btn btn-secondary";
+        ugBtn.className = "btn btn-primary";
+      }
+      
+      renderMatrixTable();
+    }
+
     function openSeatMatrixModal() {
+      switchMatrixType(currentMatrixType);
+      document.getElementById("matrix-modal").style.display = "flex";
+    }
+
+    function renderMatrixTable() {
       var tbody = document.getElementById("matrix-table-body");
       tbody.innerHTML = "";
       
       var slots = ["OPEN", "ETB", "MU", "LC", "EWS", "OBH", "SC", "ST", "TLM", "SP", "PWD", "UTL", "OBX", "SSQ"];
+      var currentData = (currentMatrixType === 'pg') ? seatMatrixPG : seatMatrixUG;
       
-      seatMatrixData.forEach(function(item) {
+      currentData.forEach(function(item) {
         if (!item || !item.Department) return;
         if (item.Department.toString().toLowerCase() === "total") return;
         
@@ -2943,7 +3035,6 @@
         tr.innerHTML = html;
         tbody.appendChild(tr);
       });
-      document.getElementById("matrix-modal").style.display = "flex";
     }
 
     function closeSeatMatrixModal() {
@@ -2964,15 +3055,20 @@
       });
 
       var matrixArray = Object.keys(dataMap).map(function(k) { return dataMap[k]; });
+      var targetType = currentMatrixType;
       
-      showLoader("Saving Seat Split Up...");
+      showLoader("Saving " + targetType.toUpperCase() + " Seat Split Up...");
       google.script.run
         .withSuccessHandler(function(responseJson) {
           hideLoader();
           var res = JSON.parse(responseJson);
           if (res.success) {
-            showToast("Seat Split Up saved successfully.");
-            seatMatrixData = matrixArray;
+            showToast(targetType.toUpperCase() + " Seat Split Up saved successfully.");
+            if (targetType === 'pg') {
+              seatMatrixPG = matrixArray;
+            } else {
+              seatMatrixUG = matrixArray;
+            }
             closeSeatMatrixModal();
             if (userRole === "Faculty" || userRole === "HOD") renderVacancySummary();
           } else {
@@ -2983,23 +3079,31 @@
           hideLoader();
           showToast(err.toString(), true);
         })
-        .updateSeatMatrix(matrixArray);
+        .updateSeatMatrix(matrixArray, targetType);
     }
 
     function renderVacancySummary() {
-      if (!seatMatrixData || seatMatrixData.length === 0) return;
-      var deptMatrix = seatMatrixData.find(function(m) { return m.Department === currentSelectedDept; });
-      if (!deptMatrix) return;
-
       var container = document.getElementById("vacancy-summary-container");
       var grid = document.getElementById("vacancy-grid");
       grid.innerHTML = "";
       
+      var pgMatrix = seatMatrixPG.find(function(m) { return m.Department === currentSelectedDept; });
+      var ugMatrix = seatMatrixUG.find(function(m) { return m.Department === currentSelectedDept; });
+      
+      if (!pgMatrix && !ugMatrix) {
+        container.style.display = "none";
+        return;
+      }
+      
       var slots = ["OPEN", "ETB", "MU", "LC", "EWS", "OBH", "SC", "ST", "TLM", "SP", "PWD", "UTL", "OBX", "SSQ"];
       
       // Compute filled slots
-      var filled = {};
-      slots.forEach(function(s) { filled[s] = 0; });
+      var filledUG = {};
+      var filledPG = {};
+      slots.forEach(function(s) {
+        filledUG[s] = 0;
+        filledPG[s] = 0;
+      });
       
       allStudents.forEach(function(s) {
         var status = s["Current_Status"];
@@ -3007,26 +3111,70 @@
           var assigned = s["Assigned_Slot"];
           if (assigned) {
             var normAssigned = assigned.toString().trim().toUpperCase();
-            if (filled[normAssigned] !== undefined) {
-              filled[normAssigned]++;
+            var progType = (s["Program_Type"] || s["Admission to the Programme"] || "").toString().trim().toUpperCase();
+            var isUG = progType.indexOf("B") === 0;
+            if (isUG) {
+              if (filledUG[normAssigned] !== undefined) {
+                filledUG[normAssigned]++;
+              }
+            } else {
+              if (filledPG[normAssigned] !== undefined) {
+                filledPG[normAssigned]++;
+              }
             }
           }
         }
       });
       
-      slots.forEach(function(slot) {
-        var total = parseInt(deptMatrix[slot]) || 0;
-        var used = filled[slot];
-        var vacant = total - used;
-        var color = vacant > 0 ? "var(--accent-green)" : (vacant < 0 ? "var(--accent-red)" : "var(--text-muted)");
-        
-        grid.innerHTML += 
-          "<div style='background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 6px; padding: 10px; min-width: 80px; text-align: center; flex: 1 1 auto;'>" +
-            "<div style='font-size: 0.75rem; font-weight: 600; color: var(--text-muted);'>" + slot + "</div>" +
-            "<div style='font-size: 1.1rem; font-weight: 700; color: " + color + "; margin: 4px 0;'>" + vacant + " left</div>" +
-            "<div style='font-size: 0.65rem; color: rgba(255,255,255,0.5);'>Used: " + used + " / " + total + "</div>" +
-          "</div>";
-      });
+      var html = "";
+      
+      if (ugMatrix) {
+        html += "<div style='width: 100%; margin-bottom: 15px;'><h4 style='font-size: 0.9rem; font-weight: 600; color: var(--primary); margin: 0 0 10px 0; border-bottom: 1px solid var(--card-border); padding-bottom: 6px;'>UG Admission Quotas</h4>";
+        html += "<div style='display: flex; gap: 10px; flex-wrap: wrap;'>";
+        var hasUgSlots = false;
+        slots.forEach(function(slot) {
+          var total = parseInt(ugMatrix[slot]) || 0;
+          if (total > 0) {
+            hasUgSlots = true;
+            var used = filledUG[slot] || 0;
+            var vacant = total - used;
+            var color = vacant > 0 ? "var(--accent-green)" : (vacant < 0 ? "var(--accent-red)" : "var(--text-muted)");
+            html += "<div style='background: rgba(255,255,255,0.05); border: 1px solid var(--card-border); border-radius: 6px; padding: 10px; min-width: 80px; text-align: center; flex: 1 1 auto;'>" +
+                      "<div style='font-size: 0.75rem; font-weight: 600; color: var(--text-muted);'>" + slot + "</div>" +
+                      "<div style='font-size: 1.1rem; font-weight: 700; color: " + color + "; margin: 4px 0;'>" + vacant + " left</div>" +
+                      "<div style='font-size: 0.65rem; color: rgba(255,255,255,0.5);'>Used: " + used + " / " + total + "</div>" +
+                    "</div>";
+          }
+        });
+        if (!hasUgSlots) {
+          html += "<div style='font-size: 0.85rem; color: var(--text-muted); font-style: italic; padding: 5px 0;'>No slots configured.</div>";
+        }
+        html += "</div></div>";
+      }
+      
+      if (pgMatrix) {
+        html += "<div style='width: 100%; margin-bottom: 15px;'><h4 style='font-size: 0.9rem; font-weight: 600; color: var(--primary); margin: 15px 0 10px 0; border-bottom: 1px solid var(--card-border); padding-bottom: 6px;'>PG Admission Quotas</h4>";
+        html += "<div style='display: flex; gap: 10px; flex-wrap: wrap;'>";
+        var hasPgSlots = false;
+        slots.forEach(function(slot) {
+          var total = parseInt(pgMatrix[slot]) || 0;
+          if (total > 0) {
+            hasPgSlots = true;
+            var used = filledPG[slot] || 0;
+            var vacant = total - used;
+            var color = vacant > 0 ? "var(--accent-green)" : (vacant < 0 ? "var(--accent-red)" : "var(--text-muted)");
+            html += "<div style='background: rgba(255,255,255,0.05); border: 1px solid var(--card-border); border-radius: 6px; padding: 10px; min-width: 80px; text-align: center; flex: 1 1 auto;'>" +
+                      "<div style='font-size: 0.75rem; font-weight: 600; color: var(--text-muted);'>" + slot + "</div>" +
+                      "<div style='font-size: 1.1rem; font-weight: 700; color: " + color + "; margin: 4px 0;'>" + vacant + " left</div>" +
+                      "<div style='font-size: 0.65rem; color: rgba(255,255,255,0.5);'>Used: " + used + " / " + total + "</div>" +
+                    "</div>";
+          }
+        });
+        if (!hasPgSlots) {
+          html += "<div style='font-size: 0.85rem; color: var(--text-muted); font-style: italic; padding: 5px 0;'>No slots configured.</div>";
+        }
+        html += "</div></div>";
+      }
       
       container.style.display = "block";
     }
@@ -3159,37 +3307,340 @@
           donation = matched.Donation_NonSCST;
         }
       }
-      
       document.getElementById("pta-welfare-fund").value = welfare;
       document.getElementById("pta-membership").value = membership;
       document.getElementById("pta-donation").value = donation;
       calculatePTAFee();
     }
 
+    var vacancyChartUGInstance = null;
+    var vacancyChartPGInstance = null;
+    var progressChartInstance = null;
+    var ptaChartInstance = null;
+
     function switchTab(tab) {
       currentTab = tab;
       var pendingBtn = document.getElementById("tab-pending-btn");
-      var completedBtn = document.getElementById("tab-completed-btn");
+      var completedUgBtn = document.getElementById("tab-completed-ug-btn");
+      var completedPgBtn = document.getElementById("tab-completed-pg-btn");
+      var analyticsBtn = document.getElementById("tab-analytics-btn");
       
-      if (tab === 'pending') {
-        pendingBtn.style.color = "var(--text-main)";
-        pendingBtn.style.fontWeight = "600";
-        pendingBtn.style.borderBottomColor = "var(--primary)";
-        
-        completedBtn.style.color = "var(--text-muted)";
-        completedBtn.style.fontWeight = "500";
-        completedBtn.style.borderBottomColor = "transparent";
+      // Reset all buttons
+      [pendingBtn, completedUgBtn, completedPgBtn, analyticsBtn].forEach(function(btn) {
+        if (btn) {
+          btn.style.color = "var(--text-muted)";
+          btn.style.fontWeight = "500";
+          btn.style.borderBottomColor = "transparent";
+        }
+      });
+      
+      var tableCard = document.getElementById("student-table-card");
+      var analyticsContainer = document.getElementById("analytics-container");
+      
+      if (tab === 'analytics') {
+        if (tableCard) tableCard.style.display = "none";
+        if (analyticsContainer) analyticsContainer.style.display = "block";
+        if (analyticsBtn) {
+          analyticsBtn.style.color = "var(--text-main)";
+          analyticsBtn.style.fontWeight = "600";
+          analyticsBtn.style.borderBottomColor = "var(--primary)";
+        }
+        loadAnalyticsData();
       } else {
-        completedBtn.style.color = "var(--text-main)";
-        completedBtn.style.fontWeight = "600";
-        completedBtn.style.borderBottomColor = "var(--primary)";
+        if (tableCard) tableCard.style.display = "block";
+        if (analyticsContainer) analyticsContainer.style.display = "none";
+        var activeBtn = pendingBtn;
+        if (tab === 'completed-ug') activeBtn = completedUgBtn;
+        else if (tab === 'completed-pg') activeBtn = completedPgBtn;
         
-        pendingBtn.style.color = "var(--text-muted)";
-        pendingBtn.style.fontWeight = "500";
-        pendingBtn.style.borderBottomColor = "transparent";
+        if (activeBtn) {
+          activeBtn.style.color = "var(--text-main)";
+          activeBtn.style.fontWeight = "600";
+          activeBtn.style.borderBottomColor = "var(--primary)";
+        }
+        filterTable();
+      }
+    }
+
+    function loadAnalyticsData() {
+      showLoader("Loading Analytics...");
+      
+      google.script.run
+        .withSuccessHandler(function(matrixRaw) {
+          var matrixRes = typeof matrixRaw === 'string' ? JSON.parse(matrixRaw) : matrixRaw;
+          console.log("Analytics Seat Matrix Loaded:", matrixRes);
+          var pgMatrix = matrixRes.success ? matrixRes.pgData : [];
+          var ugMatrix = matrixRes.success ? matrixRes.ugData : [];
+          
+          var isDeptRole = (userRole === "Faculty" || userRole === "HOD");
+          
+          if (isDeptRole) {
+            google.script.run
+              .withSuccessHandler(function(studentRaw) {
+                hideLoader();
+                var studentRes = typeof studentRaw === 'string' ? JSON.parse(studentRaw) : studentRaw;
+                console.log("Analytics Department Students Loaded:", studentRes);
+                var students = studentRes.success ? studentRes.data : [];
+                renderCharts(pgMatrix, ugMatrix, students);
+              })
+              .withFailureHandler(function(err) {
+                hideLoader();
+                showToast("Failed to load student data: " + err, true);
+              })
+              .getDepartmentData(userDept);
+          } else {
+            google.script.run
+              .withSuccessHandler(function(studentRaw) {
+                hideLoader();
+                var studentRes = typeof studentRaw === 'string' ? JSON.parse(studentRaw) : studentRaw;
+                console.log("Analytics All Students Loaded:", studentRes);
+                var students = studentRes.success ? studentRes.data : [];
+                renderCharts(pgMatrix, ugMatrix, students);
+              })
+              .withFailureHandler(function(err) {
+                hideLoader();
+                showToast("Failed to load student data: " + err, true);
+              })
+              .getAllDepartmentsData();
+          }
+        })
+        .withFailureHandler(function(err) {
+          hideLoader();
+          showToast("Failed to load seat matrix: " + err, true);
+        })
+        .getSeatMatrix();
+    }
+
+    function renderSeatMatrixChart(canvasId, seatMatrix, targetStudents, currentInstance) {
+      console.log("Rendering Seat Matrix Chart " + canvasId + ":", seatMatrix, targetStudents);
+      
+      var seatMatrixDepts = (seatMatrix || []).map(function(row) {
+        if (!row) return "";
+        for (var k in row) {
+          if (k.toString().trim().toLowerCase() === "department") {
+            return row[k];
+          }
+        }
+        return "";
+      });
+      console.log(canvasId + " input userDept:", typeof userDept, JSON.stringify(userDept), "seatMatrixDepts:", JSON.stringify(seatMatrixDepts));
+
+      var quotaLabels = ["OPEN", "ETB", "MU", "LC", "EWS", "OBH", "SC", "ST", "TLM", "SP", "PWD", "UTL", "OBX", "SSQ"];
+      var totalQuotas = quotaLabels.map(function() { return 0; });
+      var filledQuotas = quotaLabels.map(function() { return 0; });
+      
+      var relevantMatrix = seatMatrix || [];
+      if (userRole === "Faculty" || userRole === "HOD") {
+        relevantMatrix = relevantMatrix.filter(function(row) {
+          if (!row) return false;
+          var deptVal = "";
+          for (var k in row) {
+            if (k.toString().trim().toLowerCase() === "department") {
+              deptVal = row[k];
+              break;
+            }
+          }
+          return deptVal && deptVal.toString().trim().toLowerCase() === userDept.toString().trim().toLowerCase();
+        });
       }
       
-      filterTable();
+      relevantMatrix.forEach(function(row) {
+        console.log(canvasId + " raw row details:", JSON.stringify(row));
+        // Create a normalized copy of the row with uppercase trimmed keys
+        var normRow = {};
+        for (var k in row) {
+          if (row.hasOwnProperty(k)) {
+            normRow[k.toString().trim().toUpperCase()] = row[k];
+          }
+        }
+        quotaLabels.forEach(function(label, idx) {
+          totalQuotas[idx] += parseInt(normRow[label], 10) || 0;
+        });
+      });
+      
+      console.log(canvasId + " relevantMatrix after filter:", relevantMatrix);
+      console.log(canvasId + " computed totalQuotas:", totalQuotas);
+      console.log(canvasId + " computed filledQuotas:", filledQuotas);
+      
+      targetStudents.forEach(function(st) {
+        if (st.Current_Status === "Admitted" || st.Current_Status === "TC Issued") {
+          var slot = (st.Assigned_Slot || st["Actual Category"] || st["Reservation Category"] || "").toString().trim().toUpperCase();
+          var matchedIndex = -1;
+          for (var i = 0; i < quotaLabels.length; i++) {
+            if (slot.indexOf(quotaLabels[i]) > -1) {
+              matchedIndex = i;
+              break;
+            }
+          }
+          if (matchedIndex !== -1) {
+            filledQuotas[matchedIndex]++;
+          } else {
+            filledQuotas[0]++;
+          }
+        }
+      });
+      
+      if (currentInstance) currentInstance.destroy();
+      var ctx = document.getElementById(canvasId).getContext("2d");
+      return new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: quotaLabels,
+          datasets: [
+            {
+              label: 'Total Quotas',
+              data: totalQuotas,
+              backgroundColor: 'rgba(37, 99, 235, 0.4)',
+              borderColor: '#2563eb',
+              borderWidth: 1
+            },
+            {
+              label: 'Seats Filled',
+              data: filledQuotas,
+              backgroundColor: 'rgba(16, 185, 129, 0.7)',
+              borderColor: '#10b981',
+              borderWidth: 1
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: {
+            y: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#94a3b8' } },
+            x: { grid: { display: false }, ticks: { color: '#94a3b8' } }
+          },
+          plugins: {
+            legend: { labels: { color: '#f8fafc' } }
+          }
+        }
+      });
+    }
+
+    function renderCharts(pgMatrix, ugMatrix, students) {
+      var studentsList = students || [];
+      var pgMatrixList = pgMatrix || [];
+      var ugMatrixList = ugMatrix || [];
+      
+      // Divide students into UG and PG based on Program_Type
+      var ugStudents = [];
+      var pgStudents = [];
+      studentsList.forEach(function(st) {
+        var progType = (st.Program_Type || "").toString().trim().toUpperCase();
+        if (progType.indexOf("B") === 0) {
+          ugStudents.push(st);
+        } else {
+          pgStudents.push(st);
+        }
+      });
+
+      // 1. Render PG and UG Quota Charts
+      vacancyChartUGInstance = renderSeatMatrixChart("seatVacancyChartUG", ugMatrixList, ugStudents, vacancyChartUGInstance);
+      vacancyChartPGInstance = renderSeatMatrixChart("seatVacancyChartPG", pgMatrixList, pgStudents, vacancyChartPGInstance);
+      
+      // 2. Admission Progress Status Chart
+      var statusCounts = {
+        "Pending_Faculty": 0,
+        "Pending_Nodal": 0,
+        "Pending_PTA": 0,
+        "Pending_Principal": 0,
+        "Admitted": 0,
+        "TC Issued": 0
+      };
+      
+      studentsList.forEach(function(st) {
+        var stat = st.Current_Status || "Pending_Faculty";
+        if (statusCounts.hasOwnProperty(stat)) {
+          statusCounts[stat]++;
+        }
+      });
+      
+      if (progressChartInstance) progressChartInstance.destroy();
+      var ctx2 = document.getElementById("admissionProgressChart").getContext("2d");
+      progressChartInstance = new Chart(ctx2, {
+        type: 'doughnut',
+        data: {
+          labels: ["Faculty Review", "Nodal Approval", "PTA Desk", "Principal Clearance", "Admitted", "TC Issued"],
+          datasets: [{
+            data: [
+              statusCounts["Pending_Faculty"],
+              statusCounts["Pending_Nodal"],
+              statusCounts["Pending_PTA"],
+              statusCounts["Pending_Principal"],
+              statusCounts["Admitted"],
+              statusCounts["TC Issued"]
+            ],
+            backgroundColor: [
+              'rgba(148, 163, 184, 0.6)',
+              'rgba(59, 130, 246, 0.6)',
+              'rgba(245, 158, 11, 0.6)',
+              'rgba(139, 92, 246, 0.6)',
+              'rgba(16, 185, 129, 0.7)',
+              'rgba(239, 68, 68, 0.7)'
+            ],
+            borderWidth: 1,
+            borderColor: 'rgba(255,255,255,0.08)'
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              position: 'right',
+              labels: { color: '#f8fafc' }
+            }
+          }
+        }
+      });
+      
+      // 3. PTA Fee Collection Analysis
+      var ptaCard = document.getElementById("pta-collection-card");
+      if (ptaCard) {
+        if (userRole === "PTA" || userRole === "Principal") {
+          ptaCard.style.display = "block";
+          
+          var ptaByDept = {};
+          students.forEach(function(st) {
+            var dept = st.Department || userDept || "General";
+            var fee = parseFloat(st.PTA_Amount || 0);
+            if (!ptaByDept[dept]) ptaByDept[dept] = 0;
+            ptaByDept[dept] += fee;
+          });
+          
+          var depts = Object.keys(ptaByDept);
+          var feeTotals = Object.values(ptaByDept);
+          
+          if (ptaChartInstance) ptaChartInstance.destroy();
+          var ctx3 = document.getElementById("ptaCollectionChart").getContext("2d");
+          ptaChartInstance = new Chart(ctx3, {
+            type: 'bar',
+            data: {
+              labels: depts,
+              datasets: [{
+                label: 'Total PTA Fees Collected (INR)',
+                data: feeTotals,
+                backgroundColor: 'rgba(245, 158, 11, 0.6)',
+                borderColor: '#f59e0b',
+                borderWidth: 1
+              }]
+            },
+            options: {
+              responsive: true,
+              maintainAspectRatio: false,
+              scales: {
+                y: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#94a3b8' } },
+                x: { grid: { display: false }, ticks: { color: '#94a3b8' } }
+              },
+              plugins: {
+                legend: { labels: { color: '#f8fafc' } }
+              }
+            }
+          });
+        } else {
+          ptaCard.style.display = "none";
+        }
+      }
     }
 
     // Email PTA Receipt student copy

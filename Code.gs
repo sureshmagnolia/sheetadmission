@@ -18,13 +18,23 @@ var PROG_HEADER = "Admission to the Programme";
 
 // Helper to identify system sheets
 function isSystemSheet(name) {
-  return name === MASTER_SHEET_NAME || 
-         name === MASTER_SHEET_FALLBACK || 
-         name === SYSTEM_DB_SHEET_NAME || 
-         name === CREDENTIALS_SHEET_NAME || 
-         name === PTA_CONFIG_SHEET_NAME || 
-         name === SEAT_SPLIT_SHEET_NAME || 
-         name === "Sheet1";
+  if (!name) return true;
+  var cleanName = name.toString().trim().toLowerCase();
+  var systemNames = [
+    MASTER_SHEET_NAME.toLowerCase(),
+    MASTER_SHEET_FALLBACK.toLowerCase(),
+    SYSTEM_DB_SHEET_NAME.toLowerCase(),
+    CREDENTIALS_SHEET_NAME.toLowerCase(),
+    PTA_CONFIG_SHEET_NAME.toLowerCase(),
+    SEAT_SPLIT_SHEET_NAME.toLowerCase(),
+    "seatsplitup_ug",
+    "audit_logs",
+    "sheet1",
+    "transposeseatsplitup",
+    "cat",
+    "master"
+  ];
+  return systemNames.indexOf(cleanName) !== -1;
 }
 
 // Helper to find a header index case-insensitively and trimmed to avoid spelling/space issues
@@ -130,242 +140,16 @@ function getOrCreateSystemDBSheet() {
   return dbSheet;
 }
 
-// onFormSubmit Trigger: Syncs new submission from Master Responses into System_DB
+// onFormSubmit Trigger: Handled live on dashboard verification, no-op for background sync
 function onFormSubmit(e) {
-  try {
-    var sheet = SpreadsheetApp.getActiveSpreadsheet();
-    var responseValues;
-    
-    if (e && e.values) {
-      responseValues = e.values;
-    } else if (e && e.range) {
-      responseValues = e.range.getValues()[0];
-    } else {
-      Logger.log("No form submit event values found.");
-      return;
-    }
-    
-    var masterSheet = getMasterSheet(sheet);
-    var headers = masterSheet.getRange(1, 1, 1, masterSheet.getLastColumn()).getValues()[0];
-    
-    var capidIndex = findHeaderIndex(headers, KEY_HEADER);
-    var emailIndex = findHeaderIndex(headers, EMAIL_HEADER);
-    var emailFallbackIndex = findHeaderIndex(headers, EMAIL_FALLBACK_HEADER);
-    var deptIndex = findHeaderIndex(headers, DEPT_HEADER);
-    var progIndex = findHeaderIndex(headers, PROG_HEADER);
-    var indexMarkIndex = findHeaderIndex(headers, "Index Marks (as per admit/allotment card)");
-    
-    if (capidIndex === -1 || deptIndex === -1) {
-      Logger.log("Critical headers missing in Master Responses.");
-      return;
-    }
-    
-    var capid = responseValues[capidIndex] ? responseValues[capidIndex].toString().trim() : "";
-    var email = "";
-    if (emailIndex !== -1 && responseValues[emailIndex]) {
-      email = responseValues[emailIndex].toString().trim();
-    } else if (emailFallbackIndex !== -1 && responseValues[emailFallbackIndex]) {
-      email = responseValues[emailFallbackIndex].toString().trim();
-    }
-    var dept = responseValues[deptIndex] ? responseValues[deptIndex].toString().trim() : "";
-    var prog = progIndex !== -1 && responseValues[progIndex] ? responseValues[progIndex].toString().trim() : "";
-    var indexMark = indexMarkIndex !== -1 && responseValues[indexMarkIndex] ? responseValues[indexMarkIndex].toString().trim() : "";
-    
-    if (!capid) {
-      Logger.log("CAPID is blank in form submission.");
-      return;
-    }
-    
-    var studentKey = capid + "|" + email;
-    var dbSheet = getOrCreateSystemDBSheet();
-    var dbHeaders = dbSheet.getRange(1, 1, 1, dbSheet.getLastColumn()).getValues()[0];
-    var keyCol = findHeaderIndex(dbHeaders, "Student_Key");
-    
-    // Check if student key already exists in System_DB to avoid duplicates
-    var lastRow = dbSheet.getLastRow();
-    var exists = false;
-    if (lastRow > 1 && keyCol !== -1) {
-      var keys = dbSheet.getRange(2, keyCol + 1, lastRow - 1, 1).getValues();
-      for (var i = 0; i < keys.length; i++) {
-        if (keys[i][0].toString().trim() === studentKey) {
-          exists = true;
-          break;
-        }
-      }
-    }
-    
-    if (!exists) {
-      var newRow = [];
-      dbHeaders.forEach(function(header) {
-        if (header === "Student_Key") newRow.push(studentKey);
-        else if (header === "CAPID") newRow.push(capid);
-        else if (header === "Email") newRow.push(email);
-        else if (header === "Department") newRow.push(dept);
-        else if (header === "Program") newRow.push(prog);
-        else if (header === "Current_Status") newRow.push("Pending_Faculty");
-        else if (header === "Synced_Form_Department") newRow.push(dept);
-        else if (header === "Verified_Index_Mark") newRow.push(indexMark);
-        else newRow.push("");
-      });
-      dbSheet.appendRow(newRow);
-      Logger.log("Successfully synced submission to System_DB: " + studentKey);
-    }
-  } catch (error) {
-    Logger.log("Error in onFormSubmit: " + error.toString());
-  }
-}
-
-// Sync function: Checks all submissions in Master Responses and inserts missing ones into System_DB
-function syncSubmissions() {
-  var lock = LockService.getScriptLock();
-  try {
-    lock.waitLock(15000);
-  } catch (e) {
-    Logger.log("Unable to acquire lock for syncSubmissions.");
-    return;
-  }
-  
-  try {
-    var sheet = SpreadsheetApp.getActiveSpreadsheet();
-    var masterSheet = getMasterSheet(sheet);
-    var dbSheet = getOrCreateSystemDBSheet();
-    
-    var masterLastRow = masterSheet.getLastRow();
-    if (masterLastRow < 2) return;
-    
-    var masterHeaders = masterSheet.getRange(1, 1, 1, masterSheet.getLastColumn()).getValues()[0];
-    var masterValues = masterSheet.getRange(2, 1, masterLastRow - 1, masterSheet.getLastColumn()).getValues();
-    
-    var capidIndex = findHeaderIndex(masterHeaders, KEY_HEADER);
-    var emailIndex = findHeaderIndex(masterHeaders, EMAIL_HEADER);
-    var emailFallbackIndex = findHeaderIndex(masterHeaders, EMAIL_FALLBACK_HEADER);
-    var deptIndex = findHeaderIndex(masterHeaders, DEPT_HEADER);
-    var progIndex = findHeaderIndex(masterHeaders, PROG_HEADER);
-    var indexMarkIndex = findHeaderIndex(masterHeaders, "Index Marks (as per admit/allotment card)");
-    
-    if (capidIndex === -1 || deptIndex === -1) return;
-    
-    var dbHeaders = dbSheet.getRange(1, 1, 1, dbSheet.getLastColumn()).getValues()[0];
-    var keyCol = findHeaderIndex(dbHeaders, "Student_Key");
-    
-    var dbLastRow = dbSheet.getLastRow();
-    var existingKeys = {};
-    if (dbLastRow > 1 && keyCol !== -1) {
-      var keys = dbSheet.getRange(2, keyCol + 1, dbLastRow - 1, 1).getValues();
-      for (var i = 0; i < keys.length; i++) {
-        var key = keys[i][0] ? keys[i][0].toString().trim() : "";
-        if (key) {
-          existingKeys[key] = i + 2; // Store row index (2-indexed)
-        }
-      }
-    }
-    
-    var missingRows = [];
-    masterValues.forEach(function(row) {
-      var capid = row[capidIndex] ? row[capidIndex].toString().trim() : "";
-      var email = "";
-      if (emailIndex !== -1 && row[emailIndex]) {
-        email = row[emailIndex].toString().trim();
-      } else if (emailFallbackIndex !== -1 && row[emailFallbackIndex]) {
-        email = row[emailFallbackIndex].toString().trim();
-      }
-      var dept = row[deptIndex] ? row[deptIndex].toString().trim() : "";
-      var prog = progIndex !== -1 && row[progIndex] ? row[progIndex].toString().trim() : "";
-      var indexMark = indexMarkIndex !== -1 && row[indexMarkIndex] ? row[indexMarkIndex].toString().trim() : "";
-      
-      if (!capid) return;
-      
-      var studentKey = capid + "|" + email;
-      var dbRowIdx = existingKeys[studentKey];
-      
-      if (!dbRowIdx) {
-        // New student
-        var newRow = [];
-        dbHeaders.forEach(function(header) {
-          if (header === "Student_Key") newRow.push(studentKey);
-          else if (header === "CAPID") newRow.push(capid);
-          else if (header === "Email") newRow.push(email);
-          else if (header === "Department") newRow.push(dept);
-          else if (header === "Program") newRow.push(prog);
-          else if (header === "Current_Status") newRow.push("Pending_Faculty");
-          else if (header === "Synced_Form_Department") newRow.push(dept);
-          else if (header === "Verified_Index_Mark") newRow.push(indexMark);
-          else newRow.push("");
-        });
-        missingRows.push(newRow);
-        existingKeys[studentKey] = dbLastRow + missingRows.length; // Approximate index for sequence
-      } else {
-        // Existing student: Check for department change (transfer request)
-        var lastSyncedDeptCol = findHeaderIndex(dbHeaders, "Synced_Form_Department");
-        var rowValues = dbSheet.getRange(dbRowIdx, 1, 1, dbHeaders.length).getValues()[0];
-        var lastSyncedDept = lastSyncedDeptCol !== -1 ? rowValues[lastSyncedDeptCol].toString().trim() : "";
-        
-        if (!lastSyncedDept) {
-          var dbDeptCol = findHeaderIndex(dbHeaders, "Department");
-          lastSyncedDept = dbDeptCol !== -1 ? rowValues[dbDeptCol].toString().trim() : "";
-        }
-        
-        if (lastSyncedDept && lastSyncedDept.toLowerCase() !== dept.toLowerCase()) {
-          // Department mismatch detected! Reset workflow status for new department verification
-          var statusIdx = findHeaderIndex(dbHeaders, "Current_Status");
-          var tokenIdx = findHeaderIndex(dbHeaders, "Token_Number");
-          var facRemIdx = findHeaderIndex(dbHeaders, "Faculty_Remarks");
-          var nodRemIdx = findHeaderIndex(dbHeaders, "Nodal_Remarks");
-          var prRemIdx = findHeaderIndex(dbHeaders, "Principal_Remarks");
-          var ptaAmtIdx = findHeaderIndex(dbHeaders, "PTA_Amount");
-          var ptaWelfIdx = findHeaderIndex(dbHeaders, "PTA_Welfare_Fund");
-          var ptaMemIdx = findHeaderIndex(dbHeaders, "PTA_Membership");
-          var ptaDonIdx = findHeaderIndex(dbHeaders, "PTA_Donation");
-          var progTypeIdx = findHeaderIndex(dbHeaders, "Program_Type");
-          var slotIdx = findHeaderIndex(dbHeaders, "Assigned_Slot");
-          var progIdx = findHeaderIndex(dbHeaders, "Program");
-          
-          if (statusIdx !== -1) rowValues[statusIdx] = "Pending_Faculty";
-          if (tokenIdx !== -1) rowValues[tokenIdx] = ""; // Clear token for new sequential number
-          
-          var dbDeptCol = findHeaderIndex(dbHeaders, "Department");
-          var officialDept = dbDeptCol !== -1 ? rowValues[dbDeptCol].toString().trim() : "";
-          
-          if (facRemIdx !== -1) rowValues[facRemIdx] = "Transfer request from " + officialDept + " to " + dept;
-          if (nodRemIdx !== -1) rowValues[nodRemIdx] = "";
-          if (prRemIdx !== -1) rowValues[prRemIdx] = "";
-          if (ptaAmtIdx !== -1) rowValues[ptaAmtIdx] = "";
-          if (ptaWelfIdx !== -1) rowValues[ptaWelfIdx] = "";
-          if (ptaMemIdx !== -1) rowValues[ptaMemIdx] = "";
-          if (ptaDonIdx !== -1) rowValues[ptaDonIdx] = "";
-          if (progTypeIdx !== -1) rowValues[progTypeIdx] = "";
-          if (slotIdx !== -1) rowValues[slotIdx] = "";
-          if (progIdx !== -1) rowValues[progIdx] = prog;
-          
-          var verifiedIndexCol = findHeaderIndex(dbHeaders, "Verified_Index_Mark");
-          if (verifiedIndexCol !== -1) rowValues[verifiedIndexCol] = indexMark;
-          
-          // Update Synced_Form_Department so we don't trigger reset again
-          if (lastSyncedDeptCol !== -1) rowValues[lastSyncedDeptCol] = dept;
-          
-          dbSheet.getRange(dbRowIdx, 1, 1, dbHeaders.length).setValues([rowValues]);
-          Logger.log("Reset student workflow for department transfer: " + studentKey + " (" + officialDept + " -> " + dept + ")");
-        }
-      }
-    });
-    
-    if (missingRows.length > 0) {
-      dbSheet.getRange(dbLastRow + 1, 1, missingRows.length, dbHeaders.length).setValues(missingRows);
-      Logger.log("Synced " + missingRows.length + " missing student entries to System_DB.");
-    }
-  } catch (error) {
-    Logger.log("Error in syncSubmissions: " + error.toString());
-  } finally {
-    lock.releaseLock();
-  }
+  // Deprecated: We now register students to System_DB only after Department verification
 }
 
 // Fetch all student records for a department by joining Master Responses & System_DB
 function getDepartmentData(department) {
   try {
-    syncSubmissions();
-    
     var sheet = SpreadsheetApp.getActiveSpreadsheet();
+    var tz = sheet.getSpreadsheetTimeZone();
     var masterSheet = getMasterSheet(sheet);
     var dbSheet = sheet.getSheetByName(SYSTEM_DB_SHEET_NAME);
     
@@ -397,16 +181,16 @@ function getDepartmentData(department) {
     
     if (dbLastRow > 1) {
       var dbValues = dbSheet.getRange(2, 1, dbLastRow - 1, dbSheet.getLastColumn()).getValues();
-      var keyColIndex = findHeaderIndex(dbHeaders, "Student_Key");
-      if (keyColIndex !== -1) {
+      var capidColIndex = findHeaderIndex(dbHeaders, "CAPID");
+      if (capidColIndex !== -1) {
         dbValues.forEach(function(row) {
-          var key = row[keyColIndex] ? row[keyColIndex].toString().trim() : "";
-          if (key) {
+          var cid = row[capidColIndex] ? row[capidColIndex].toString().trim().toLowerCase() : "";
+          if (cid) {
             var rowObj = {};
             for (var c = 0; c < dbHeaders.length; c++) {
               rowObj[dbHeaders[c]] = row[c];
             }
-            dbData[key] = rowObj;
+            dbData[cid] = rowObj;
           }
         });
       }
@@ -436,7 +220,7 @@ function getDepartmentData(department) {
         }
         
         // 2. Mix in system state details from System_DB
-        var systemState = dbData[studentKey];
+        var systemState = dbData[capid.toLowerCase()];
         dbHeaders.forEach(function(h) {
           var cleanH = h ? h.toString().trim() : "";
           if (cleanH && cleanH !== "Student_Key" && cleanH !== "CAPID" && cleanH !== "Email" && cleanH !== "Program") {
@@ -454,7 +238,7 @@ function getDepartmentData(department) {
         }
         
         profile["Department"] = studentDept;
-        combinedData.push(profile);
+        combinedData.push(sanitizeStudentProfile(profile, tz));
       }
     });
     
@@ -467,9 +251,8 @@ function getDepartmentData(department) {
 // Fetch all student records across all departments (Central Admin views)
 function getAllDepartmentsData() {
   try {
-    syncSubmissions();
-    
     var sheet = SpreadsheetApp.getActiveSpreadsheet();
+    var tz = sheet.getSpreadsheetTimeZone();
     var masterSheet = getMasterSheet(sheet);
     var dbSheet = sheet.getSheetByName(SYSTEM_DB_SHEET_NAME);
     
@@ -500,16 +283,16 @@ function getAllDepartmentsData() {
     
     if (dbLastRow > 1) {
       var dbValues = dbSheet.getRange(2, 1, dbLastRow - 1, dbSheet.getLastColumn()).getValues();
-      var keyColIndex = findHeaderIndex(dbHeaders, "Student_Key");
-      if (keyColIndex !== -1) {
+      var capidColIndex = findHeaderIndex(dbHeaders, "CAPID");
+      if (capidColIndex !== -1) {
         dbValues.forEach(function(row) {
-          var key = row[keyColIndex] ? row[keyColIndex].toString().trim() : "";
-          if (key) {
+          var cid = row[capidColIndex] ? row[capidColIndex].toString().trim().toLowerCase() : "";
+          if (cid) {
             var rowObj = {};
             for (var c = 0; c < dbHeaders.length; c++) {
               rowObj[dbHeaders[c]] = row[c];
             }
-            dbData[key] = rowObj;
+            dbData[cid] = rowObj;
           }
         });
       }
@@ -536,7 +319,7 @@ function getAllDepartmentsData() {
         }
       }
       
-      var systemState = dbData[studentKey];
+      var systemState = dbData[capid.toLowerCase()];
       dbHeaders.forEach(function(h) {
         var cleanH = h ? h.toString().trim() : "";
         if (cleanH && cleanH !== "Student_Key" && cleanH !== "CAPID" && cleanH !== "Email" && cleanH !== "Program") {
@@ -552,7 +335,7 @@ function getAllDepartmentsData() {
         profile["Current_Status"] = "Pending_Faculty";
       }
       profile["Department"] = studentDept;
-      combinedData.push(profile);
+      combinedData.push(sanitizeStudentProfile(profile, tz));
     });
     
     return JSON.stringify({ success: true, data: combinedData });
@@ -588,7 +371,7 @@ function getDepartmentsList() {
 }
 
 // Update student workflow attributes inside System_DB only
-function updateStudentData(department, capid, email, updatedData) {
+function updateStudentData(department, capid, email, updatedData, operatorRole, operatorDept) {
   var lock = LockService.getScriptLock();
   try {
     lock.waitLock(15000);
@@ -597,7 +380,8 @@ function updateStudentData(department, capid, email, updatedData) {
   }
   
   try {
-    var dbSheet = getOrCreateSystemDBSheet();
+    var sheet = SpreadsheetApp.getActiveSpreadsheet();
+    var dbSheet = getOrCreateSystemDBSheet(sheet);
     var lastRow = dbSheet.getLastRow();
     
     if (lastRow < 2) {
@@ -605,16 +389,61 @@ function updateStudentData(department, capid, email, updatedData) {
     }
     
     var dbHeaders = dbSheet.getRange(1, 1, 1, dbSheet.getLastColumn()).getValues()[0];
-    var keyIndex = findHeaderIndex(dbHeaders, "Student_Key");
-    var keyValues = (keyIndex !== -1 && lastRow > 1) ? dbSheet.getRange(2, keyIndex + 1, lastRow - 1, 1).getValues() : [];
+    var capidIndex = findHeaderIndex(dbHeaders, "CAPID");
+    var capidValues = (capidIndex !== -1 && lastRow > 1) ? dbSheet.getRange(2, capidIndex + 1, lastRow - 1, 1).getValues() : [];
     
     var studentKey = capid + "|" + email;
     var targetRowIndex = -1;
-    for (var i = 0; i < keyValues.length; i++) {
-      if (keyValues[i][0].toString().trim() === studentKey) {
+    var capidLower = capid.toString().trim().toLowerCase();
+    for (var i = 0; i < capidValues.length; i++) {
+      if (capidValues[i][0] && capidValues[i][0].toString().trim().toLowerCase() === capidLower) {
         targetRowIndex = i + 2;
         break;
       }
+    }
+    
+    // Lookup student details in Master Responses for default index, program, and audit log name
+    var studentName = "Student";
+    var programName = "";
+    var formIndexMark = "";
+    var programType = "";
+    try {
+      var masterSheet = getMasterSheet(sheet);
+      var masterHeaders = masterSheet.getRange(1, 1, 1, masterSheet.getLastColumn()).getValues()[0];
+      var masterLastRow = masterSheet.getLastRow();
+      if (masterLastRow > 1) {
+        var masterValues = masterSheet.getRange(2, 1, masterLastRow - 1, masterSheet.getLastColumn()).getValues();
+        var capidIdx = findHeaderIndex(masterHeaders, KEY_HEADER);
+        var progIdx = findHeaderIndex(masterHeaders, PROG_HEADER);
+        var indexMarkIdx = findHeaderIndex(masterHeaders, "Index Marks (as per admit/allotment card)");
+        var nameIdx = findHeaderIndex(masterHeaders, "Name (As per your certificate)");
+        if (nameIdx === -1) nameIdx = findHeaderIndex(masterHeaders, "Name");
+        
+        for (var idx = 0; idx < masterValues.length; idx++) {
+          var cId = (capidIdx !== -1 && masterValues[idx][capidIdx]) ? masterValues[idx][capidIdx].toString().trim().toLowerCase() : "";
+          if (cId === capidLower) {
+            studentName = (nameIdx !== -1 ? masterValues[idx][nameIdx] : "") || "Student";
+            programName = (progIdx !== -1 ? masterValues[idx][progIdx] : "") || "";
+            formIndexMark = (indexMarkIdx !== -1 ? masterValues[idx][indexMarkIdx] : "") || "";
+            
+            // Deduce program type (e.g. B.Sc., BA, MA, etc.)
+            if (programName) {
+              var clean = programName.replace(/\./g, "").trim().toUpperCase();
+              if (clean.indexOf("BSC") > -1) programType = "B.Sc.";
+              else if (clean.indexOf("BCOM") > -1) programType = "B.Com.";
+              else if (clean.indexOf("BA") > -1) programType = "BA";
+              else if (clean.indexOf("MSC") > -1) programType = "M.Sc.";
+              else if (clean.indexOf("MCOM") > -1) programType = "M.Com.";
+              else if (clean.indexOf("MA") > -1) programType = "MA";
+              else if (clean.indexOf("PHD") > -1) programType = "Ph.D.";
+              else programType = programName;
+            }
+            break;
+          }
+        }
+      }
+    } catch (e) {
+      Logger.log("Failed to load details from Master Responses: " + e.toString());
     }
     
     if (targetRowIndex === -1) {
@@ -625,7 +454,11 @@ function updateStudentData(department, capid, email, updatedData) {
         else if (header === "CAPID") newRow.push(capid);
         else if (header === "Email") newRow.push(email);
         else if (header === "Department") newRow.push(department);
+        else if (header === "Program") newRow.push(programName);
         else if (header === "Current_Status") newRow.push("Pending_Faculty");
+        else if (header === "Synced_Form_Department") newRow.push(department);
+        else if (header === "Verified_Index_Mark") newRow.push(formIndexMark);
+        else if (header === "Program_Type") newRow.push(programType);
         else newRow.push("");
       });
       dbSheet.appendRow(newRow);
@@ -673,10 +506,16 @@ function updateStudentData(department, capid, email, updatedData) {
     var rowRange = dbSheet.getRange(targetRowIndex, 1, 1, dbHeaders.length);
     var rowValues = rowRange.getValues()[0];
     
+    var changes = [];
     for (var col = 0; col < dbHeaders.length; col++) {
       var headerName = dbHeaders[col];
       if (updatedData.hasOwnProperty(headerName)) {
-        rowValues[col] = updatedData[headerName];
+        var oldVal = rowValues[col];
+        var newVal = updatedData[headerName];
+        if (oldVal !== newVal) {
+          rowValues[col] = newVal;
+          changes.push(headerName + ": '" + oldVal + "' -> '" + newVal + "'");
+        }
       }
     }
     
@@ -684,7 +523,11 @@ function updateStudentData(department, capid, email, updatedData) {
     if (nextStatus === "TC Issued") {
       var deptColIdx = findHeaderIndex(dbHeaders, "Department");
       if (deptColIdx !== -1) {
-        rowValues[deptColIdx] = department; // Promotes to the new department
+        var oldDept = rowValues[deptColIdx];
+        if (oldDept !== department) {
+          rowValues[deptColIdx] = department; // Promotes to the new department
+          changes.push("Department: '" + oldDept + "' -> '" + department + "'");
+        }
       }
       var syncedDeptColIdx = findHeaderIndex(dbHeaders, "Synced_Form_Department");
       if (syncedDeptColIdx !== -1) {
@@ -693,6 +536,10 @@ function updateStudentData(department, capid, email, updatedData) {
     }
     
     rowRange.setValues([rowValues]);
+    
+    // Write audit log entry
+    var changesStr = changes.join(", ");
+    logActivity(capid, email, studentName, department, prevStatus, nextStatus, operatorRole, operatorDept, changesStr);
     
     return JSON.stringify({ 
       success: true, 
@@ -704,6 +551,42 @@ function updateStudentData(department, capid, email, updatedData) {
     return JSON.stringify({ success: false, message: error.toString() });
   } finally {
     lock.releaseLock();
+  }
+}
+
+// Log admin/faculty actions to an Audit_Logs sheet
+function logActivity(capid, email, studentName, department, prevStatus, nextStatus, operatorRole, operatorDept, changesStr) {
+  try {
+    var sheet = SpreadsheetApp.getActiveSpreadsheet();
+    var logSheet = sheet.getSheetByName("Audit_Logs");
+    
+    if (!logSheet) {
+      logSheet = sheet.insertSheet("Audit_Logs");
+      var headers = ["Timestamp", "Email", "CAPID", "Student Name", "Department", "Operator Role", "Operator Department", "Previous Status", "New Status", "Changes / Remarks"];
+      logSheet.appendRow(headers);
+      
+      // Style headers
+      var headerRange = logSheet.getRange(1, 1, 1, headers.length);
+      headerRange.setFontWeight("bold");
+      headerRange.setBackground("#f1f3f4");
+    }
+    
+    var row = [
+      new Date(),
+      email || "",
+      capid || "",
+      studentName || "",
+      department || "",
+      operatorRole || "System",
+      operatorDept || "System",
+      prevStatus || "",
+      nextStatus || "",
+      changesStr || ""
+    ];
+    
+    logSheet.appendRow(row);
+  } catch (err) {
+    Logger.log("Error in logActivity: " + err.toString());
   }
 }
 
@@ -919,164 +802,75 @@ function updatePTAConfig(configData) {
   }
 }
 
-// Fetch Seat Matrix / SeatSplitUp configurations
+// Helper to retrieve seat matrix data for a specific sheet (PG or UG) - strictly READ-ONLY
+function retrieveMatrixData(sheetName) {
+  var sheet = SpreadsheetApp.getActiveSpreadsheet();
+  var matrixSheet = sheet.getSheetByName(sheetName);
+  if (!matrixSheet) return [];
+  
+  var lastRow = matrixSheet.getLastRow();
+  if (lastRow < 1) return [];
+  
+  var values = matrixSheet.getRange(1, 1, lastRow, Math.max(1, matrixSheet.getLastColumn())).getValues();
+  
+  // Find which row contains headers dynamically
+  var headerRowIdx = -1;
+  for (var r = 0; r < Math.min(values.length, 5); r++) {
+    var hasOpen = false;
+    for (var c = 0; c < values[r].length; c++) {
+      var valClean = values[r][c] ? values[r][c].toString().trim().toUpperCase() : "";
+      if (valClean === "OPEN") {
+        hasOpen = true;
+        break;
+      }
+    }
+    if (hasOpen) {
+      headerRowIdx = r;
+      break;
+    }
+  }
+  
+  if (headerRowIdx === -1) return [];
+  
+  var sheetHeaders = values[headerRowIdx];
+  var data = [];
+  for (var r = headerRowIdx + 1; r < values.length; r++) {
+    var deptName = values[r][0] ? values[r][0].toString().trim() : "";
+    if (deptName.toLowerCase() === "total" || !deptName) {
+      continue;
+    }
+    if (sheetName === "SeatSplitUp_UG" && deptName.toLowerCase() === "statistics") {
+      continue;
+    }
+    var rowObj = {};
+    for (var c = 0; c < sheetHeaders.length; c++) {
+      var headerName = sheetHeaders[c] ? sheetHeaders[c].toString().trim() : "";
+      if (c === 0) {
+        headerName = "Department";
+      }
+      if (headerName) {
+        rowObj[headerName] = values[r][c];
+      }
+    }
+    data.push(rowObj);
+  }
+  return data;
+}
+
+// Fetch Seat Matrix configurations for PG and UG
 function getSeatMatrix() {
   try {
-    var sheet = SpreadsheetApp.getActiveSpreadsheet();
-    var matrixSheet = sheet.getSheetByName(SEAT_SPLIT_SHEET_NAME);
-    var needInit = false;
-    
-    if (!matrixSheet) {
-      matrixSheet = sheet.insertSheet(SEAT_SPLIT_SHEET_NAME);
-      needInit = true;
-    } else if (matrixSheet.getLastRow() < 2) {
-      needInit = true;
-    }
-    
-    var headers = ["Department", "OPEN", "ETB", "MU", "LC", "EWS", "OBH", "SC", "ST", "TLM", "SP", "PWD", "UTL", "OBX", "SSQ", "TOTAL"];
-    
-    if (needInit) {
-      matrixSheet.clear();
-      matrixSheet.appendRow(headers);
-      
-      var headerRange = matrixSheet.getRange(1, 1, 1, headers.length);
-      headerRange.setFontWeight("bold");
-      headerRange.setBackground("#f1f3f4");
-    }
-    
-    // Auto-sync missing departments into the SeatSplit Up Matrix
-    var lastRow = matrixSheet.getLastRow();
-    var existingDepts = {};
-    if (lastRow > 1) {
-      var existingData = matrixSheet.getRange(2, 1, lastRow - 1, 1).getValues();
-      existingData.forEach(function(row) {
-        if (row[0]) existingDepts[row[0].toString().trim()] = true;
-      });
-    }
-    
-    var deptsRaw = getDepartmentsList();
-    var deptsData = JSON.parse(deptsRaw);
-    if (deptsData.success && deptsData.departments) {
-      deptsData.departments.forEach(function(d) {
-        if (!existingDepts[d] && d.toLowerCase() !== "total") {
-          var newRow = [d];
-          for (var i = 1; i < headers.length; i++) {
-            newRow.push(0);
-          }
-          matrixSheet.appendRow(newRow);
-        }
-      });
-    }
-    
-    lastRow = matrixSheet.getLastRow();
-    if (lastRow < 2) return JSON.stringify({ success: true, data: [] });
-    
-    var dataRange = matrixSheet.getRange(1, 1, lastRow, matrixSheet.getLastColumn());
-    var values = dataRange.getValues();
-    var sheetHeaders = values[0];
-    
-    var data = [];
-    for (var r = 1; r < values.length; r++) {
-      var deptName = values[r][0] ? values[r][0].toString().trim() : "";
-      if (deptName.toLowerCase() === "total" || !deptName) {
-        continue; // Skip Total row from the returned data
-      }
-      var rowObj = {};
-      for (var c = 0; c < sheetHeaders.length; c++) {
-        rowObj[sheetHeaders[c]] = values[r][c];
-      }
-      data.push(rowObj);
-    }
-    
-    return JSON.stringify({ success: true, data: data });
+    var pgData = retrieveMatrixData("SeatSplitUp"); // Default PG
+    var ugData = retrieveMatrixData("SeatSplitUp_UG"); // UG
+    return JSON.stringify({ success: true, pgData: pgData, ugData: ugData });
   } catch (error) {
     return JSON.stringify({ success: false, message: error.toString() });
   }
 }
 
-// Update Seat Matrix / SeatSplitUp configurations
-function updateSeatMatrix(matrixData) {
-  try {
-    var sheet = SpreadsheetApp.getActiveSpreadsheet();
-    var matrixSheet = sheet.getSheetByName(SEAT_SPLIT_SHEET_NAME);
-    
-    if (!matrixSheet) {
-      matrixSheet = sheet.insertSheet(SEAT_SPLIT_SHEET_NAME);
-    }
-    
-    matrixSheet.clear();
-    var headers = ["Department", "OPEN", "ETB", "MU", "LC", "EWS", "OBH", "SC", "ST", "TLM", "SP", "PWD", "UTL", "OBX", "SSQ", "TOTAL"];
-    matrixSheet.appendRow(headers);
-    
-    var headerRange = matrixSheet.getRange(1, 1, 1, headers.length);
-    headerRange.setFontWeight("bold");
-    headerRange.setBackground("#f1f3f4");
-    
-    var colSums = {
-      OPEN: 0, ETB: 0, MU: 0, LC: 0, EWS: 0, OBH: 0, SC: 0, ST: 0,
-      TLM: 0, SP: 0, PWD: 0, UTL: 0, OBX: 0, SSQ: 0, TOTAL: 0
-    };
-    
-    matrixData.forEach(function(item) {
-      if (item.Department.toLowerCase() === "total") return;
-      
-      var openVal = parseInt(item.OPEN) || 0;
-      var etbVal = parseInt(item.ETB) || 0;
-      var muVal = parseInt(item.MU) || 0;
-      var lcVal = parseInt(item.LC) || 0;
-      var ewsVal = parseInt(item.EWS) || 0;
-      var obhVal = parseInt(item.OBH) || 0;
-      var scVal = parseInt(item.SC) || 0;
-      var stVal = parseInt(item.ST) || 0;
-      var tlmVal = parseInt(item.TLM) || 0;
-      var spVal = parseInt(item.SP) || 0;
-      var pwdVal = parseInt(item.PWD) || 0;
-      var utlVal = parseInt(item.UTL) || 0;
-      var obxVal = parseInt(item.OBX) || 0;
-      var ssqVal = parseInt(item.SSQ) || 0;
-      
-      var totalVal = openVal + etbVal + muVal + lcVal + ewsVal + obhVal + scVal + stVal + tlmVal + spVal + pwdVal + utlVal + obxVal + ssqVal;
-      
-      colSums.OPEN += openVal;
-      colSums.ETB += etbVal;
-      colSums.MU += muVal;
-      colSums.LC += lcVal;
-      colSums.EWS += ewsVal;
-      colSums.OBH += obhVal;
-      colSums.SC += scVal;
-      colSums.ST += stVal;
-      colSums.TLM += tlmVal;
-      colSums.SP += spVal;
-      colSums.PWD += pwdVal;
-      colSums.UTL += utlVal;
-      colSums.OBX += obxVal;
-      colSums.SSQ += ssqVal;
-      colSums.TOTAL += totalVal;
-      
-      var row = [
-        item.Department,
-        openVal, etbVal, muVal, lcVal, ewsVal, obhVal, scVal, stVal,
-        tlmVal, spVal, pwdVal, utlVal, obxVal, ssqVal, totalVal
-      ];
-      matrixSheet.appendRow(row);
-    });
-    
-    // Add the Total row
-    var totalRow = [
-      "Total",
-      colSums.OPEN, colSums.ETB, colSums.MU, colSums.LC, colSums.EWS, colSums.OBH, colSums.SC, colSums.ST,
-      colSums.TLM, colSums.SP, colSums.PWD, colSums.UTL, colSums.OBX, colSums.SSQ, colSums.TOTAL
-    ];
-    matrixSheet.appendRow(totalRow);
-    
-    // Make the total row bold
-    var lastRowIdx = matrixSheet.getLastRow();
-    matrixSheet.getRange(lastRowIdx, 1, 1, headers.length).setFontWeight("bold");
-    
-    return JSON.stringify({ success: true });
-  } catch (error) {
-    return JSON.stringify({ success: false, message: error.toString() });
-  }
+// Update Seat Matrix / SeatSplitUp configurations (PG or UG) - strictly READ-ONLY
+function updateSeatMatrix(matrixData, type) {
+  return JSON.stringify({ success: false, message: "Write access is disabled. Please edit the Google Sheet directly." });
 }
 
 // Send stylized PTA receipt email to student
@@ -1255,7 +1049,7 @@ function doPost(e) {
     } else if (action === "validateCredentials") {
       result = JSON.parse(validateCredentials(requestData.role, requestData.department, requestData.password));
     } else if (action === "updateStudentData") {
-      result = JSON.parse(updateStudentData(requestData.department, requestData.capid, requestData.email, requestData.updatedData));
+      result = JSON.parse(updateStudentData(requestData.department, requestData.capid, requestData.email, requestData.updatedData, requestData.operatorRole, requestData.operatorDept));
     } else if (action === "getPTAConfig") {
       result = JSON.parse(getPTAConfig());
     } else if (action === "updatePTAConfig") {
@@ -1265,7 +1059,7 @@ function doPost(e) {
     } else if (action === "getSeatMatrix") {
       result = JSON.parse(getSeatMatrix());
     } else if (action === "updateSeatMatrix") {
-      result = JSON.parse(updateSeatMatrix(requestData.matrixData));
+      result = JSON.parse(updateSeatMatrix(requestData.matrixData, requestData.type));
     } else if (action === "emailPTAReceipt") {
       result = JSON.parse(emailPTAReceipt(requestData.capid, requestData.email));
     } else if (action === "getDriveImageAsBase64") {
@@ -1294,5 +1088,50 @@ function getDriveImageAsBase64(fileId) {
   } catch (e) {
     Logger.log("Error fetching image " + fileId + ": " + e.toString());
     return "";
+  }
+}
+
+// Timezone-safe Date sanitization helper to prevent 1-day backward shifts
+function sanitizeStudentProfile(profile, tz) {
+  for (var key in profile) {
+    if (profile.hasOwnProperty(key)) {
+      var val = profile[key];
+      if (val instanceof Date) {
+        profile[key] = Utilities.formatDate(val, tz, "yyyy-MM-dd");
+      }
+    }
+  }
+  return profile;
+}
+
+// Cleans up any existing duplicate records in System_DB, keeping only the first one
+function deduplicateSystemDB(dbSheet) {
+  var lastRow = dbSheet.getLastRow();
+  if (lastRow < 2) return;
+  
+  var dbHeaders = dbSheet.getRange(1, 1, 1, dbSheet.getLastColumn()).getValues()[0];
+  var capidCol = findHeaderIndex(dbHeaders, "CAPID");
+  if (capidCol === -1) return;
+  
+  var capids = dbSheet.getRange(2, capidCol + 1, lastRow - 1, 1).getValues();
+  var seenCapids = {};
+  var rowsToDelete = [];
+  
+  for (var i = 0; i < capids.length; i++) {
+    var cid = capids[i][0] ? capids[i][0].toString().trim().toLowerCase() : "";
+    if (cid) {
+      if (seenCapids[cid]) {
+        rowsToDelete.push(i + 2); // 2-indexed row number
+      } else {
+        seenCapids[cid] = true;
+      }
+    }
+  }
+  
+  if (rowsToDelete.length > 0) {
+    Logger.log("Deleting " + rowsToDelete.length + " duplicate rows from System_DB");
+    for (var d = rowsToDelete.length - 1; d >= 0; d--) {
+      dbSheet.deleteRow(rowsToDelete[d]);
+    }
   }
 }
