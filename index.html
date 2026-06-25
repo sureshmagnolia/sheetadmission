@@ -4593,7 +4593,7 @@
           ".back-val { flex: 1; font-weight: 800; color: #000; text-transform: uppercase; word-break: break-word; }" +
           
           ".back-codes { display: flex; align-items: center; justify-content: space-between; border-top: 0.5px solid #cbd5e1; padding-top: 2mm; margin-top: 1mm; }" +
-          ".student-barcode { width: 28mm; height: 8mm; }" +
+          ".student-barcode { width: 32mm; height: auto; max-height: 12mm; }" +
           ".student-qrcode { width: 10mm; height: 10mm; display: flex; justify-content: center; align-items: center; }" +
           
           /* Print configuration to hide margins */
@@ -4612,9 +4612,10 @@
               "if (text) {" +
                 "JsBarcode(canvas, text, {" +
                   "format: 'CODE128'," +
-                  "width: 1.1," +
-                  "height: 25," +
-                  "displayValue: false," +
+                  "width: 1.2," +
+                  "height: 28," +
+                  "displayValue: true," +
+                  "fontSize: 14," +
                   "margin: 0" +
                 "});" +
               "}" +
