@@ -1745,11 +1745,12 @@
       dashboardTabs.style.display = "flex";
       viewDeptSelector.style.display = "none";
       
-      // Reposition Search Box dynamically based on role
+      // Reposition Search Box & PTA Summary dynamically based on role
       var searchContainer = document.getElementById("search-container");
       var ptaSummaryContainer = document.getElementById("pta-summary-container");
       
       if (userRole === "PTA") {
+        dashboardTabs.parentNode.insertBefore(ptaSummaryContainer, dashboardTabs);
         ptaSummaryContainer.parentNode.insertBefore(searchContainer, ptaSummaryContainer.nextSibling);
       } else {
         dashboardTabs.parentNode.insertBefore(searchContainer, dashboardTabs);
