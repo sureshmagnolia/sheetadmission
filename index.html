@@ -1059,6 +1059,14 @@
             </tbody>
           </table>
         </div>
+        <!-- Pagination Controls -->
+        <div id="pagination-controls" style="display: flex; justify-content: space-between; align-items: center; padding: 15px; border-top: 1px solid var(--card-border); flex-wrap: wrap; gap: 10px;">
+          <span id="pagination-info" style="font-size: 0.85rem; color: var(--text-muted);">Showing 0-0 of 0</span>
+          <div style="display: flex; gap: 10px;">
+            <button class="btn btn-secondary" id="btn-page-prev" onclick="prevPage()" style="padding: 5px 12px; font-size: 0.8rem;">Previous</button>
+            <button class="btn btn-secondary" id="btn-page-next" onclick="nextPage()" style="padding: 5px 12px; font-size: 0.8rem;">Next</button>
+          </div>
+        </div>
       </div>
 
       <!-- Analytics Dashboard Panels -->
@@ -1827,6 +1835,52 @@
       });
     }
 
+    // Pagination state variables
+    var currentPage = 1;
+    var itemsPerPage = 20;
+    var filteredStudents = [];
+
+    function prevPage() {
+      if (currentPage > 1) {
+        currentPage--;
+        renderCurrentPage();
+      }
+    }
+
+    function nextPage() {
+      var maxPage = Math.ceil(filteredStudents.length / itemsPerPage);
+      if (currentPage < maxPage) {
+        currentPage++;
+        renderCurrentPage();
+      }
+    }
+
+    function renderCurrentPage() {
+      var start = (currentPage - 1) * itemsPerPage;
+      var end = currentPage * itemsPerPage;
+      var pageData = filteredStudents.slice(start, end);
+      
+      populateTable(pageData);
+      
+      // Update pagination UI
+      var total = filteredStudents.length;
+      var displayStart = total === 0 ? 0 : start + 1;
+      var displayEnd = Math.min(end, total);
+      
+      document.getElementById("pagination-info").innerText = "Showing " + displayStart + "-" + displayEnd + " of " + total;
+      
+      var prevBtn = document.getElementById("btn-page-prev");
+      var nextBtn = document.getElementById("btn-page-next");
+      
+      prevBtn.disabled = (currentPage === 1);
+      nextBtn.disabled = (currentPage >= Math.ceil(total / itemsPerPage) || total === 0);
+      
+      prevBtn.style.opacity = prevBtn.disabled ? "0.5" : "1";
+      prevBtn.style.cursor = prevBtn.disabled ? "not-allowed" : "pointer";
+      nextBtn.style.opacity = nextBtn.disabled ? "0.5" : "1";
+      nextBtn.style.cursor = nextBtn.disabled ? "not-allowed" : "pointer";
+    }
+
     // Local filter search and tab segregation
     function filterTable() {
       var query = document.getElementById("search-bar").value.toLowerCase();
@@ -1870,14 +1924,14 @@
         return true;
       });
       
-      // 2. Sort by Token number alphabetically for "pending" list
-      if (currentTab === "pending") {
-        filtered.sort(function(a, b) {
-          var tokA = a["Token_Number"] || "";
-          var tokB = b["Token_Number"] || "";
-          return tokA.localeCompare(tokB);
-        });
-      }
+      // 2. Sort by Timestamp Descending (latest 1st)
+      filtered.sort(function(a, b) {
+        var timeA = new Date(a["Timestamp"] || 0).getTime();
+        var timeB = new Date(b["Timestamp"] || 0).getTime();
+        if (isNaN(timeA)) timeA = 0;
+        if (isNaN(timeB)) timeB = 0;
+        return timeB - timeA;
+      });
       
       // 3. Apply search query filter
       if (query) {
@@ -1889,7 +1943,10 @@
         });
       }
       
-      populateTable(filtered);
+      currentPage = 1;
+      filteredStudents = filtered;
+      renderCurrentPage();
+      
       if (userRole === "PTA") {
         updatePTASummary(allStudents);
       }
