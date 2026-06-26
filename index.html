@@ -4866,6 +4866,10 @@
         var isUG = progType.indexOf("B") === 0;
         var batch = isUG ? (yr + "-" + (parseInt(yr) + 3)) : (yr + "-" + (parseInt(yr) + 2));
         
+        // Calculate Validity Date (UG: 4 academic years, PG: 2 academic years, ending May 31st)
+        var validityYear = isUG ? (parseInt(yr) + 4) : (parseInt(yr) + 2);
+        var validityDate = "31-05-" + validityYear;
+        
         // Convert DOB to DD-MM-YYYY format
         if (dob && dob !== "N/A") {
           dob = formatDateToDDMMYYYY(dob);
@@ -4903,6 +4907,7 @@
                 "<div class='id-detail-row'><span class='id-label'>Admn No</span><span class='id-colon'>:</span><span class='id-value'>" + admNo + "</span></div>" +
                 "<div class='id-detail-row'><span class='id-label'>Course</span><span class='id-colon'>:</span><span class='id-value'>" + course + "</span></div>" +
                 "<div class='id-detail-row'><span class='id-label'>Batch</span><span class='id-colon'>:</span><span class='id-value'>" + batch + "</span></div>" +
+                "<div class='id-detail-row'><span class='id-label'>Valid Till</span><span class='id-colon'>:</span><span class='id-value'>" + validityDate + "</span></div>" +
               "</div>" +
               "<div class='id-signature-area'>" +
                 "<!-- College Seal placeholder -->" +
@@ -4989,7 +4994,7 @@
           
           ".id-details-grid { display: flex; flex-direction: column; gap: 1mm; padding: 0 1mm; margin-bottom: auto; }" +
           ".id-detail-row { display: flex; align-items: flex-start; font-size: 6.8pt; line-height: 1.25; }" +
-          ".id-label { width: 13mm; font-weight: 700; color: #475569; }" +
+          ".id-label { width: 15mm; font-weight: 700; color: #475569; }" +
           ".id-colon { width: 1.5mm; font-weight: 700; color: #475569; text-align: center; }" +
           ".id-value { flex: 1; font-weight: 800; color: #000; text-transform: uppercase; word-break: break-all; }" +
           
