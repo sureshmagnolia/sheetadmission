@@ -1978,6 +1978,8 @@
         if (dashboardTabs) dashboardTabs.style.display = "flex";
         if (idCardsBtn) idCardsBtn.style.display = "inline-block";
         if (admissionRegisterBtn) admissionRegisterBtn.style.display = "inline-block";
+      } else if (userRole === "Faculty" || userRole === "HOD") {
+        if (dashboardTabs) dashboardTabs.style.display = "flex";
       } else {
         if (dashboardTabs) dashboardTabs.style.display = "none";
       }
