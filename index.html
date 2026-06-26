@@ -4849,6 +4849,9 @@
       
       var printWindow = window.open("", "_blank");
       
+      var sealBase64 = "<?!= getCollegeSealBase64() ?>";
+      var sigBase64 = "<?!= getPrincipalSignatureBase64() ?>";
+      
       var idCardsHtml = "";
       selectedStudents.forEach(function(s) {
         var capid = s["CAP id (Enter the full cap id without any spaces)"] || s["CAPID"] || "";
@@ -4912,10 +4915,10 @@
               "<div class='id-signature-area'>" +
                 "<!-- College Seal placeholder -->" +
                 "<div class='id-seal-placeholder'>" +
-                  "<!-- <img src='seal.png' class='id-seal-img'> -->" +
+                  (sealBase64 ? "<img src='" + sealBase64 + "' class='id-seal-img' alt='College Seal'>" : "") +
                 "</div>" +
                 "<div class='id-signature'>" +
-                  "<div class='sig-signed'>Digitally Signed</div>" +
+                  (sigBase64 ? "<img src='" + sigBase64 + "' class='id-sig-img' alt='Signature'>" : "<div class='sig-signed'>Digitally Signed</div>") +
                   "<div class='sig-title'>PRINCIPAL<br>GOVT. VICTORIA COLLEGE<br>PALAKKAD</div>" +
                 "</div>" +
               "</div>" +
@@ -5002,11 +5005,12 @@
           /* Seal placeholder option */
           ".id-seal-placeholder {" +
             "width: 9mm; height: 9mm; border: 1px dashed #cbd5e1; border-radius: 50%;" +
-            "display: flex; align-items: center; justify-content: center; opacity: 0.85; flex-shrink: 0;" +
+            "display: flex; align-items: center; justify-content: center; opacity: 0.85; flex-shrink: 0; overflow: hidden;" +
           "}" +
-          ".id-seal-img { width: 100%; height: 100%; object-fit: contain; }" +
+          ".id-seal-img { width: 100%; height: 100%; object-fit: contain; border-radius: 50%; }" +
           
-          ".id-signature { text-align: center; display: flex; flex-direction: column; align-items: center; flex-shrink: 0; }" +
+          ".id-signature { text-align: center; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 10mm; flex-shrink: 0; }" +
+          ".id-sig-img { height: 7mm; max-width: 25mm; object-fit: contain; margin-bottom: 0.5mm; flex-shrink: 0; }" +
           ".id-signature .sig-signed { font-family: 'Outfit', sans-serif; font-style: italic; font-size: 5.5pt; font-weight: bold; color: #059669; line-height: 1.1; margin-bottom: 0.8mm; }" +
           ".id-signature .sig-title { font-size: 2.6pt; font-weight: bold; color: #475569; line-height: 1.2; text-align: center; }" +
           
