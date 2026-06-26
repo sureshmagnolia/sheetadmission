@@ -1009,6 +1009,7 @@
         <button class="tab-btn" id="tab-pending-btn" onclick="switchTab('pending')" style="background: none; border: none; color: var(--text-main); font-weight: 600; padding: 10px 0; border-bottom: 2px solid var(--primary); cursor: pointer; font-size: 0.95rem; transition: var(--transition);">To Be Verified</button>
         <button class="tab-btn" id="tab-completed-ug-btn" onclick="switchTab('completed-ug')" style="background: none; border: none; color: var(--text-muted); font-weight: 500; padding: 10px 0; border-bottom: 2px solid transparent; cursor: pointer; font-size: 0.95rem; transition: var(--transition);">UG Completed</button>
         <button class="tab-btn" id="tab-completed-pg-btn" onclick="switchTab('completed-pg')" style="background: none; border: none; color: var(--text-muted); font-weight: 500; padding: 10px 0; border-bottom: 2px solid transparent; cursor: pointer; font-size: 0.95rem; transition: var(--transition);">PG Completed</button>
+        <button class="tab-btn" id="tab-admission-register-btn" onclick="switchTab('admission-register')" style="display: none; background: none; border: none; color: var(--text-muted); font-weight: 500; padding: 10px 0; border-bottom: 2px solid transparent; cursor: pointer; font-size: 0.95rem; transition: var(--transition);">Admission Register</button>
         <button class="tab-btn" id="tab-analytics-btn" onclick="switchTab('analytics')" style="background: none; border: none; color: var(--text-muted); font-weight: 500; padding: 10px 0; border-bottom: 2px solid transparent; cursor: pointer; font-size: 0.95rem; transition: var(--transition);">Analytics Dashboard</button>
         <button class="tab-btn" id="tab-waiting-btn" onclick="switchTab('waiting')" style="display: none; background: none; border: none; color: var(--text-muted); font-weight: 500; padding: 10px 0; border-bottom: 2px solid transparent; cursor: pointer; font-size: 0.95rem; transition: var(--transition);">Waiting Queue</button>
       </div>
@@ -1045,6 +1046,7 @@
             <thead>
               <tr>
                 <th style="width: 50px; text-align: center;">WA</th>
+                <th>Adm. No</th>
                 <th>Token</th>
                 <th>CAPID</th>
                 <th>Name</th>
@@ -1055,7 +1057,6 @@
                 <th>Assigned Slot</th>
                 <th>PTA Fee</th>
                 <th>Current Status</th>
-                <th>Adm. No</th>
                 <th>Actions</th>
               </tr>
             </thead>
@@ -1165,6 +1166,11 @@
                 <div class="remark-label">Principal Remarks</div>
                 <div class="remark-val" id="hist-principal-remarks">N/A</div>
               </div>
+            </div>
+            
+            <!-- Admitted/TC Issued Profile Actions Container -->
+            <div id="profile-actions-container" style="display: none; gap: 15px; flex-wrap: wrap; margin-top: 1.5rem; justify-content: flex-end;">
+              <!-- Action buttons will be loaded here dynamically -->
             </div>
 
             <!-- Workflow Form Details -->
@@ -1310,42 +1316,47 @@
                 <!-- Principal Remarks & Admission Number input -->
                 <div class="form-group" id="group-principal-input" style="display: none;">
                   <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px; row-gap: 10px;">
-                    <div>
+                    <div id="wrapper-admission-number">
                       <label for="wf-admission-number">Admission Number</label>
                       <input type="text" class="form-control" id="wf-admission-number" placeholder="Assign college admission number">
                     </div>
-                    <div>
-                      <label for="wf-tc-number">TC Number</label>
-                      <input type="text" class="form-control" id="wf-tc-number" placeholder="Assign TC number">
+                    
+                    <!-- TC Specific Fields (only shown when student status is Admitted or TC Issued) -->
+                    <div id="principal-tc-fields" style="display: contents;">
+                      <div>
+                        <label for="wf-tc-number">TC Number</label>
+                        <input type="text" class="form-control" id="wf-tc-number" placeholder="Assign TC number">
+                      </div>
+                      <div>
+                        <label for="wf-leaving-semester">Leaving Semester</label>
+                        <input type="text" class="form-control" id="wf-leaving-semester" placeholder="e.g. VI Semester">
+                      </div>
+                      <div>
+                        <label for="wf-promotion-status">Promotion Status</label>
+                        <input type="text" class="form-control" id="wf-promotion-status" placeholder="e.g. Course Completed">
+                      </div>
+                      <div>
+                        <label for="wf-dues-status">Dues Discharged?</label>
+                        <input type="text" class="form-control" id="wf-dues-status" placeholder="e.g. yes">
+                      </div>
+                      <div>
+                        <label for="wf-conduct">Character and Conduct</label>
+                        <input type="text" class="form-control" id="wf-conduct" placeholder="e.g. Good">
+                      </div>
+                      <div>
+                        <label for="wf-leaving-date">Date of Leaving College</label>
+                        <input type="date" class="form-control" id="wf-leaving-date">
+                      </div>
+                      <div>
+                        <label for="wf-app-date">Date of Application for TC</label>
+                        <input type="date" class="form-control" id="wf-app-date">
+                      </div>
+                      <div>
+                        <label for="wf-issue-date">Date of Issue of TC</label>
+                        <input type="date" class="form-control" id="wf-issue-date">
+                      </div>
                     </div>
-                    <div>
-                      <label for="wf-leaving-semester">Leaving Semester</label>
-                      <input type="text" class="form-control" id="wf-leaving-semester" placeholder="e.g. VI Semester">
-                    </div>
-                    <div>
-                      <label for="wf-promotion-status">Promotion Status</label>
-                      <input type="text" class="form-control" id="wf-promotion-status" placeholder="e.g. Course Completed">
-                    </div>
-                    <div>
-                      <label for="wf-dues-status">Dues Discharged?</label>
-                      <input type="text" class="form-control" id="wf-dues-status" placeholder="e.g. yes">
-                    </div>
-                    <div>
-                      <label for="wf-conduct">Character and Conduct</label>
-                      <input type="text" class="form-control" id="wf-conduct" placeholder="e.g. Good">
-                    </div>
-                    <div>
-                      <label for="wf-leaving-date">Date of Leaving College</label>
-                      <input type="text" class="form-control" id="wf-leaving-date" placeholder="DD/MM/YYYY">
-                    </div>
-                    <div>
-                      <label for="wf-app-date">Date of Application for TC</label>
-                      <input type="text" class="form-control" id="wf-app-date" placeholder="DD/MM/YYYY">
-                    </div>
-                    <div>
-                      <label for="wf-issue-date">Date of Issue of TC</label>
-                      <input type="text" class="form-control" id="wf-issue-date" placeholder="DD/MM/YYYY">
-                    </div>
+                    
                     <div style="grid-column: span 3;">
                       <label for="wf-principal-remarks">Principal Remarks</label>
                       <input type="text" class="form-control" id="wf-principal-remarks" placeholder="Enter clearance notes">
@@ -1362,6 +1373,64 @@
           </div>
         </div>
 
+      </div>
+    </div>
+  </div>
+
+  <!-- TC Issue Modal -->
+  <div class="modal-overlay" id="tc-issue-modal" style="display: none; align-items: center; justify-content: center; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(4px); z-index: 1000; padding: 20px; box-sizing: border-box;">
+    <div class="modal" style="max-width: 700px; width: 95%; background: var(--bg-dark); border: 1px solid var(--card-border); border-radius: 12px; padding: 20px; box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3); display: flex; flex-direction: column; max-height: 90vh; overflow-y: auto;">
+      <div class="modal-header" style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--card-border); padding-bottom: 12px; margin-bottom: 20px;">
+        <h3 style="font-size: 1.25rem; font-weight: 600; color: var(--text-main);">Workflow & State Verification (TC Issue)</h3>
+        <button class="btn-close" onclick="closeTCIssueModal()" style="background: none; border: none; color: var(--text-muted); font-size: 1.5rem; cursor: pointer;">&times;</button>
+      </div>
+      <div class="modal-body" style="flex: 1;">
+        <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 20px;">
+          Fill in the Transfer Certificate (TC) details for <strong><span id="tc-student-name"></span></strong>.
+        </p>
+        
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; row-gap: 12px;">
+          <div>
+            <label style="display: block; margin-bottom: 5px; font-weight: 500; font-size: 0.85rem; color: var(--text-muted);">TC Number</label>
+            <input type="text" class="form-control" id="tc-wf-number" placeholder="Assign TC number" style="width: 100%; background: rgba(255,255,255,0.03); color: var(--text-main); border: 1px solid var(--card-border); padding: 8px 12px; border-radius: 6px;">
+          </div>
+          <div>
+            <label style="display: block; margin-bottom: 5px; font-weight: 500; font-size: 0.85rem; color: var(--text-muted);">Leaving Semester</label>
+            <input type="text" class="form-control" id="tc-wf-leaving-semester" placeholder="e.g. VI Semester" style="width: 100%; background: rgba(255,255,255,0.03); color: var(--text-main); border: 1px solid var(--card-border); padding: 8px 12px; border-radius: 6px;">
+          </div>
+          <div>
+            <label style="display: block; margin-bottom: 5px; font-weight: 500; font-size: 0.85rem; color: var(--text-muted);">Promotion Status</label>
+            <input type="text" class="form-control" id="tc-wf-promotion-status" placeholder="e.g. Course Completed" style="width: 100%; background: rgba(255,255,255,0.03); color: var(--text-main); border: 1px solid var(--card-border); padding: 8px 12px; border-radius: 6px;">
+          </div>
+          <div>
+            <label style="display: block; margin-bottom: 5px; font-weight: 500; font-size: 0.85rem; color: var(--text-muted);">Dues Discharged?</label>
+            <input type="text" class="form-control" id="tc-wf-dues-status" placeholder="e.g. yes" style="width: 100%; background: rgba(255,255,255,0.03); color: var(--text-main); border: 1px solid var(--card-border); padding: 8px 12px; border-radius: 6px;">
+          </div>
+          <div>
+            <label style="display: block; margin-bottom: 5px; font-weight: 500; font-size: 0.85rem; color: var(--text-muted);">Character and Conduct</label>
+            <input type="text" class="form-control" id="tc-wf-conduct" placeholder="e.g. Good" style="width: 100%; background: rgba(255,255,255,0.03); color: var(--text-main); border: 1px solid var(--card-border); padding: 8px 12px; border-radius: 6px;">
+          </div>
+          <div>
+            <label style="display: block; margin-bottom: 5px; font-weight: 500; font-size: 0.85rem; color: var(--text-muted);">Date of Leaving College</label>
+            <input type="date" class="form-control" id="tc-wf-leaving-date" style="width: 100%; background: rgba(255,255,255,0.03); color: var(--text-main); border: 1px solid var(--card-border); padding: 8px 12px; border-radius: 6px;">
+          </div>
+          <div>
+            <label style="display: block; margin-bottom: 5px; font-weight: 500; font-size: 0.85rem; color: var(--text-muted);">Date of Application for TC</label>
+            <input type="date" class="form-control" id="tc-wf-app-date" style="width: 100%; background: rgba(255,255,255,0.03); color: var(--text-main); border: 1px solid var(--card-border); padding: 8px 12px; border-radius: 6px;">
+          </div>
+          <div>
+            <label style="display: block; margin-bottom: 5px; font-weight: 500; font-size: 0.85rem; color: var(--text-muted);">Date of Issue of TC</label>
+            <input type="date" class="form-control" id="tc-wf-issue-date" style="width: 100%; background: rgba(255,255,255,0.03); color: var(--text-main); border: 1px solid var(--card-border); padding: 8px 12px; border-radius: 6px;">
+          </div>
+          <div style="grid-column: span 2;">
+            <label style="display: block; margin-bottom: 5px; font-weight: 500; font-size: 0.85rem; color: var(--text-muted);">Principal Remarks</label>
+            <input type="text" class="form-control" id="tc-wf-principal-remarks" placeholder="Enter TC clearance notes" style="width: 100%; background: rgba(255,255,255,0.03); color: var(--text-main); border: 1px solid var(--card-border); padding: 8px 12px; border-radius: 6px;">
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer" style="padding-top: 15px; text-align: right; border-top: 1px solid var(--card-border); margin-top: 20px;">
+        <button class="btn btn-secondary" onclick="closeTCIssueModal()" style="margin-right: 10px; padding: 8px 16px; border-radius: 6px;">Cancel</button>
+        <button class="btn btn-success" onclick="confirmAndIssueTC()" style="padding: 8px 16px; border-radius: 6px;">Issue TC</button>
       </div>
     </div>
   </div>
@@ -1637,6 +1706,44 @@
       return day + "/" + month + "/" + year;
     }
 
+    // Helper to format any date object or string into YYYY-MM-DD format (for date picker input value)
+    function formatDateToYYYYMMDD(dateInput) {
+      if (!dateInput) return "";
+      var dateObj;
+      if (dateInput instanceof Date) {
+        dateObj = dateInput;
+      } else {
+        var str = dateInput.toString().trim();
+        if (!str) return "";
+        // If it's already in YYYY-MM-DD, return it
+        var regex = /^\d{4}-\d{2}-\d{2}$/;
+        if (regex.test(str)) return str;
+        
+        var parts = str.split(/[-/]/);
+        if (parts.length === 3) {
+          if (parts[0].length === 4) {
+            var y = parseInt(parts[0], 10);
+            var m = parseInt(parts[1], 10) - 1;
+            var d = parseInt(parts[2], 10);
+            dateObj = new Date(y, m, d);
+          } else {
+            var d = parseInt(parts[0], 10);
+            var m = parseInt(parts[1], 10) - 1;
+            var y = parseInt(parts[2], 10);
+            if (y < 100) y += 2000;
+            dateObj = new Date(y, m, d);
+          }
+        } else {
+          dateObj = new Date(str);
+        }
+      }
+      if (isNaN(dateObj.getTime())) return "";
+      var day = ("0" + dateObj.getDate()).slice(-2);
+      var month = ("0" + (dateObj.getMonth() + 1)).slice(-2);
+      var year = dateObj.getFullYear();
+      return year + "-" + month + "-" + day;
+    }
+
     // If running inside Google Apps Script (Web App environment), google.script.run is natively available.
     // If running externally (e.g., GitHub Pages), we emulate it using fetch() requests.
     if (typeof google === 'undefined' || typeof google.script === 'undefined') {
@@ -1844,6 +1951,9 @@
       
       var ptaSummaryContainer = document.getElementById("pta-summary-container");
       var idCardsBtn = document.getElementById("btn-principal-idcards");
+      var admissionRegisterBtn = document.getElementById("tab-admission-register-btn");
+      if (admissionRegisterBtn) admissionRegisterBtn.style.display = "none";
+
       if (userRole === "PTA") {
         balanceBtn.style.display = "inline-block";
         configFeeBtn.style.display = "inline-block";
@@ -1860,6 +1970,7 @@
         dashboardTabs.style.display = "flex";
         idCardsBtn.style.display = "inline-block";
         if (waitingBtn) waitingBtn.style.display = "none";
+        if (admissionRegisterBtn) admissionRegisterBtn.style.display = "inline-block";
       } else {
         dashboardTabs.style.display = "none";
         if (waitingBtn) waitingBtn.style.display = "none";
@@ -2067,6 +2178,7 @@
         }
 
         tr.innerHTML = waCell +
+                       "<td><strong>" + admNo + "</strong></td>" +
                        "<td><strong>" + token + "</strong></td>" +
                        "<td>" + capid + "</td>" +
                        "<td>" + name + "</td>" +
@@ -2089,7 +2201,6 @@
                           }
                           return "";
                         })() + "</td>" +
-                        "<td>" + admNo + "</td>" +
                         "<td><button class='btn btn-secondary' style='padding: 4px 10px; font-size: 0.8rem;'>Verify</button></td>";
         tbody.appendChild(tr);
       });
@@ -2184,14 +2295,29 @@
         return true;
       });
       
-      // 2. Sort by Timestamp Descending (latest 1st)
-      filtered.sort(function(a, b) {
-        var timeA = new Date(a["Timestamp"] || 0).getTime();
-        var timeB = new Date(b["Timestamp"] || 0).getTime();
-        if (isNaN(timeA)) timeA = 0;
-        if (isNaN(timeB)) timeB = 0;
-        return timeB - timeA;
-      });
+      // 2. Sort records (by Admission Number ascending for Admission Register, timestamp descending otherwise)
+      if (currentTab === "admission-register") {
+        filtered.sort(function(a, b) {
+          var admA = (a["Admission_Number"] || "").toString().trim();
+          var admB = (b["Admission_Number"] || "").toString().trim();
+          
+          var numA = parseInt(admA.replace(/\D/g, ''), 10);
+          var numB = parseInt(admB.replace(/\D/g, ''), 10);
+          
+          if (!isNaN(numA) && !isNaN(numB)) {
+            if (numA !== numB) return numA - numB;
+          }
+          return admA.localeCompare(admB);
+        });
+      } else {
+        filtered.sort(function(a, b) {
+          var timeA = new Date(a["Timestamp"] || 0).getTime();
+          var timeB = new Date(b["Timestamp"] || 0).getTime();
+          if (isNaN(timeA)) timeA = 0;
+          if (isNaN(timeB)) timeB = 0;
+          return timeB - timeA;
+        });
+      }
       
       // 3. Apply search query filter
       if (query) {
@@ -2575,8 +2701,9 @@
         group.className = "form-group";
         
         var val = student[f.key] !== undefined ? student[f.key] : "";
-        if (f.key.toLowerCase().includes("date") || f.key.toLowerCase().includes("dob") || f.label.toLowerCase().includes("date") || f.label.toLowerCase().includes("dob")) {
-          val = formatDateToDDMMYYYY(val);
+        var isDateField = f.key.toLowerCase().includes("date") || f.key.toLowerCase().includes("dob") || f.label.toLowerCase().includes("date") || f.label.toLowerCase().includes("dob");
+        if (isDateField) {
+          val = formatDateToYYYYMMDD(val);
         }
         
         if (f.key === "Actual Category") {
@@ -2595,9 +2722,15 @@
         } else {
           var isLink = val.toString().trim().indexOf("http") === 0;
           var linkHtml = isLink ? " <a href='" + val + "' target='_blank' class='btn btn-secondary btn-sm' style='margin-top: 5px; display: inline-block; padding: 2px 8px; font-size: 0.8rem;'>View File ↗</a>" : "";
-          group.innerHTML = "<label>" + f.label + "</label>" +
-                            "<input type='text' class='form-control readonly-field' data-field='" + f.key + "' value='" + val + "' readonly />" +
-                            linkHtml;
+          if (isDateField) {
+            group.innerHTML = "<label>" + f.label + "</label>" +
+                              "<input type='date' class='form-control readonly-field' data-field='" + f.key + "' value='" + val + "' readonly disabled />" +
+                              linkHtml;
+          } else {
+            group.innerHTML = "<label>" + f.label + "</label>" +
+                              "<input type='text' class='form-control readonly-field' data-field='" + f.key + "' value='" + val + "' readonly />" +
+                              linkHtml;
+          }
         }
         container.appendChild(group);
       });
@@ -2685,8 +2818,8 @@
       document.getElementById("wf-promotion-status").value = student["Promotion_Status"] || "Course Completed";
       document.getElementById("wf-dues-status").value = student["Dues_Status"] || "yes";
       document.getElementById("wf-conduct").value = student["Conduct"] || "Good";
-      document.getElementById("wf-leaving-date").value = formatDateToDDMMYYYY(student["Leaving_Date"]) || formatDateToDDMMYYYY(new Date());
-      document.getElementById("wf-app-date").value = formatDateToDDMMYYYY(student["Application_Date"]) || formatDateToDDMMYYYY(new Date());
+      document.getElementById("wf-leaving-date").value = formatDateToYYYYMMDD(student["Leaving_Date"]) || formatDateToYYYYMMDD(new Date());
+      document.getElementById("wf-app-date").value = formatDateToYYYYMMDD(student["Application_Date"]) || formatDateToYYYYMMDD(new Date());
       
       // Display prominent transfer warning banner if already admitted in another department
       var transferBanner = document.getElementById("transfer-warning-banner");
@@ -2704,7 +2837,7 @@
       } else {
         transferBanner.style.display = "none";
       }
-      document.getElementById("wf-issue-date").value = formatDateToDDMMYYYY(student["Issue_Date"]) || formatDateToDDMMYYYY(new Date());
+      document.getElementById("wf-issue-date").value = formatDateToYYYYMMDD(student["Issue_Date"]) || formatDateToYYYYMMDD(new Date());
       document.getElementById("wf-principal-remarks").value = student["Principal_Remarks"] || "";
 
       // Hide all input elements first
@@ -2714,6 +2847,7 @@
       document.getElementById("group-principal-input").style.display = "none";
 
       // Display role-specific inputs
+      var status = student["Current_Status"] || "Pending_Faculty";
       if (userRole === "Faculty" || userRole === "HOD") {
         document.getElementById("group-faculty-input").style.display = "block";
       } else if (userRole === "Nodal Officer") {
@@ -2757,11 +2891,52 @@
         }
       } else if (userRole === "Principal") {
         document.getElementById("group-principal-input").style.display = "block";
+        var principalTcFields = document.getElementById("principal-tc-fields");
+        var wrapperAdmissionNumber = document.getElementById("wrapper-admission-number");
+        if (principalTcFields) {
+          if (status === "Admitted" || status === "TC Issued") {
+            principalTcFields.style.display = "contents";
+            if (wrapperAdmissionNumber) {
+              wrapperAdmissionNumber.style.display = "none";
+            }
+          } else {
+            principalTcFields.style.display = "none";
+            if (wrapperAdmissionNumber) {
+              wrapperAdmissionNumber.style.display = "block";
+            }
+          }
+        }
+      }
+
+      // Hide Enable Edit toggle button if student is Admitted/TC Issued and user is not Principal
+      var editBtn = document.getElementById("btn-edit-toggle");
+      if (editBtn) {
+        if ((status === "Admitted" || status === "TC Issued") && userRole !== "Principal") {
+          editBtn.style.display = "none";
+        } else {
+          editBtn.style.display = "block";
+        }
+      }
+
+      // Hide workflow verification inputs for Admitted and TC Issued students in details modal
+      var wfPanel = document.getElementById("workflow-panel");
+      var profActions = document.getElementById("profile-actions-container");
+      if (status === "Admitted" || status === "TC Issued") {
+        if (wfPanel) wfPanel.style.display = "none";
+        if (profActions) profActions.style.display = "flex";
+      } else {
+        if (wfPanel) wfPanel.style.display = "block";
+        if (profActions) profActions.style.display = "none";
       }
 
       setupWorkflowButtons(student);
 
-      document.getElementById("detail-modal").style.display = "flex";
+      var modalEl = document.getElementById("detail-modal");
+      modalEl.style.display = "flex";
+      var innerModal = modalEl.querySelector(".modal");
+      if (innerModal) {
+        innerModal.scrollTop = 0;
+      }
     }
 
     function photoLoadError(img) {
@@ -2786,10 +2961,16 @@
           } else {
             inp.removeAttribute("readonly");
             inp.classList.remove("readonly-field");
+            if (inp.type === "date") {
+              inp.removeAttribute("disabled");
+            }
           }
         } else {
           inp.setAttribute("readonly", true);
           inp.classList.add("readonly-field");
+          if (inp.type === "date") {
+            inp.setAttribute("disabled", true);
+          }
         }
       });
 
@@ -2808,10 +2989,14 @@
 
     // Configure verify/revert button controls depending on state & role
     function setupWorkflowButtons(student) {
-      var container = document.getElementById("workflow-actions-area");
-      container.innerHTML = "";
-      
       var status = student["Current_Status"] || "Pending_Faculty";
+      var container;
+      if (status === "Admitted" || status === "TC Issued") {
+        container = document.getElementById("profile-actions-container");
+      } else {
+        container = document.getElementById("workflow-actions-area");
+      }
+      if (container) container.innerHTML = "";
 
       // If TC Issued — Print TC only (no admit/PTA buttons)
       if (status === "TC Issued") {
@@ -2824,7 +3009,13 @@
         }
         container.innerHTML = "<button class='btn btn-success' onclick='printTC()'>Print Transfer Certificate (TC)</button>" +
                               "<button class='btn btn-secondary' onclick='closeModal()'>Close</button>";
-        if (userRole === "Principal" || userRole === "Nodal Officer") {
+        if (userRole === "Principal") {
+          var cancelTCBtn = document.createElement("button");
+          cancelTCBtn.className = "btn btn-danger";
+          cancelTCBtn.innerText = "Cancel TC";
+          cancelTCBtn.onclick = function() { confirmAndCancelTC(); };
+          container.insertBefore(cancelTCBtn, container.firstChild);
+          
           var revBtn = document.createElement("button");
           revBtn.className = "btn btn-danger";
           revBtn.innerText = "Revert Student";
@@ -2837,7 +3028,7 @@
       // If Admitted — Principal sees Issue TC button; others see read-only
       if (status === "Admitted") {
         if (userRole === "Principal") {
-          container.innerHTML = "<button class='btn btn-success' onclick='principalIssueTC()'>Issue TC</button>" +
+          container.innerHTML = "<button class='btn btn-success' onclick='openTCIssueModal()'>Issue TC</button>" +
                                 "<button class='btn btn-danger' onclick='triggerRevertFlow(\"Admitted\")'>Revert Student</button>" +
                                 "<button class='btn btn-secondary' onclick='closeModal()'>Close</button>";
         } else if (userRole === "PTA") {
@@ -2848,13 +3039,6 @@
         } else {
           container.innerHTML = "<p style='color: var(--text-muted); font-size: 0.85rem; font-style: italic;'>Student Admitted. Awaiting TC issuance by Principal.</p>" +
                                 "<button class='btn btn-secondary' onclick='closeModal()'>Close</button>";
-          if ((userRole === "Nodal Officer") ) {
-            var revBtn2 = document.createElement("button");
-            revBtn2.className = "btn btn-danger";
-            revBtn2.innerText = "Revert Student";
-            revBtn2.onclick = function() { triggerRevertFlow("Admitted"); };
-            container.insertBefore(revBtn2, container.firstChild);
-          }
         }
         return;
       }
@@ -3058,20 +3242,49 @@
       });
     }
 
-    // Action handlers for Principal — Step 2: Issue TC (only for Admitted students)
-    function principalIssueTC() {
-      var tcNo = document.getElementById("wf-tc-number").value;
-      var leavingSem = document.getElementById("wf-leaving-semester").value;
-      var promoStatus = document.getElementById("wf-promotion-status").value;
-      var duesStatus = document.getElementById("wf-dues-status").value;
-      var conductVal = document.getElementById("wf-conduct").value;
-      var leavingDt = formatDateToDDMMYYYY(document.getElementById("wf-leaving-date").value);
-      var appDt = formatDateToDDMMYYYY(document.getElementById("wf-app-date").value);
-      var issueDt = formatDateToDDMMYYYY(document.getElementById("wf-issue-date").value);
-      var remarks = document.getElementById("wf-principal-remarks").value;
+    // Open TC Issue Modal and populate fields
+    function openTCIssueModal() {
+      if (!activeStudent) return;
+      // Hide detail-modal element directly to avoid overlay conflicts (without resetting activeStudent to null)
+      document.getElementById("detail-modal").style.display = "none";
+      
+      document.getElementById("tc-student-name").innerText = (activeStudent["Name (As per your certificate)"] || activeStudent["Name"] || "").toString().toUpperCase();
+      document.getElementById("tc-wf-number").value = activeStudent["Token_Number"] || "";
+      document.getElementById("tc-wf-leaving-semester").value = activeStudent["Leaving_Semester"] || "VI Semester";
+      document.getElementById("tc-wf-promotion-status").value = activeStudent["Promotion_Status"] || "Course Completed";
+      document.getElementById("tc-wf-dues-status").value = activeStudent["Dues_Status"] || "yes";
+      document.getElementById("tc-wf-conduct").value = activeStudent["Conduct"] || "Good";
+      document.getElementById("tc-wf-leaving-date").value = formatDateToYYYYMMDD(activeStudent["Leaving_Date"]) || formatDateToYYYYMMDD(new Date());
+      document.getElementById("tc-wf-app-date").value = formatDateToYYYYMMDD(activeStudent["Application_Date"]) || formatDateToYYYYMMDD(new Date());
+      document.getElementById("tc-wf-issue-date").value = formatDateToYYYYMMDD(activeStudent["Issue_Date"]) || formatDateToYYYYMMDD(new Date());
+      document.getElementById("tc-wf-principal-remarks").value = activeStudent["Principal_Remarks"] || "";
+      
+      document.getElementById("tc-issue-modal").style.display = "flex";
+    }
+
+    // Close TC Issue Modal
+    function closeTCIssueModal() {
+      document.getElementById("tc-issue-modal").style.display = "none";
+    }
+
+    // Action handlers for Principal — Step 2: Issue TC (via separate modal)
+    function confirmAndIssueTC() {
+      var tcNo = document.getElementById("tc-wf-number").value;
+      var leavingSem = document.getElementById("tc-wf-leaving-semester").value;
+      var promoStatus = document.getElementById("tc-wf-promotion-status").value;
+      var duesStatus = document.getElementById("tc-wf-dues-status").value;
+      var conductVal = document.getElementById("tc-wf-conduct").value;
+      var leavingDt = formatDateToDDMMYYYY(document.getElementById("tc-wf-leaving-date").value);
+      var appDt = formatDateToDDMMYYYY(document.getElementById("tc-wf-app-date").value);
+      var issueDt = formatDateToDDMMYYYY(document.getElementById("tc-wf-issue-date").value);
+      var remarks = document.getElementById("tc-wf-principal-remarks").value;
       
       if (!tcNo.trim()) {
         showToast("Please enter a TC Number before issuing.", true);
+        return;
+      }
+
+      if (!confirm("Are you sure you want to issue the Transfer Certificate (TC)? This will change the student status to TC Issued.")) {
         return;
       }
       
@@ -3099,13 +3312,31 @@
         activeStudent["Issue_Date"] = issueDt;
         activeStudent["Principal_Remarks"] = remarks;
         activeStudent["Current_Status"] = "TC Issued";
-        setupWorkflowButtons(activeStudent);
+        closeTCIssueModal();
         setTimeout(function() { loadDepartmentData(); }, 800);
       });
     }
 
-    // Legacy alias kept for Update TC/Adm Details button (used on TC Issued students)
-    function principalAdmit() { principalIssueTC(); }
+    // Cancel Issued TC back to Admitted Status
+    function confirmAndCancelTC() {
+      if (!activeStudent) return;
+      if (!confirm("Are you sure you want to cancel the issued TC and revert this student back to Admitted status?")) {
+        return;
+      }
+      
+      var dataToUpdate = compileUpdatedProfileData();
+      dataToUpdate["Current_Status"] = "Admitted";
+      
+      sendUpdate(dataToUpdate, function(res) {
+        showToast("TC cancelled successfully. Student reverted to Admitted status.");
+        activeStudent["Current_Status"] = "Admitted";
+        closeModal();
+        setTimeout(function() { loadDepartmentData(); }, 800);
+      });
+    }
+
+    // Legacy alias kept for compatibility
+    function principalAdmit() { openTCIssueModal(); }
 
     // Generic multi-stage reversion dialog/logic
     function triggerRevertFlow(currentStepStatus) {
@@ -3193,7 +3424,11 @@
       inputs.forEach(function(inp) {
         var key = inp.getAttribute("data-field");
         if (key) {
-          fieldsObj[key] = inp.value;
+          if (inp.type === "date") {
+            fieldsObj[key] = formatDateToDDMMYYYY(inp.value);
+          } else {
+            fieldsObj[key] = inp.value;
+          }
         }
       });
 
@@ -3987,11 +4222,12 @@
         var pendingBtn = document.getElementById("tab-pending-btn");
         var completedUgBtn = document.getElementById("tab-completed-ug-btn");
         var completedPgBtn = document.getElementById("tab-completed-pg-btn");
+        var admissionRegisterBtn = document.getElementById("tab-admission-register-btn");
         var analyticsBtn = document.getElementById("tab-analytics-btn");
         var waitingBtn = document.getElementById("tab-waiting-btn");
         
         // Reset all buttons
-        [pendingBtn, completedUgBtn, completedPgBtn, analyticsBtn, waitingBtn].forEach(function(btn) {
+        [pendingBtn, completedUgBtn, completedPgBtn, admissionRegisterBtn, analyticsBtn, waitingBtn].forEach(function(btn) {
           if (btn) {
             btn.style.color = "var(--text-muted)";
             btn.style.fontWeight = "500";
@@ -4028,17 +4264,18 @@
           if (analyticsContainer) analyticsContainer.style.display = "none";
           if (waitingContainer) waitingContainer.style.display = "none";
           var activeBtn = pendingBtn;
-        if (tab === 'completed-ug') activeBtn = completedUgBtn;
-        else if (tab === 'completed-pg') activeBtn = completedPgBtn;
-        
-        if (activeBtn) {
-          activeBtn.style.color = "var(--text-main)";
-          activeBtn.style.fontWeight = "600";
-          activeBtn.style.borderBottomColor = "var(--primary)";
+          if (tab === 'completed-ug') activeBtn = completedUgBtn;
+          else if (tab === 'completed-pg') activeBtn = completedPgBtn;
+          else if (tab === 'admission-register') activeBtn = admissionRegisterBtn;
+          
+          if (activeBtn) {
+            activeBtn.style.color = "var(--text-main)";
+            activeBtn.style.fontWeight = "600";
+            activeBtn.style.borderBottomColor = "var(--primary)";
+          }
+          filterTable();
         }
-        filterTable();
       }
-    }
 
     function loadAnalyticsData() {
       if (allStudents && allStudents.length > 0 && seatMatrixPG && seatMatrixUG && (seatMatrixPG.length > 0 || seatMatrixUG.length > 0)) {
