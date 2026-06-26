@@ -1,0 +1,28 @@
+{
+  "name": "college-erp-next",
+  "version": "1.0.0",
+  "description": "",
+  "main": "Code.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/sureshmagnolia/sheetadmission.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/sureshmagnolia/sheetadmission/issues"
+  },
+  "homepage": "https://github.com/sureshmagnolia/sheetadmission#readme",
+  "devDependencies": {
+    "firebase-tools": "^15.22.3"
+  },
+  "dependencies": {
+    "axios": "^1.18.1",
+    "firebase-admin": "^14.1.0"
+  }
+}

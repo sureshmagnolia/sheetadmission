@@ -1,0 +1,48 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Check if the authenticated user has a specific role in their 'users' document
+    function hasRole(role) {
+      return request.auth != null && 
+             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.roles.hasAny([role]);
+    }
+
+    // Master Identity Collection
+    match /users/{userId} {
+      // Users can read their own profile, but only SuperAdmins can manage user roles
+      allow read: if request.auth != null && (request.auth.uid == userId || hasRole('SuperAdmin'));
+      allow write: if hasRole('SuperAdmin');
+    }
+
+    // Master Data Collections
+    match /departments/{deptId} {
+      allow read: if true; // Public read for dropdowns
+      allow write: if hasRole('SuperAdmin');
+    }
+
+    match /courses/{courseId} {
+      allow read: if true; // Public read for dropdowns
+      allow write: if hasRole('SuperAdmin') || hasRole('HOD');
+    }
+
+    match /faculty_profiles/{profileId} {
+      allow read: if true; 
+      allow write: if hasRole('SuperAdmin');
+    }
+
+    // Admission Applications
+    match /students/{studentId} {
+      // Anyone logged in can submit an application, but only Admins/Faculty can manage them
+      allow create: if true; // In production, this should be restricted to authenticated students
+      allow read: if true; 
+      allow update, delete: if hasRole('SuperAdmin') || hasRole('Faculty');
+    }
+
+    // Fallback: Default deny all other collections to prevent accidental leaks
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
