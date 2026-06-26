@@ -4859,7 +4859,7 @@
         var address = s["Address"] || "N/A";
         var mobile = s["Mobile No"] || s["Mobile number"] || "N/A";
         var dob = s["Date of Birth (As per SSLC)"] || s["Date of Birth (SSLC)"] || "N/A";
-        var blood = s["Blood Group"] || s["Blood"] || "O+";
+
         
         // Calculate Batch based on Admission Year
         var yr = s["Year_of_Admission"] || s["Year of Admission"] || new Date().getFullYear();
@@ -4933,7 +4933,6 @@
               "<div class='back-details'>" +
                 "<div class='back-row'><span class='back-label'>Residential Address</span><span class='back-colon'>:</span><span class='back-val'>" + address + "</span></div>" +
                 "<div class='back-row'><span class='back-label'>Mobile No</span><span class='back-colon'>:</span><span class='back-val'>" + mobile + "</span></div>" +
-                "<div class='back-row'><span class='back-label'>Blood Group</span><span class='back-colon'>:</span><span class='back-val'>" + blood + "</span></div>" +
                 "<div class='back-row'><span class='back-label'>Date of Birth</span><span class='back-colon'>:</span><span class='back-val'>" + dob + "</span></div>" +
                 "<div class='back-row'><span class='back-label'>Parent Name</span><span class='back-colon'>:</span><span class='back-val'>" + parent + "</span></div>" +
               "</div>" +
