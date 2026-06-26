@@ -4859,7 +4859,6 @@
         var address = s["Address"] || "N/A";
         var mobile = s["Mobile No"] || s["Mobile number"] || "N/A";
         var dob = s["Date of Birth (As per SSLC)"] || s["Date of Birth (SSLC)"] || "N/A";
-
         
         // Calculate Batch based on Admission Year
         var yr = s["Year_of_Admission"] || s["Year of Admission"] || new Date().getFullYear();
@@ -4883,8 +4882,7 @@
         }
         
         idCardsHtml += 
-          // FRONT PAGE
-          "<div class='id-card-page'>" +
+          "<div class='id-card-container'>" +
             "<div class='id-card-front'>" +
               "<div class='id-header'>" +
                 "<img src='<?!= getLogoBase64() ?>' class='id-logo' alt='College Logo'>" +
@@ -4907,12 +4905,12 @@
                 "<div class='id-detail-row'><span class='id-label'>Batch</span><span class='id-colon'>:</span><span class='id-value'>" + batch + "</span></div>" +
               "</div>" +
               "<div class='id-signature-area'>" +
-                "<div class='id-seal-stamp'>" +
-                  "<div class='seal-text'>GOVT. VICTORIA COLLEGE</div>" +
-                  "<div class='seal-subtext'>PALAKKAD</div>" +
+                "<!-- College Seal placeholder -->" +
+                "<div class='id-seal-placeholder'>" +
+                  "<!-- <img src='seal.png' class='id-seal-img'> -->" +
                 "</div>" +
                 "<div class='id-signature'>" +
-                  "<div style='font-family: cursive, sans-serif; font-size: 8.5pt; font-weight: bold; color: #1e40af;'>Principal</div>" +
+                  "<div class='sig-signed'>Digitally Signed</div>" +
                   "<div class='sig-title'>PRINCIPAL<br>GOVT. VICTORIA COLLEGE<br>PALAKKAD</div>" +
                 "</div>" +
               "</div>" +
@@ -4920,10 +4918,7 @@
                 "Phone Number: 04912576773<br>E.Mail: victoriapkd@gmail.com | Website: www.gvc.ac.in" +
               "</div>" +
             "</div>" +
-          "</div>" +
-          
-          // BACK PAGE
-          "<div class='id-card-page'>" +
+            
             "<div class='id-card-back'>" +
               "<div class='back-seal-container'>" +
                 "<img src='<?!= getLogoBase64() ?>' class='back-seal-logo'>" +
@@ -4953,93 +4948,104 @@
           "* { box-sizing: border-box; font-family: 'Outfit', sans-serif; margin: 0; padding: 0; }" +
           "body { background: #fff; padding: 0; margin: 0; }" +
           
-          /* Print setup: exact size of CR80 card (1 per page) */
-          ".id-card-page { width: 54mm; height: 86mm; display: flex; align-items: center; justify-content: center; page-break-after: always; margin: 0 auto 20px auto; }" +
+          ".id-card-container {" +
+            "display: inline-flex;" +
+            "gap: 10mm;" +
+            "margin: 15px;" +
+            "padding: 10px;" +
+            "background: #fff;" +
+            "border: 1px dashed #cbd5e1;" +
+            "border-radius: 6px;" +
+            "page-break-inside: avoid;" +
+            "box-shadow: 0 2px 4px rgba(0,0,0,0.05);" +
+          "}" +
           
           ".id-card-front {" +
             "width: 54mm; height: 86mm; border: 1px solid #111; position: relative; display: flex; flex-direction: column;" +
-            "background: #fff; padding: 1mm 1.5mm; overflow: hidden; border-radius: 4px; box-shadow: 0 0 5px rgba(0,0,0,0.1);" +
+            "background: #fff; padding: 2mm 2.5mm; overflow: hidden; border-radius: 4px; box-shadow: 0 0 5px rgba(0,0,0,0.1);" +
           "}" +
           
-          ".id-header { display: flex; align-items: center; gap: 1mm; margin-bottom: 0.5mm; }" +
-          ".id-logo { width: 9.5mm; height: 9.5mm; object-fit: contain; }" +
-          ".id-header-text { display: flex; flex-direction: column; justify-content: center; }" +
-          ".id-header-text h1 { font-size: 5.5pt; font-weight: 800; color: #0b1329; line-height: 1.1; letter-spacing: 0.1px; }" +
-          ".id-header-text h2 { font-size: 4pt; font-weight: 700; color: #334155; line-height: 1.1; }" +
-          ".id-header-text h3 { font-size: 3.2pt; font-weight: 600; color: #475569; line-height: 1.1; }" +
+          /* Centered Professional Header */
+          ".id-header { display: flex; flex-direction: column; align-items: center; text-align: center; margin-bottom: 1.2mm; }" +
+          ".id-logo { width: 11mm; height: 11mm; object-fit: contain; margin-bottom: 0.8mm; }" +
+          ".id-header-text { display: flex; flex-direction: column; align-items: center; }" +
+          ".id-header-text h1 { font-size: 6.8pt; font-weight: 800; color: #0b1329; line-height: 1.1; letter-spacing: 0.1px; }" +
+          ".id-header-text h2 { font-size: 4.8pt; font-weight: 700; color: #334155; line-height: 1.1; margin-top: 0.3mm; }" +
+          ".id-header-text h3 { font-size: 3.8pt; font-weight: 600; color: #64748b; line-height: 1.1; margin-top: 0.2mm; }" +
           
           ".id-banner {" +
-            "background: #0f172a; color: #fff; font-size: 3.8pt; text-align: center; font-weight: 500; padding: 0.6mm 0;" +
-            "margin: 0.3mm -1.5mm 1mm -1.5mm; line-height: 1.25; letter-spacing: 0.2px;" +
+            "background: #0f172a; color: #fff; font-size: 4.2pt; text-align: center; font-weight: 600; padding: 0.8mm 0;" +
+            "margin: 0.8mm -2.5mm 1.5mm -2.5mm; line-height: 1.2; letter-spacing: 0.1px;" +
           "}" +
           
-          ".id-photo-container { display: flex; justify-content: center; margin-bottom: 1.2mm; }" +
-          ".id-photo { width: 23mm; height: 28mm; object-fit: cover; border-radius: 3px; border: 0.5px solid #cbd5e1; }" +
+          ".id-photo-container { display: flex; justify-content: center; margin-bottom: 1.8mm; }" +
+          ".id-photo { width: 25mm; height: 30mm; object-fit: cover; border-radius: 3px; border: 0.5px solid #cbd5e1; }" +
           
           ".id-name-box {" +
-            "background: #ccfbf1; color: #dc2626; font-size: 6.8pt; font-weight: 700; text-align: center;" +
-            "padding: 0.8mm 1mm; margin: 0 -1.5mm 1.5mm -1.5mm; border-top: 1px solid #99f6e4; border-bottom: 1px solid #99f6e4;" +
+            "background: #e0f2fe; color: #0369a1; font-size: 8pt; font-weight: 800; text-align: center;" +
+            "padding: 1mm 1.2mm; margin: 0 -2.5mm 2mm -2.5mm; border-top: 1px solid #bae6fd; border-bottom: 1px solid #bae6fd;" +
             "white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-transform: uppercase;" +
           "}" +
           
-          ".id-details-grid { display: flex; flex-direction: column; gap: 0.8mm; padding: 0 0.5mm; margin-bottom: auto; }" +
-          ".id-detail-row { display: flex; align-items: flex-start; font-size: 5.8pt; line-height: 1.2; }" +
-          ".id-label { width: 11mm; font-weight: 700; color: #334155; }" +
-          ".id-colon { width: 1.5mm; font-weight: 700; color: #334155; text-align: center; }" +
+          ".id-details-grid { display: flex; flex-direction: column; gap: 1mm; padding: 0 1mm; margin-bottom: auto; }" +
+          ".id-detail-row { display: flex; align-items: flex-start; font-size: 6.8pt; line-height: 1.25; }" +
+          ".id-label { width: 13mm; font-weight: 700; color: #475569; }" +
+          ".id-colon { width: 1.5mm; font-weight: 700; color: #475569; text-align: center; }" +
           ".id-value { flex: 1; font-weight: 800; color: #000; text-transform: uppercase; word-break: break-all; }" +
           
-          ".id-signature-area { display: flex; justify-content: space-between; align-items: flex-end; padding: 0 0.5mm 0.5mm 0.5mm; margin-bottom: 0.8mm; }" +
+          ".id-signature-area { display: flex; justify-content: space-between; align-items: flex-end; padding: 0 1mm; margin-bottom: 1mm; }" +
           
-          ".id-seal-stamp {" +
-            "width: 9.5mm; height: 9.5mm; border: 0.8px dashed #94a3b8; border-radius: 50%; display: flex; flex-direction: column;" +
-            "align-items: center; justify-content: center; text-align: center; opacity: 0.85;" +
+          /* Seal placeholder option */
+          ".id-seal-placeholder {" +
+            "width: 11mm; height: 11mm; border: 1px dashed #cbd5e1; border-radius: 50%;" +
+            "display: flex; align-items: center; justify-content: center; opacity: 0.85;" +
           "}" +
-          ".id-seal-stamp .seal-text { font-size: 1.8pt; font-weight: bold; color: #64748b; line-height: 1.1; width: 8.5mm; }" +
-          ".id-seal-stamp .seal-subtext { font-size: 1.5pt; font-weight: bold; color: #64748b; }" +
+          ".id-seal-img { width: 100%; height: 100%; object-fit: contain; }" +
           
-          ".id-signature { text-align: center; }" +
-          ".id-signature .sig-title { font-size: 2.8pt; font-weight: bold; color: #475569; line-height: 1.2; margin-top: 0.5mm; }" +
+          ".id-signature { text-align: center; display: flex; flex-direction: column; align-items: center; }" +
+          ".id-signature .sig-signed { font-family: 'Outfit', sans-serif; font-style: italic; font-size: 5.5pt; font-weight: bold; color: #059669; line-height: 1.1; margin-bottom: 0.8mm; }" +
+          ".id-signature .sig-title { font-size: 2.8pt; font-weight: bold; color: #475569; line-height: 1.2; text-align: center; }" +
           
           ".id-footer {" +
             "background: #0f172a; color: #fff; font-size: 3.2pt; text-align: center; padding: 0.6mm 0;" +
-            "margin: auto -1.5mm -1mm -1.5mm; line-height: 1.25; border-radius: 0 0 3px 3px;" +
+            "margin: auto -2.5mm -2mm -2.5mm; line-height: 1.25; border-radius: 0 0 3px 3px;" +
           "}" +
           
           /* BACK OF CARD */
           ".id-card-back {" +
-            "width: 54mm; height: 86mm; border: 1.2px solid #000; position: relative; display: flex; flex-direction: column;" +
-            "background: #fff; padding: 2.5mm 2.2mm; overflow: hidden; border-radius: 4px; box-shadow: 0 0 5px rgba(0,0,0,0.1);" +
+            "width: 54mm; height: 86mm; border: 1px solid #111; position: relative; display: flex; flex-direction: column;" +
+            "background: #fff; padding: 3mm 3mm; overflow: hidden; border-radius: 4px; box-shadow: 0 0 5px rgba(0,0,0,0.1);" +
           "}" +
           
-          ".back-seal-container { display: flex; flex-direction: column; align-items: center; text-align: center; margin-bottom: 2.5mm; }" +
-          ".back-seal-logo { width: 14mm; height: 14mm; object-fit: contain; margin-bottom: 0.8mm; }" +
-          ".back-seal-title { font-size: 6.5pt; font-weight: 800; color: #0b1329; line-height: 1.1; letter-spacing: 0.1px; }" +
-          ".back-seal-subtitle { font-size: 4.8pt; font-weight: 700; color: #475569; line-height: 1.1; }" +
+          ".back-seal-container { display: flex; flex-direction: column; align-items: center; text-align: center; margin-bottom: 4mm; }" +
+          ".back-seal-logo { width: 14mm; height: 14mm; object-fit: contain; margin-bottom: 1mm; }" +
+          ".back-seal-title { font-size: 7.2pt; font-weight: 800; color: #0b1329; line-height: 1.1; letter-spacing: 0.1px; }" +
+          ".back-seal-subtitle { font-size: 5pt; font-weight: 700; color: #475569; line-height: 1.1; }" +
           
-          ".back-details { display: flex; flex-direction: column; gap: 1.2mm; margin-bottom: auto; padding: 0 0.5mm; }" +
-          ".back-row { display: flex; align-items: flex-start; font-size: 5.6pt; line-height: 1.25; }" +
-          ".back-label { width: 22mm; font-weight: 700; color: #475569; }" +
+          ".back-details { display: flex; flex-direction: column; gap: 2.2mm; margin-bottom: auto; padding: 0 1mm; }" +
+          ".back-row { display: flex; align-items: flex-start; font-size: 7pt; line-height: 1.35; }" +
+          ".back-label { width: 23mm; font-weight: 700; color: #475569; }" +
           ".back-colon { width: 1.5mm; font-weight: 700; color: #475569; text-align: center; }" +
           ".back-val { flex: 1; font-weight: 800; color: #000; text-transform: uppercase; word-break: break-word; }" +
           
-          ".back-codes { display: flex; align-items: center; justify-content: space-between; border-top: 0.5px solid #cbd5e1; padding-top: 2mm; margin-top: 1mm; }" +
+          ".back-codes { display: flex; align-items: center; justify-content: space-between; border-top: 0.5px solid #cbd5e1; padding-top: 3mm; margin-top: 2mm; }" +
           ".student-barcode { width: 32mm; height: auto; max-height: 12mm; }" +
           ".student-qrcode { width: 10mm; height: 10mm; display: flex; justify-content: center; align-items: center; }" +
           
           "@media print {" +
-            "@page { size: 54mm 86mm; margin: 0; }" +
+            "@page { size: A4 portrait; margin: 10mm; }" +
             "body { background: #fff !important; padding: 0 !important; }" +
             ".no-print { display: none !important; }" +
-            ".a4-container { box-shadow: none !important; margin: 0 !important; padding: 0 !important; background: transparent !important; }" +
-            ".id-card-page { margin: 0 !important; }" +
+            ".a4-container { background: transparent !important; padding: 0 !important; margin: 0 !important; display: block !important; }" +
+            ".id-card-container { border: 1px dashed #bbb !important; box-shadow: none !important; margin: 10mm auto !important; padding: 5mm !important; page-break-inside: avoid !important; }" +
           "}" +
         "</style>" +
-        "</head><body style='text-align:center; background:#e2e8f0; padding-top:20px; font-family: Outfit, sans-serif;'>" +
-        "<div class='no-print' style='margin-bottom:20px;'>" +
-          "<button onclick='window.print()' style='padding: 12px 24px; font-size: 16px; cursor: pointer; background: #2563eb; color: white; border: none; border-radius: 6px; font-weight:bold; box-shadow: 0 4px 6px rgba(0,0,0,0.1);'>🖨️ Print / Save as PDF (1 per page)</button>" +
-          "<p style='margin-top:10px; color:#475569; font-size:14px;'>Click to print directly to a PVC Card Printer or use 'Save as PDF'. The page size is configured exactly for ID Cards (54x86mm).</p>" +
+        "</head><body style='text-align:center; background:#e2e8f0; padding:20px; font-family: Outfit, sans-serif;'>" +
+        "<div class='no-print' style='margin-bottom:20px;'> " +
+          "<button onclick='window.print()' style='padding: 12px 24px; font-size: 16px; cursor: pointer; background: #2563eb; color: white; border: none; border-radius: 6px; font-weight:bold; box-shadow: 0 4px 6px rgba(0,0,0,0.1);'>🖨️ Print / Save as PDF</button>" +
+          "<p style='margin-top:10px; color:#475569; font-size:14px;'>Click to print or save as an A4 PDF sheet (with front and back side-by-side).</p>" +
         "</div>" +
-        "<div class='a4-container' style='margin:0 auto; background:#e2e8f0; padding:10px; text-align:center; display: flex; flex-direction: column; align-items: center;'>" +
+        "<div class='a4-container' style='margin:0 auto; max-width: 800px; display: flex; flex-direction: column; align-items: center;'>" +
         idCardsHtml +
         "</div>" +
         "<" + "script>" +
@@ -5073,7 +5079,6 @@
           "};" +
         "</" + "script>" +
         "</body></html>";
-      
       printWindow.document.write(printContent);
       printWindow.document.close();
     }
