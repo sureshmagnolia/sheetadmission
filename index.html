@@ -848,15 +848,7 @@
         width: 100%;
         gap: 10px;
       }
-      #central-dept-selector {
-        width: 100%;
-        display: flex;
-        flex-direction: column;
-      }
-      #central-dept-selector select {
-        width: 100% !important;
-        margin-top: 5px;
-      }
+
       .search-box {
         min-width: 100%;
       }
@@ -971,11 +963,7 @@
         </div>
         
         <div class="controls-container">
-          <!-- Department dropdown selector for central admin roles -->
-          <div id="central-dept-selector" style="display: none;">
-            <label for="view-dept" style="font-size: 0.85rem; color: var(--text-muted); font-weight: 500; margin-right: 8px;">Switch Department:</label>
-            <select class="form-control" id="view-dept" style="display: inline-block; width: 220px;" onchange="clearCache(); loadDepartmentData()"></select>
-          </div>
+
           
           <button class="btn btn-primary" id="btn-nodal-matrix" style="display: none;" onclick="openSeatMatrixModal()">Manage Seat Split Up</button>
           <button class="btn btn-primary" id="btn-pta-config-fee" style="display: none;" onclick="openPTAConfigModal()">Configure Fees</button>
@@ -1941,7 +1929,6 @@
       document.getElementById("dashboard-welcome").innerText = userRole + " Portal Dashboard";
       
       // Central Roles switcher
-      var viewDeptSelector = document.getElementById("central-dept-selector");
       var balanceBtn = document.getElementById("btn-pta-balance");
       var configFeeBtn = document.getElementById("btn-pta-config-fee");
       var matrixBtn = document.getElementById("btn-nodal-matrix");
@@ -1954,7 +1941,6 @@
       var admissionRegisterBtn = document.getElementById("tab-admission-register-btn");
 
       // Reset all role-specific UI elements to hide them initially (prevent UI leakage on logout/re-login)
-      if (viewDeptSelector) viewDeptSelector.style.display = "none";
       if (balanceBtn) balanceBtn.style.display = "none";
       if (configFeeBtn) configFeeBtn.style.display = "none";
       if (matrixBtn) matrixBtn.style.display = "none";
@@ -1969,12 +1955,10 @@
         if (dashboardTabs) dashboardTabs.style.display = "flex";
         if (ptaSummaryContainer) ptaSummaryContainer.style.display = "block";
       } else if (userRole === "Nodal Officer") {
-        if (viewDeptSelector) viewDeptSelector.style.display = "inline-block";
         if (matrixBtn) matrixBtn.style.display = "inline-block";
         if (dashboardTabs) dashboardTabs.style.display = "flex";
         if (waitingBtn) waitingBtn.style.display = "block";
       } else if (userRole === "Principal") {
-        if (viewDeptSelector) viewDeptSelector.style.display = "inline-block";
         if (dashboardTabs) dashboardTabs.style.display = "flex";
         if (idCardsBtn) idCardsBtn.style.display = "inline-block";
         if (admissionRegisterBtn) admissionRegisterBtn.style.display = "inline-block";
@@ -2009,36 +1993,7 @@
       loadDepartmentData();
     }
 
-    // Fetch lists of all available sheets (departments)
-    function loadDepartmentsDropdown() {
-      showLoader("Loading Departments...");
-      google.script.run
-        .withSuccessHandler(function(responseJson) {
-          hideLoader();
-          var res = JSON.parse(responseJson);
-          if (res.success) {
-            var select = document.getElementById("view-dept");
-            select.innerHTML = "";
-            res.departments.forEach(function(d) {
-              var opt = document.createElement("option");
-              opt.value = d;
-              opt.innerText = d;
-              if (d === currentSelectedDept) {
-                opt.selected = true;
-              }
-              select.appendChild(opt);
-            });
-            loadDepartmentData();
-          } else {
-            showToast("Failed to fetch departments list: " + res.message, true);
-          }
-        })
-        .withFailureHandler(function(err) {
-          hideLoader();
-          showToast(err.toString(), true);
-        })
-        .getDepartmentsList();
-    }
+
 
     // Clear Cache
     function clearCache() {
