@@ -1457,23 +1457,23 @@ function emailPTAReceipt(capid, email) {
           "</thead>" +
           "<tbody>" +
             "<tr style='border-bottom: 1px solid #edf2f7;'>" +
-              "<td style='padding: 10px 0;'>1. Welfare Fund (Mandatory)</td>" +
+              "<td style='padding: 10px 0;'>1. Welfare Fund</td>" +
               "<td style='padding: 10px 0; text-align: right;'>INR " + welfare + "/-</td>" +
             "</tr>" +
             "<tr style='border-bottom: 1px solid #edf2f7;'>" +
-              "<td style='padding: 10px 0;'>2. Membership Fee (Mandatory)</td>" +
+              "<td style='padding: 10px 0;'>2. Membership Fee</td>" +
               "<td style='padding: 10px 0; text-align: right;'>INR " + membership + "/-</td>" +
             "</tr>" +
             "<tr style='border-bottom: 1px solid #edf2f7;'>" +
-              "<td style='padding: 10px 0;'>3. Voluntary Contribution (Optional)</td>" +
+              "<td style='padding: 10px 0;'>3. Voluntary Contribution</td>" +
               "<td style='padding: 10px 0; text-align: right;'>INR " + voluntary + "/-</td>" +
             "</tr>" +
             "<tr style='border-bottom: 1px solid #edf2f7;'>" +
-              "<td style='padding: 10px 0;'>4. Cooperative Store Fund (Optional)</td>" +
+              "<td style='padding: 10px 0;'>4. Cooperative Store Fund</td>" +
               "<td style='padding: 10px 0; text-align: right;'>INR " + coopStore + "/-</td>" +
             "</tr>" +
             "<tr style='border-bottom: 1px solid #edf2f7;'>" +
-              "<td style='padding: 10px 0;'>5. ID Card Fee (Optional)</td>" +
+              "<td style='padding: 10px 0;'>5. ID Card Fee</td>" +
               "<td style='padding: 10px 0; text-align: right;'>INR " + idCard + "/-</td>" +
             "</tr>" +
             "<tr style='font-weight: bold; font-size: 15px; color: #059669;'>" +
