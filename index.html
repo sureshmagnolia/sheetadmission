@@ -2003,6 +2003,9 @@
         dashboardTabs.parentNode.insertBefore(searchContainer, dashboardTabs);
       }
       
+      // Reset active tab to default "pending" (To Be Verified) to prevent tab/view state leakage across sessions
+      switchTab("pending");
+      
       loadDepartmentData();
     }
 
