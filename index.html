@@ -1952,28 +1952,34 @@
       var ptaSummaryContainer = document.getElementById("pta-summary-container");
       var idCardsBtn = document.getElementById("btn-principal-idcards");
       var admissionRegisterBtn = document.getElementById("tab-admission-register-btn");
+
+      // Reset all role-specific UI elements to hide them initially (prevent UI leakage on logout/re-login)
+      if (viewDeptSelector) viewDeptSelector.style.display = "none";
+      if (balanceBtn) balanceBtn.style.display = "none";
+      if (configFeeBtn) configFeeBtn.style.display = "none";
+      if (matrixBtn) matrixBtn.style.display = "none";
+      if (idCardsBtn) idCardsBtn.style.display = "none";
+      if (ptaSummaryContainer) ptaSummaryContainer.style.display = "none";
       if (admissionRegisterBtn) admissionRegisterBtn.style.display = "none";
+      if (waitingBtn) waitingBtn.style.display = "none";
 
       if (userRole === "PTA") {
-        balanceBtn.style.display = "inline-block";
-        configFeeBtn.style.display = "inline-block";
-        dashboardTabs.style.display = "flex";
-        ptaSummaryContainer.style.display = "block";
-        if (waitingBtn) waitingBtn.style.display = "none";
+        if (balanceBtn) balanceBtn.style.display = "inline-block";
+        if (configFeeBtn) configFeeBtn.style.display = "inline-block";
+        if (dashboardTabs) dashboardTabs.style.display = "flex";
+        if (ptaSummaryContainer) ptaSummaryContainer.style.display = "block";
       } else if (userRole === "Nodal Officer") {
-        viewDeptSelector.style.display = "inline-block";
-        matrixBtn.style.display = "inline-block";
-        dashboardTabs.style.display = "flex";
+        if (viewDeptSelector) viewDeptSelector.style.display = "inline-block";
+        if (matrixBtn) matrixBtn.style.display = "inline-block";
+        if (dashboardTabs) dashboardTabs.style.display = "flex";
         if (waitingBtn) waitingBtn.style.display = "block";
       } else if (userRole === "Principal") {
-        viewDeptSelector.style.display = "inline-block";
-        dashboardTabs.style.display = "flex";
-        idCardsBtn.style.display = "inline-block";
-        if (waitingBtn) waitingBtn.style.display = "none";
+        if (viewDeptSelector) viewDeptSelector.style.display = "inline-block";
+        if (dashboardTabs) dashboardTabs.style.display = "flex";
+        if (idCardsBtn) idCardsBtn.style.display = "inline-block";
         if (admissionRegisterBtn) admissionRegisterBtn.style.display = "inline-block";
       } else {
-        dashboardTabs.style.display = "none";
-        if (waitingBtn) waitingBtn.style.display = "none";
+        if (dashboardTabs) dashboardTabs.style.display = "none";
       }
       
       if (userRole === "Faculty" || userRole === "HOD") {
