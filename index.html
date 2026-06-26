@@ -4886,7 +4886,7 @@
         }
         
         idCardsHtml += 
-          "<div class='id-card-container'>" +
+          "<div class='id-card-page'>" +
             "<div class='id-card-front'>" +
               "<div class='id-header'>" +
                 "<img src='<?!= getLogoBase64() ?>' class='id-logo' alt='College Logo'>" +
@@ -4923,7 +4923,8 @@
                 "Phone Number: 04912576773<br>E.Mail: victoriapkd@gmail.com | Website: www.gvc.ac.in" +
               "</div>" +
             "</div>" +
-            
+          "</div>" +
+          "<div class='id-card-page'>" +
             "<div class='id-card-back'>" +
               "<div class='back-seal-container'>" +
                 "<img src='<?!= getLogoBase64() ?>' class='back-seal-logo'>" +
@@ -4953,102 +4954,100 @@
           "* { box-sizing: border-box; font-family: 'Outfit', sans-serif; margin: 0; padding: 0; }" +
           "body { background: #fff; padding: 0; margin: 0; }" +
           
-          ".id-card-container {" +
-            "display: inline-flex;" +
-            "gap: 10mm;" +
-            "margin: 15px;" +
-            "padding: 10px;" +
+          ".id-card-page {" +
+            "width: 54mm;" +
+            "height: 86mm;" +
+            "page-break-after: always;" +
+            "margin: 0 auto 20px auto;" +
             "background: #fff;" +
-            "border: 1px dashed #cbd5e1;" +
-            "border-radius: 6px;" +
-            "page-break-inside: avoid;" +
             "box-shadow: 0 2px 4px rgba(0,0,0,0.05);" +
+            "page-break-inside: avoid;" +
           "}" +
           
           ".id-card-front {" +
             "width: 54mm; height: 86mm; border: 1px solid #111; position: relative; display: flex; flex-direction: column;" +
-            "background: #fff; padding: 2mm 2.5mm; overflow: hidden; border-radius: 4px; box-shadow: 0 0 5px rgba(0,0,0,0.1);" +
+            "background: #fff; padding: 1.5mm 2mm; overflow: hidden; border-radius: 4px; box-shadow: 0 0 5px rgba(0,0,0,0.1);" +
           "}" +
           
           /* Centered Professional Header */
-          ".id-header { display: flex; flex-direction: column; align-items: center; text-align: center; margin-bottom: 1.2mm; }" +
-          ".id-logo { width: 11mm; height: 11mm; object-fit: contain; margin-bottom: 0.8mm; }" +
-          ".id-header-text { display: flex; flex-direction: column; align-items: center; }" +
-          ".id-header-text h1 { font-size: 6.8pt; font-weight: 800; color: #0b1329; line-height: 1.1; letter-spacing: 0.1px; }" +
-          ".id-header-text h2 { font-size: 4.8pt; font-weight: 700; color: #334155; line-height: 1.1; margin-top: 0.3mm; }" +
-          ".id-header-text h3 { font-size: 3.8pt; font-weight: 600; color: #64748b; line-height: 1.1; margin-top: 0.2mm; }" +
+          ".id-header { display: flex; flex-direction: column; align-items: center; text-align: center; margin-bottom: 0.5mm; flex-shrink: 0; }" +
+          ".id-logo { width: 9mm; height: 9mm; object-fit: contain; margin-bottom: 0.5mm; flex-shrink: 0; }" +
+          ".id-header-text { display: flex; flex-direction: column; align-items: center; flex-shrink: 0; }" +
+          ".id-header-text h1 { font-size: 6.5pt; font-weight: 800; color: #0b1329; line-height: 1.1; letter-spacing: 0.1px; margin: 0; }" +
+          ".id-header-text h2 { font-size: 4.5pt; font-weight: 700; color: #334155; line-height: 1.1; margin: 0.3mm 0 0 0; }" +
+          ".id-header-text h3 { font-size: 3.5pt; font-weight: 600; color: #64748b; line-height: 1.1; margin: 0.2mm 0 0 0; }" +
           
           ".id-banner {" +
-            "background: #0f172a; color: #fff; font-size: 4.2pt; text-align: center; font-weight: 600; padding: 0.8mm 0;" +
-            "margin: 0.8mm -2.5mm 1.5mm -2.5mm; line-height: 1.2; letter-spacing: 0.1px;" +
+            "background: #0f172a; color: #fff; font-size: 4pt; text-align: center; font-weight: 600; padding: 0.4mm 0;" +
+            "margin: 0.5mm -2mm 1mm -2mm; line-height: 1.2; letter-spacing: 0.1px; flex-shrink: 0;" +
           "}" +
           
-          ".id-photo-container { display: flex; justify-content: center; margin-bottom: 1.8mm; }" +
-          ".id-photo { width: 25mm; height: 30mm; object-fit: cover; border-radius: 3px; border: 0.5px solid #cbd5e1; }" +
+          ".id-photo-container { display: flex; justify-content: center; margin-bottom: 1.2mm; flex-shrink: 0; }" +
+          ".id-photo { width: 22mm; height: 26mm; object-fit: cover; border-radius: 3px; border: 0.5px solid #cbd5e1; flex-shrink: 0; }" +
           
           ".id-name-box {" +
-            "background: #e0f2fe; color: #0369a1; font-size: 8pt; font-weight: 800; text-align: center;" +
-            "padding: 1mm 1.2mm; margin: 0 -2.5mm 2mm -2.5mm; border-top: 1px solid #bae6fd; border-bottom: 1px solid #bae6fd;" +
-            "white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-transform: uppercase;" +
+            "background: #e0f2fe; color: #0369a1; font-size: 7.5pt; font-weight: 800; text-align: center;" +
+            "padding: 0.8mm 1.2mm; margin: 0 -2mm 1.5mm -2mm; border-top: 1px solid #bae6fd; border-bottom: 1px solid #bae6fd;" +
+            "white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-transform: uppercase; flex-shrink: 0;" +
           "}" +
           
-          ".id-details-grid { display: flex; flex-direction: column; gap: 1mm; padding: 0 1mm; margin-bottom: auto; }" +
-          ".id-detail-row { display: flex; align-items: flex-start; font-size: 6.8pt; line-height: 1.25; }" +
-          ".id-label { width: 15mm; font-weight: 700; color: #475569; }" +
-          ".id-colon { width: 1.5mm; font-weight: 700; color: #475569; text-align: center; }" +
+          ".id-details-grid { display: flex; flex-direction: column; gap: 0.8mm; padding: 0 1mm; margin-bottom: auto; flex-shrink: 0; }" +
+          ".id-detail-row { display: flex; align-items: flex-start; font-size: 6.5pt; line-height: 1.25; flex-shrink: 0; }" +
+          ".id-label { width: 15mm; font-weight: 700; color: #475569; flex-shrink: 0; }" +
+          ".id-colon { width: 1.5mm; font-weight: 700; color: #475569; text-align: center; flex-shrink: 0; }" +
           ".id-value { flex: 1; font-weight: 800; color: #000; text-transform: uppercase; word-break: break-all; }" +
           
-          ".id-signature-area { display: flex; justify-content: space-between; align-items: flex-end; padding: 0 1mm; margin-bottom: 1mm; }" +
+          ".id-signature-area { display: flex; justify-content: space-between; align-items: flex-end; padding: 0 1mm; margin-bottom: 0.5mm; flex-shrink: 0; }" +
           
           /* Seal placeholder option */
           ".id-seal-placeholder {" +
-            "width: 11mm; height: 11mm; border: 1px dashed #cbd5e1; border-radius: 50%;" +
-            "display: flex; align-items: center; justify-content: center; opacity: 0.85;" +
+            "width: 9mm; height: 9mm; border: 1px dashed #cbd5e1; border-radius: 50%;" +
+            "display: flex; align-items: center; justify-content: center; opacity: 0.85; flex-shrink: 0;" +
           "}" +
           ".id-seal-img { width: 100%; height: 100%; object-fit: contain; }" +
           
-          ".id-signature { text-align: center; display: flex; flex-direction: column; align-items: center; }" +
+          ".id-signature { text-align: center; display: flex; flex-direction: column; align-items: center; flex-shrink: 0; }" +
           ".id-signature .sig-signed { font-family: 'Outfit', sans-serif; font-style: italic; font-size: 5.5pt; font-weight: bold; color: #059669; line-height: 1.1; margin-bottom: 0.8mm; }" +
-          ".id-signature .sig-title { font-size: 2.8pt; font-weight: bold; color: #475569; line-height: 1.2; text-align: center; }" +
+          ".id-signature .sig-title { font-size: 2.6pt; font-weight: bold; color: #475569; line-height: 1.2; text-align: center; }" +
           
           ".id-footer {" +
-            "background: #0f172a; color: #fff; font-size: 3.2pt; text-align: center; padding: 0.6mm 0;" +
-            "margin: auto -2.5mm -2mm -2.5mm; line-height: 1.25; border-radius: 0 0 3px 3px;" +
+            "background: #0f172a; color: #fff; font-size: 3pt; text-align: center; padding: 0.5mm 0;" +
+            "margin: auto -2mm -1.5mm -2mm; line-height: 1.25; border-radius: 0 0 3px 3px; flex-shrink: 0;" +
           "}" +
           
           /* BACK OF CARD */
           ".id-card-back {" +
             "width: 54mm; height: 86mm; border: 1px solid #111; position: relative; display: flex; flex-direction: column;" +
-            "background: #fff; padding: 3mm 3mm; overflow: hidden; border-radius: 4px; box-shadow: 0 0 5px rgba(0,0,0,0.1);" +
+            "background: #fff; padding: 2.5mm 2.5mm; overflow: hidden; border-radius: 4px; box-shadow: 0 0 5px rgba(0,0,0,0.1);" +
           "}" +
           
-          ".back-seal-container { display: flex; flex-direction: column; align-items: center; text-align: center; margin-bottom: 4mm; }" +
-          ".back-seal-logo { width: 14mm; height: 14mm; object-fit: contain; margin-bottom: 1mm; }" +
-          ".back-seal-title { font-size: 7.2pt; font-weight: 800; color: #0b1329; line-height: 1.1; letter-spacing: 0.1px; }" +
-          ".back-seal-subtitle { font-size: 5pt; font-weight: 700; color: #475569; line-height: 1.1; }" +
+          ".back-seal-container { display: flex; flex-direction: column; align-items: center; text-align: center; margin-bottom: 3mm; flex-shrink: 0; }" +
+          ".back-seal-logo { width: 12mm; height: 12mm; object-fit: contain; margin-bottom: 0.8mm; flex-shrink: 0; }" +
+          ".back-seal-title { font-size: 7pt; font-weight: 800; color: #0b1329; line-height: 1.1; letter-spacing: 0.1px; flex-shrink: 0; }" +
+          ".back-seal-subtitle { font-size: 4.5pt; font-weight: 700; color: #475569; line-height: 1.1; flex-shrink: 0; }" +
           
-          ".back-details { display: flex; flex-direction: column; gap: 2.2mm; margin-bottom: auto; padding: 0 1mm; }" +
-          ".back-row { display: flex; align-items: flex-start; font-size: 7pt; line-height: 1.35; }" +
-          ".back-label { width: 23mm; font-weight: 700; color: #475569; }" +
-          ".back-colon { width: 1.5mm; font-weight: 700; color: #475569; text-align: center; }" +
+          ".back-details { display: flex; flex-direction: column; gap: 1.8mm; margin-bottom: auto; padding: 0 1mm; flex-shrink: 0; }" +
+          ".back-row { display: flex; align-items: flex-start; font-size: 6.8pt; line-height: 1.35; flex-shrink: 0; }" +
+          ".back-label { width: 23mm; font-weight: 700; color: #475569; flex-shrink: 0; }" +
+          ".back-colon { width: 1.5mm; font-weight: 700; color: #475569; text-align: center; flex-shrink: 0; }" +
           ".back-val { flex: 1; font-weight: 800; color: #000; text-transform: uppercase; word-break: break-word; }" +
           
-          ".back-codes { display: flex; align-items: center; justify-content: space-between; border-top: 0.5px solid #cbd5e1; padding-top: 3mm; margin-top: 2mm; }" +
-          ".student-barcode { width: 32mm; height: auto; max-height: 12mm; }" +
-          ".student-qrcode { width: 10mm; height: 10mm; display: flex; justify-content: center; align-items: center; }" +
+          ".back-codes { display: flex; align-items: center; justify-content: space-between; border-top: 0.5px solid #cbd5e1; padding-top: 2mm; margin-top: 1.5mm; flex-shrink: 0; }" +
+          ".student-barcode { width: 30mm; height: auto; max-height: 10mm; flex-shrink: 0; }" +
+          ".student-qrcode { width: 9mm; height: 9mm; display: flex; justify-content: center; align-items: center; flex-shrink: 0; }" +
           
           "@media print {" +
-            "@page { size: A4 portrait; margin: 10mm; }" +
-            "body { background: #fff !important; padding: 0 !important; }" +
+            "@page { size: 54mm 86mm; margin: 0; }" +
+            "body { background: #fff !important; padding: 0 !important; margin: 0 !important; }" +
             ".no-print { display: none !important; }" +
             ".a4-container { background: transparent !important; padding: 0 !important; margin: 0 !important; display: block !important; }" +
-            ".id-card-container { border: 1px dashed #bbb !important; box-shadow: none !important; margin: 10mm auto !important; padding: 5mm !important; page-break-inside: avoid !important; }" +
+            ".id-card-page { border: none !important; box-shadow: none !important; margin: 0 !important; page-break-after: always !important; page-break-inside: avoid !important; }" +
           "}" +
         "</style>" +
         "</head><body style='text-align:center; background:#e2e8f0; padding:20px; font-family: Outfit, sans-serif;'>" +
         "<div class='no-print' style='margin-bottom:20px;'> " +
           "<button onclick='window.print()' style='padding: 12px 24px; font-size: 16px; cursor: pointer; background: #2563eb; color: white; border: none; border-radius: 6px; font-weight:bold; box-shadow: 0 4px 6px rgba(0,0,0,0.1);'>🖨️ Print / Save as PDF</button>" +
-          "<p style='margin-top:10px; color:#475569; font-size:14px;'>Click to print or save as an A4 PDF sheet (with front and back side-by-side).</p>" +
+          "<p style='margin-top:10px; color:#475569; font-size:14px;'>Click to print or save as PDF (1 side per page, formatted for 54mm x 86mm CR80 cards).</p>" +
         "</div>" +
         "<div class='a4-container' style='margin:0 auto; max-width: 800px; display: flex; flex-direction: column; align-items: center;'>" +
         idCardsHtml +
