@@ -1126,7 +1126,7 @@
                                 "<button class='btn btn-success' onclick='emailPTAReceipt()'>Email Receipt to Student</button>" +
                                 "<button class='btn btn-secondary' onclick='closeModal()'>Close</button>";
         } else {
-          container.innerHTML = "<p style='color: var(--text-muted); font-size: 0.85rem; font-style: italic;'>Student Admitted. Awaiting TC issuance by Principal.</p>" +
+          container.innerHTML = "<p style='color: var(--text-muted); font-size: 0.85rem; font-style: italic;'>Student Admitted.</p>" +
                                 "<button class='btn btn-secondary' onclick='closeModal()'>Close</button>";
           if ((userRole === "Nodal Officer") ) {
             var revBtn2 = document.createElement("button");
