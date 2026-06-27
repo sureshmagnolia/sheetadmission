@@ -2329,8 +2329,16 @@
                             return "<br/><span style='font-size: 0.7rem; background: rgba(16, 185, 129, 0.2); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.4); border-radius: 4px; padding: 2px 4px; display: inline-block; margin-top: 4px; font-weight: 600;'>Transferred from " + s["Transferred_From_Dept"] + "</span>";
                           }
                           return "";
-                        })() + "</td>" +
-                        "<td data-label='Action'><button class='btn btn-secondary' style='padding: 4px 10px; font-size: 0.8rem;'>Verify</button></td>";
+                        })() + "</td>";
+                        
+        var actionHtml = "<td data-label='Action'><button class='btn btn-secondary' style='padding: 4px 10px; font-size: 0.8rem;'>Verify</button></td>";
+        if (status === "Admitted" && (userRole === "Principal" || userRole === "Faculty" || userRole === "Nodal Officer")) {
+          var safeCap = capid.toString().replace(/'/g, "&apos;").replace(/"/g, "&quot;");
+          var safeDept = (s["Department"] || "").toString().replace(/'/g, "&apos;").replace(/"/g, "&quot;");
+          actionHtml = "<td data-label='Action'><button class='btn btn-primary' style='padding: 4px 10px; font-size: 0.8rem;' data-cap='" + safeCap + "' data-dept='" + safeDept + "' onclick='openInlineChangeSlotUI(event, this)'>Change Slot</button></td>";
+        }
+        
+        tr.innerHTML += actionHtml;
         tbody.appendChild(tr);
       });
     }
@@ -3171,6 +3179,8 @@
           container.insertBefore(revBtn, container.firstChild);
         }
         return;
+      }
+
       // If Admitted - Principal sees Issue TC button; others see read-only
       if (status === "Admitted") {
         if (userRole === "Principal") {
@@ -3189,7 +3199,6 @@
                                 "<button class='btn btn-secondary' onclick='closeModal()'>Close</button>";
         }
         return;
-      }urn;
       }
 
       // Enable actions for correct roles
@@ -3487,6 +3496,29 @@
     // Legacy alias kept for compatibility
     function principalAdmit() { openTCIssueModal(); }
 
+    function openInlineChangeSlotUI(event, element) {
+      if (event) event.stopPropagation();
+      var capid = element.getAttribute("data-cap");
+      var dept = element.getAttribute("data-dept");
+      
+      var student = allStudents.find(function(s) { 
+        var sc = s["CAP id (Enter the full cap id without any spaces)"] || s["CAPID"];
+        var sd = s["Department"] || s["Admission to the Department"];
+        return sc && sc.toString().trim() === capid.toString().trim() && 
+               sd && sd.toString().trim() === dept.toString().trim();
+      });
+      if (!student) {
+        showToast("Error locating student data.", true);
+        return;
+      }
+      
+      // Open the profile modal, then immediately pop open the Change Slot sub-UI
+      openStudentDetails(student);
+      setTimeout(function() {
+        openChangeSlotUI();
+      }, 100);
+    }
+
     function openChangeSlotUI() {
       var container = document.getElementById("change-slot-container");
       var select = document.getElementById("edit-assigned-slot");
@@ -3685,11 +3717,15 @@
         })
         .updateStudentData(
           studentDept, 
-          activeStudent["CAP id (Enter the full cap id without any spaces)"] || activeStudent["CAPID"], 
-          activeStudent["Email Address"] || activeStudent["Email id"] || "",
+          (activeStudent && (activeStudent["CAP id (Enter the full cap id without any spaces)"] || activeStudent["CAPID"])) || "", 
+          (activeStudent && (activeStudent["Email Address"] || activeStudent["Email id"])) || "",
           updatedData,
           userRole,
-          userDept
+          userDept,
+          (activeStudent && (activeStudent["Name (As per your certificate)"] || activeStudent["Name"])) || "Student",
+          (activeStudent && activeStudent["Admission to the Programme"]) || "",
+          (activeStudent && activeStudent["Index Marks (as per admit/allotment card)"]) || "",
+          (activeStudent && activeStudent["Program_Type"]) || ""
         );
     }
 

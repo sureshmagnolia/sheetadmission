@@ -180,6 +180,46 @@ function getDepartmentData(department, lastSyncTime) {
     }
     
     var masterHeaders = masterSheet.getRange(1, 1, 1, masterSheet.getLastColumn()).getValues()[0];
+    
+    // Pre-fetch DB headers and last row to allow early bailout checks
+    var dbLastRow = dbSheet.getLastRow();
+    var dbHeaders = dbSheet.getRange(1, 1, 1, dbSheet.getLastColumn()).getValues()[0];
+    
+    if (lastSyncTime) {
+      var syncTimeMs = parseInt(lastSyncTime, 10);
+      var hasChanges = false;
+      
+      // 1. Column Scan for Form Responses
+      var mTimeIdx = findHeaderIndex(masterHeaders, "Timestamp");
+      if (mTimeIdx === -1) mTimeIdx = 0;
+      var masterTimestamps = masterSheet.getRange(2, mTimeIdx + 1, masterLastRow - 1, 1).getValues();
+      for (var i = masterTimestamps.length - 1; i >= 0; i--) {
+        if (masterTimestamps[i][0] && masterTimestamps[i][0] instanceof Date && masterTimestamps[i][0].getTime() > syncTimeMs) {
+          hasChanges = true;
+          break;
+        }
+      }
+      
+      // 2. Column Scan for System_DB
+      if (!hasChanges && dbLastRow > 1) {
+        var dbModIdx = findHeaderIndex(dbHeaders, "System_Last_Modified");
+        if (dbModIdx !== -1) {
+          var dbTimestamps = dbSheet.getRange(2, dbModIdx + 1, dbLastRow - 1, 1).getValues();
+          for (var j = dbTimestamps.length - 1; j >= 0; j--) {
+            var t = parseFloat(dbTimestamps[j][0]);
+            if (t && t > syncTimeMs) {
+              hasChanges = true;
+              break;
+            }
+          }
+        }
+      }
+      
+      if (!hasChanges) {
+        return JSON.stringify({ success: true, isDelta: true, data: [], syncTime: new Date().getTime() });
+      }
+    }
+    
     var masterValues = masterSheet.getRange(2, 1, masterLastRow - 1, masterSheet.getLastColumn()).getValues();
     
     var capidIndex = findHeaderIndex(masterHeaders, KEY_HEADER);
@@ -191,9 +231,6 @@ function getDepartmentData(department, lastSyncTime) {
       return JSON.stringify({ success: false, message: "Master sheet missing CAPID or Department columns." });
     }
     
-    // Fetch System_DB state
-    var dbLastRow = dbSheet.getLastRow();
-    var dbHeaders = dbSheet.getRange(1, 1, 1, dbSheet.getLastColumn()).getValues()[0];
     var dbData = {};
     var dbDataListByCid = {};
     
@@ -202,7 +239,7 @@ function getDepartmentData(department, lastSyncTime) {
       deltaCapids = {};
       var syncTimeMs = parseInt(lastSyncTime, 10);
       var masterTimeIdx = findHeaderIndex(masterHeaders, "Timestamp");
-      if (masterTimeIdx === -1) masterTimeIdx = 0; // Google Forms always puts timestamp in column A
+      if (masterTimeIdx === -1) masterTimeIdx = 0;
       
       if (masterTimeIdx !== -1) {
         masterValues.forEach(function(row) {
@@ -439,6 +476,46 @@ function getAllDepartmentsData(lastSyncTime) {
     }
     
     var masterHeaders = masterSheet.getRange(1, 1, 1, masterSheet.getLastColumn()).getValues()[0];
+    
+    // Pre-fetch DB headers and last row to allow early bailout checks
+    var dbLastRow = dbSheet.getLastRow();
+    var dbHeaders = dbSheet.getRange(1, 1, 1, dbSheet.getLastColumn()).getValues()[0];
+    
+    if (lastSyncTime) {
+      var syncTimeMs = parseInt(lastSyncTime, 10);
+      var hasChanges = false;
+      
+      // 1. Column Scan for Form Responses
+      var mTimeIdx = findHeaderIndex(masterHeaders, "Timestamp");
+      if (mTimeIdx === -1) mTimeIdx = 0;
+      var masterTimestamps = masterSheet.getRange(2, mTimeIdx + 1, masterLastRow - 1, 1).getValues();
+      for (var i = masterTimestamps.length - 1; i >= 0; i--) {
+        if (masterTimestamps[i][0] && masterTimestamps[i][0] instanceof Date && masterTimestamps[i][0].getTime() > syncTimeMs) {
+          hasChanges = true;
+          break;
+        }
+      }
+      
+      // 2. Column Scan for System_DB
+      if (!hasChanges && dbLastRow > 1) {
+        var dbModIdx = findHeaderIndex(dbHeaders, "System_Last_Modified");
+        if (dbModIdx !== -1) {
+          var dbTimestamps = dbSheet.getRange(2, dbModIdx + 1, dbLastRow - 1, 1).getValues();
+          for (var j = dbTimestamps.length - 1; j >= 0; j--) {
+            var t = parseFloat(dbTimestamps[j][0]);
+            if (t && t > syncTimeMs) {
+              hasChanges = true;
+              break;
+            }
+          }
+        }
+      }
+      
+      if (!hasChanges) {
+        return JSON.stringify({ success: true, isDelta: true, data: [], syncTime: new Date().getTime() });
+      }
+    }
+    
     var masterValues = masterSheet.getRange(2, 1, masterLastRow - 1, masterSheet.getLastColumn()).getValues();
     
     var capidIndex = findHeaderIndex(masterHeaders, KEY_HEADER);
@@ -450,8 +527,6 @@ function getAllDepartmentsData(lastSyncTime) {
       return JSON.stringify({ success: false, message: "Master sheet missing CAPID or Department columns." });
     }
     
-    var dbLastRow = dbSheet.getLastRow();
-    var dbHeaders = dbSheet.getRange(1, 1, 1, dbSheet.getLastColumn()).getValues()[0];
     var dbData = {};
     var dbDataListByCid = {};
     
@@ -695,7 +770,7 @@ function getDepartmentsList() {
 }
 
 // Update student workflow attributes inside System_DB only
-function updateStudentData(department, capid, email, updatedData, operatorRole, operatorDept) {
+function updateStudentData(department, capid, email, updatedData, operatorRole, operatorDept, studentName, programName, formIndexMark, programType) {
   var lock = LockService.getScriptLock();
   try {
     lock.waitLock(15000);
@@ -732,49 +807,10 @@ function updateStudentData(department, capid, email, updatedData, operatorRole, 
       }
     }
     
-    // Lookup student details in Master Responses for default index, program, and audit log name
-    var studentName = "Student";
-    var programName = "";
-    var formIndexMark = "";
-    var programType = "";
-    try {
-      var masterSheet = getMasterSheet(sheet);
-      var masterHeaders = masterSheet.getRange(1, 1, 1, masterSheet.getLastColumn()).getValues()[0];
-      var masterLastRow = masterSheet.getLastRow();
-      if (masterLastRow > 1) {
-        var masterValues = masterSheet.getRange(2, 1, masterLastRow - 1, masterSheet.getLastColumn()).getValues();
-        var capidIdx = findHeaderIndex(masterHeaders, KEY_HEADER);
-        var progIdx = findHeaderIndex(masterHeaders, PROG_HEADER);
-        var indexMarkIdx = findHeaderIndex(masterHeaders, "Index Marks (as per admit/allotment card)");
-        var nameIdx = findHeaderIndex(masterHeaders, "Name (As per your certificate)");
-        if (nameIdx === -1) nameIdx = findHeaderIndex(masterHeaders, "Name");
-        
-        for (var idx = 0; idx < masterValues.length; idx++) {
-          var cId = (capidIdx !== -1 && masterValues[idx][capidIdx]) ? masterValues[idx][capidIdx].toString().trim().toLowerCase() : "";
-          if (cId === capidLower) {
-            studentName = (nameIdx !== -1 ? masterValues[idx][nameIdx] : "") || "Student";
-            programName = (progIdx !== -1 ? masterValues[idx][progIdx] : "") || "";
-            formIndexMark = (indexMarkIdx !== -1 ? masterValues[idx][indexMarkIdx] : "") || "";
-            
-            // Deduce program type (e.g. B.Sc., BA, MA, etc.)
-            if (programName) {
-              var clean = programName.replace(/\./g, "").trim().toUpperCase();
-              if (clean.indexOf("BSC") > -1) programType = "B.Sc.";
-              else if (clean.indexOf("BCOM") > -1) programType = "B.Com.";
-              else if (clean.indexOf("BA") > -1) programType = "BA";
-              else if (clean.indexOf("MSC") > -1) programType = "M.Sc.";
-              else if (clean.indexOf("MCOM") > -1) programType = "M.Com.";
-              else if (clean.indexOf("MA") > -1) programType = "MA";
-              else if (clean.indexOf("PHD") > -1) programType = "Ph.D.";
-              else programType = programName;
-            }
-            break;
-          }
-        }
-      }
-    } catch (e) {
-      Logger.log("Failed to load details from Master Responses: " + e.toString());
-    }
+    studentName = studentName || "Student";
+    programName = programName || "";
+    formIndexMark = formIndexMark || "";
+    programType = programType || "";
     
     if (targetRowIndex === -1) {
       // Auto-insert student row if somehow missing in System_DB
@@ -1396,8 +1432,9 @@ function emailPTAReceipt(capid, email) {
     var dbValues = dbSheet.getRange(2, 1, dbLastRow - 1, dbSheet.getLastColumn()).getValues();
     
     var keyCol = findHeaderIndex(dbHeaders, "Student_Key");
-    var studentKey = capid + "|" + email;
+    var studentKey = capid + "|" + studentDept;
     var dbRow = null;
+    
     if (keyCol !== -1) {
       for (var i = 0; i < dbValues.length; i++) {
         if (dbValues[i][keyCol].toString().trim() === studentKey) {
@@ -1528,17 +1565,28 @@ function doPost(e) {
     if (action === "getDepartmentsList") {
       result = JSON.parse(getDepartmentsList());
     } else if (action === "getDepartmentData") {
-      result = JSON.parse(getDepartmentData(requestData.department));
+      result = JSON.parse(getDepartmentData(requestData.department, requestData.lastSyncTime));
     } else if (action === "validateCredentials") {
       result = JSON.parse(validateCredentials(requestData.role, requestData.department, requestData.password));
     } else if (action === "updateStudentData") {
-      result = JSON.parse(updateStudentData(requestData.department, requestData.capid, requestData.email, requestData.updatedData, requestData.operatorRole, requestData.operatorDept));
+      result = JSON.parse(updateStudentData(
+        requestData.department, 
+        requestData.capid, 
+        requestData.email, 
+        requestData.updatedData, 
+        requestData.operatorRole, 
+        requestData.operatorDept,
+        requestData.studentName,
+        requestData.programName,
+        requestData.formIndexMark,
+        requestData.programType
+      ));
     } else if (action === "getPTAConfig") {
       result = JSON.parse(getPTAConfig());
     } else if (action === "updatePTAConfig") {
       result = JSON.parse(updatePTAConfig(requestData.configData));
     } else if (action === "getAllDepartmentsData") {
-      result = JSON.parse(getAllDepartmentsData());
+      result = JSON.parse(getAllDepartmentsData(requestData.lastSyncTime));
     } else if (action === "getSeatMatrix") {
       result = JSON.parse(getSeatMatrix());
     } else if (action === "updateSeatMatrix") {
