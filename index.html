@@ -2169,7 +2169,7 @@
           allStudents = JSON.parse(cachedData);
           filterTable();
           loadSeatMatrix();
-          showToast("Syncing latest changes...", false);
+          showToast("Syncing latest changes...", false, true);
         } else {
           var msg = isCentral ? "Fetching all student profiles..." : ("Fetching Department data for " + currentSelectedDept + "...");
           showLoader(msg);
@@ -4427,15 +4427,23 @@
       document.getElementById("global-loader").style.display = "none";
     }
 
-    function showToast(msg, isError) {
+    var toastTimeout = null;
+    function showToast(msg, isError, persistent) {
       var toast = document.getElementById("global-toast");
       toast.innerText = msg;
       toast.style.borderLeftColor = isError ? "var(--accent-red)" : "var(--accent-green)";
       toast.classList.add("show");
       
-      setTimeout(function() {
-        toast.classList.remove("show");
-      }, 4000);
+      if (toastTimeout) {
+        clearTimeout(toastTimeout);
+        toastTimeout = null;
+      }
+      
+      if (!persistent) {
+        toastTimeout = setTimeout(function() {
+          toast.classList.remove("show");
+        }, 4000);
+      }
     }
 
     // --- PTA Fee Configuration Frontend Handling ---
