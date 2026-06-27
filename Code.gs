@@ -161,11 +161,11 @@ function onFormSubmit(e) {
 function getDepartmentData(department, lastSyncTime) {
   try {
     var sheet = SpreadsheetApp.getActiveSpreadsheet();
-    try {
-      backfillPTAPaymentDates();
-    } catch(backfillErr) {
-      Logger.log("Backfill error: " + backfillErr.toString());
-    }
+    // try {
+    //   backfillPTAPaymentDates();
+    // } catch(backfillErr) {
+    //   Logger.log("Backfill error: " + backfillErr.toString());
+    // }
     var tz = sheet.getSpreadsheetTimeZone();
     var masterSheet = getMasterSheet(sheet);
     var dbSheet = getOrCreateSystemDBSheet();
@@ -416,11 +416,11 @@ function getDepartmentData(department, lastSyncTime) {
 function getAllDepartmentsData(lastSyncTime) {
   try {
     var sheet = SpreadsheetApp.getActiveSpreadsheet();
-    try {
-      backfillPTAPaymentDates();
-    } catch(backfillErr) {
-      Logger.log("Backfill error: " + backfillErr.toString());
-    }
+    // try {
+    //   backfillPTAPaymentDates();
+    // } catch(backfillErr) {
+    //   Logger.log("Backfill error: " + backfillErr.toString());
+    // }
     var tz = sheet.getSpreadsheetTimeZone();
     var masterSheet = getMasterSheet(sheet);
     var dbSheet = getOrCreateSystemDBSheet();

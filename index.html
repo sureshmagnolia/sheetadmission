@@ -1454,7 +1454,8 @@
               <option value="msc_science">M.Sc Physics/Chem/Botany/Zoology</option>
               <option value="ma_lang">M.A English/Malayalam</option>
               <option value="msc_maths">M.Sc Mathematics</option>
-              <option value="ma_hist_eco">M.A History/Economics</option>
+              <option value="ma_history">M.A History</option>
+              <option value="ma_economics">M.A Economics</option>
             </select>
           </div>
           
@@ -2061,6 +2062,7 @@
         if (configFeeBtn) configFeeBtn.style.display = "inline-block";
         if (dashboardTabs) dashboardTabs.style.display = "flex";
         if (ptaSummaryContainer) ptaSummaryContainer.style.display = "block";
+        loadPTAConfig();
       } else if (userRole === "Nodal Officer") {
         if (matrixBtn) matrixBtn.style.display = "inline-block";
         if (dashboardTabs) dashboardTabs.style.display = "flex";
@@ -2141,13 +2143,18 @@
                  var masterMap = {};
                  allStudents.forEach(function(s, idx) {
                     var cid = s["CAP id (Enter the full cap id without any spaces)"] || s["CAPID"];
-                    if (cid) masterMap[cid.toString().toLowerCase()] = idx;
+                    var dept = s["System_Department"] || s["Department"] || "";
+                    if (cid) masterMap[cid.toString().toLowerCase() + "|" + dept.toLowerCase()] = idx;
                  });
                  deltaArr.forEach(function(s) {
                     var cid = s["CAP id (Enter the full cap id without any spaces)"] || s["CAPID"];
-                    if (cid && masterMap.hasOwnProperty(cid.toString().toLowerCase())) {
-                       allStudents[masterMap[cid.toString().toLowerCase()]] = s;
-                    } else {
+                    var dept = s["System_Department"] || s["Department"] || "";
+                    var key = "";
+                    if (cid) key = cid.toString().toLowerCase() + "|" + dept.toLowerCase();
+                    
+                    if (key && masterMap.hasOwnProperty(key)) {
+                       allStudents[masterMap[key]] = s;
+                    } else if (key) {
                        allStudents.push(s);
                     }
                  });
@@ -2368,7 +2375,7 @@
         return true;
       });
       
-      // 2. Sort records (by Admission Number ascending for Admission Register, timestamp descending otherwise)
+      // 2. Sort records (by Admission Number descending for Admission Register, timestamp descending otherwise)
       if (currentTab === "admission-register") {
         filtered.sort(function(a, b) {
           var admA = (a["Admission_Number"] || "").toString().trim();
@@ -2378,12 +2385,21 @@
           var numB = parseInt(admB.replace(/\D/g, ''), 10);
           
           if (!isNaN(numA) && !isNaN(numB)) {
-            if (numA !== numB) return numA - numB;
+            if (numA !== numB) return numB - numA; // Last to 1st order (Descending)
           }
-          return admA.localeCompare(admB);
+          return admB.localeCompare(admA); // Last to 1st order (Descending)
         });
       } else {
         filtered.sort(function(a, b) {
+          // If we are in Completed UG or PG lists, sort by System_Last_Modified descending to show recently completed first
+          if (currentTab === "completed-ug" || currentTab === "completed-pg") {
+            var modA = parseFloat(a["System_Last_Modified"]) || 0;
+            var modB = parseFloat(b["System_Last_Modified"]) || 0;
+            if (modA !== modB) {
+              return modB - modA; // Descending (most recently modified at top)
+            }
+          }
+          // Default fallback to registration timestamp descending (Last to 1st)
           var timeA = new Date(a["Timestamp"] || 0).getTime();
           var timeB = new Date(b["Timestamp"] || 0).getTime();
           if (isNaN(timeA)) timeA = 0;
@@ -3531,6 +3547,38 @@
           hideLoader();
           var res = JSON.parse(responseJson);
           if (res.success) {
+            // --- OPTIMISTIC UI CACHE UPDATE ---
+            // Instantly apply the changes to the local memory array and IndexedDB cache
+            // so that loadDepartmentData() immediately re-renders the new status
+            // without waiting for the slow background server fetch to complete.
+            if (typeof activeStudent !== "undefined" && activeStudent && typeof allStudents !== "undefined" && allStudents) {
+              var capid = activeStudent["CAP id (Enter the full cap id without any spaces)"] || activeStudent["CAPID"];
+              var dept = activeStudent["System_Department"] || activeStudent["Department"] || "";
+              if (capid) {
+                for (var i = 0; i < allStudents.length; i++) {
+                  var sCapid = allStudents[i]["CAP id (Enter the full cap id without any spaces)"] || allStudents[i]["CAPID"];
+                  var sDept = allStudents[i]["System_Department"] || allStudents[i]["Department"] || "";
+                  if (sCapid && sCapid.toString().trim() === capid.toString().trim() && sDept.toString().trim() === dept.toString().trim()) {
+                    Object.assign(allStudents[i], updatedData);
+                    if (res.token) {
+                      allStudents[i]["Token_Number"] = res.token;
+                    }
+                    break;
+                  }
+                }
+                var isCentral = (typeof userRole !== "undefined" && (userRole === "Nodal Officer" || userRole === "PTA" || userRole === "Principal"));
+                var cacheKey = isCentral ? "gvc_erp_students_data_central" : ("gvc_erp_students_data_" + (typeof currentSelectedDept !== "undefined" ? currentSelectedDept : ""));
+                if (typeof idbSet === "function") {
+                  idbSet(cacheKey, JSON.stringify(allStudents)).then(function() {
+                    if (successCallback) successCallback(res);
+                  }).catch(function(e) {
+                    if (successCallback) successCallback(res);
+                  });
+                  return;
+                }
+              }
+            }
+            // ----------------------------------
             if (successCallback) successCallback(res);
           } else {
             showToast("Update Failed: " + res.message, true);
@@ -5284,7 +5332,7 @@
           </select>
         </div>
         <div class="form-group" style="margin-bottom: 10px;">
-          <label style="color: var(--text-muted); font-size: 0.85rem;">NSS / SPC (Yes/No)</label>
+          <label style="color: var(--text-muted); font-size: 0.85rem;">NCC/ NSS / SPC (Yes/No)</label>
           <select id="calc-nss" class="form-select" onchange="calculateIndex()" style="width: 100%; padding: 6px; background: var(--bg-dark); color: var(--text-main); border: 1px solid var(--card-border); border-radius: 4px;">
             <option value="0">No</option>
             <option value="5">Yes (+5 marks)</option>
@@ -5292,7 +5340,7 @@
         </div>
         <div class="form-group" style="margin-bottom: 15px;">
           <label style="color: var(--text-muted); font-size: 0.85rem;">NCC Bonus</label>
-          <select id="calc-ncc" class="form-select" onchange="calculateIndex()" style="width: 100%; padding: 6px; background: var(--bg-dark); color: var(--text-main); border: 1px solid var(--card-border); border-radius: 4px;">
+          <select id="calc-ncc" class="form-select" onchange="if(this.value>0){document.getElementById('calc-nss').value='5'}; calculateIndex()" style="width: 100%; padding: 6px; background: var(--bg-dark); color: var(--text-main); border: 1px solid var(--card-border); border-radius: 4px;">
             <option value="0">None</option>
             <option value="3">A Certificate (+3)</option>
             <option value="5">B Certificate (+5)</option>
@@ -5362,8 +5410,10 @@
          var core = getVal('calc-core');
          var comp1 = getVal('calc-comp1');
          var comp2 = getVal('calc-comp2');
-         index = ((core*55 + comp1*12 + comp2*12) / 79) * 10;
-         if(cu) bonusWeightage = (index * 15)/100;
+         var total = ((core*55 + comp1*12 + comp2*12) / 79) * 10;
+         subBonus = (total * 10) / 100; // Same subject bonus is 10% for Science
+         index = total + subBonus;
+         if(cu) bonusWeightage = (total * 5)/100;
       } else if(dept === 'ma_lang') {
          var overall = getVal('calc-overall');
          var core = getVal('calc-core');
@@ -5381,8 +5431,8 @@
       } else if(dept === 'ma_history') {
          var overall = getVal('calc-overall');
          var core = getVal('calc-core');
-         // History CC = 120
-         var total = (overall * 120 + core * 120) / 24;
+         // History CC = 63, divisor = 24
+         var total = (overall * 120 + core * 63) / 24;
          subBonus = (total * 10) / 100;
          index = total + subBonus;
          if(cu) bonusWeightage = (total * 5)/100;
@@ -5390,8 +5440,8 @@
          var overall = getVal('calc-overall');
          var core = getVal('calc-core');
          // Economics CC = 63
-         var total = (overall * 120 + core * 63) / 18.3;
-         subBonus = (total * 10) / 100;
+         var total = ((overall * 120 + core * 63) / 183) * 10;
+         subBonus = (total * 5) / 100; // Same subject bonus is 5% for Economics
          index = total + subBonus;
          if(cu) bonusWeightage = (total * 5)/100;
       }
