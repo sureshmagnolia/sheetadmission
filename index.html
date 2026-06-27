@@ -2249,7 +2249,13 @@
         
         var token = s["Token_Number"] || "-";
         var capid = s["CAP id (Enter the full cap id without any spaces)"] || s["CAPID"] || "-";
+        
         var name = s["Name (As per your certificate)"] || s["Name"] || "-";
+        var progLabel = (s["Program_Type"] || s["Admission to the Programme"] || "").toString().trim();
+        if (progLabel) {
+            name += " <br><span style='font-size: 0.75rem; color: var(--text-muted);'>" + progLabel + "</span>";
+        }
+        
         var email = s["Email Address"] || s["Email id"] || s["Email"] || "-";
         var indexMark = s["Index Marks (as per admit/allotment card)"] || s["Index Mark"] || "-";
         var verifiedIndex = s["Verified_Index_Mark"] || "-";
@@ -3928,7 +3934,11 @@
         var voluntary = parseFloat(s["PTA_Voluntary_Contribution"] || s["PTA_Donation"]) || 0;
         var coop = parseFloat(s["PTA_Cooperative_Store"]) || 0;
         var idCard = parseFloat(s["PTA_ID_Card_Fee"]) || 0;
+        
         var deptName = s["Department"] || currentSelectedDept || "N/A";
+        var progLabel = (s["Program_Type"] || s["Admission to the Programme"] || "").toString().trim();
+        if (progLabel) deptName += " (" + progLabel + ")";
+        
         totalSum += amount;
         welfareSum += welfare;
         memberSum += member;
@@ -5000,7 +5010,11 @@
         var token = s["Token_Number"] || "-";
         var capid = s["CAP id (Enter the full cap id without any spaces)"] || s["CAPID"] || "-";
         var name = s["Name (As per your certificate)"] || s["Name"] || "-";
+        
         var dept = s["Department"] || currentSelectedDept || "-";
+        var progLabel = (s["Program_Type"] || s["Admission to the Programme"] || "").toString().trim();
+        if (progLabel) dept += " (" + progLabel + ")";
+        
         var indexMark = s["Index Marks (as per admit/allotment card)"] || s["Index Mark"] || "-";
         var verifiedIndex = s["Verified_Index_Mark"] || "-";
         var assignedSlot = s["Assigned_Slot"] || "-";
