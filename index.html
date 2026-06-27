@@ -2686,6 +2686,22 @@
       document.getElementById("btn-edit-toggle").innerText = "Enable Edit";
       document.getElementById("token-notif-box").style.display = "none";
       
+      // Index Calculator Toggle for UG vs PG
+      var calcFab = document.getElementById("calc-fab");
+      if (calcFab) {
+        var prog = (student["Program_Type"] || student["Admission to the Programme"] || "").toString().trim().toUpperCase();
+        var isUG = (prog.indexOf("B") === 0 || prog === "UG");
+        if (isUG) {
+          calcFab.style.display = "none";
+          // Force close if it was open
+          if (typeof isIndexCalcOpen !== 'undefined' && isIndexCalcOpen) {
+            toggleIndexCalculator();
+          }
+        } else {
+          calcFab.style.display = "flex";
+        }
+      }
+      
       // Load photo
       var photoBox = document.getElementById("student-photo-container");
       photoBox.innerHTML = "<span class='no-photo-text'>Loading Photograph...</span>";
