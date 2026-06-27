@@ -1038,7 +1038,7 @@
           <button class="btn btn-success" id="btn-pta-balance" style="display: none;" onclick="generateDailyBalanceSheet()">Balance Sheet</button>
           <button class="btn btn-primary" id="btn-principal-idcards" style="display: none;" onclick="openIDCardsModal()">Generate ID Cards</button>
           <button class="btn btn-primary" onclick="printStudentList()">Print Student List</button>
-          <button class="btn btn-secondary" onclick="clearCache(); loadDepartmentData()">Refresh</button>
+          <button class="btn btn-secondary" onclick="if(event.shiftKey){clearCache()}; loadDepartmentData()" title="Hold Shift and click to force a full clear & reload">Refresh</button>
         </div>
       </div>
 
@@ -2391,12 +2391,17 @@
         });
       } else {
         filtered.sort(function(a, b) {
-          // If we are in Completed UG or PG lists, sort by System_Last_Modified descending to show recently completed first
+          // If we are in Completed UG or PG lists, sort by Token_Number descending (Last to 1st)
           if (currentTab === "completed-ug" || currentTab === "completed-pg") {
-            var modA = parseFloat(a["System_Last_Modified"]) || 0;
-            var modB = parseFloat(b["System_Last_Modified"]) || 0;
-            if (modA !== modB) {
-              return modB - modA; // Descending (most recently modified at top)
+            var tokA = (a["Token_Number"] || "").toString().trim();
+            var tokB = (b["Token_Number"] || "").toString().trim();
+            var tNumA = parseInt(tokA.replace(/\D/g, ''), 10);
+            var tNumB = parseInt(tokB.replace(/\D/g, ''), 10);
+            
+            if (!isNaN(tNumA) && !isNaN(tNumB)) {
+              if (tNumA !== tNumB) return tNumB - tNumA;
+            } else if (tokA || tokB) {
+              return tokB.localeCompare(tokA);
             }
           }
           // Default fallback to registration timestamp descending (Last to 1st)
