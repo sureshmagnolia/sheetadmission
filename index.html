@@ -3541,7 +3541,21 @@
       var container = document.getElementById("change-slot-container");
       var select = document.getElementById("edit-assigned-slot");
       if (container && select && activeStudent) {
-        select.value = activeStudent["Assigned_Slot"] || "";
+        var currentSlot = activeStudent["Assigned_Slot"] || "";
+        var html = "";
+        
+        // Always add the current slot so they see where it is right now
+        if (currentSlot && currentSlot !== "OPEN") {
+          html += "<option value='" + currentSlot + "'>" + currentSlot + " (Current)</option>";
+        } else if (!currentSlot) {
+          html += "<option value=''>-- Select Slot --</option>";
+        }
+        
+        // Only allow movement towards OPEN
+        html += "<option value='OPEN'>OPEN</option>";
+        
+        select.innerHTML = html;
+        select.value = currentSlot || "OPEN";
         container.style.display = "block";
       }
     }
@@ -4154,7 +4168,7 @@
 
     function populateQuotaDropdowns() {
       var labels = getDynamicQuotaLabels();
-      var dds = [document.getElementById("wf-assigned-slot"), document.getElementById("edit-assigned-slot")];
+      var dds = [document.getElementById("wf-assigned-slot")];
       dds.forEach(function(select) {
         if (!select) return;
         // Keep current selected value if any
