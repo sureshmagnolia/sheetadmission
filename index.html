@@ -1039,7 +1039,7 @@
           <button class="btn btn-primary" id="btn-principal-idcards" style="display: none;" onclick="openIDCardsModal()">Generate ID Cards</button>
           <button class="btn btn-primary" onclick="printStudentList()">Print Student List</button>
           <button class="btn btn-secondary" onclick="loadDepartmentData()" title="Quick sync recent changes">Sync</button>
-          <button class="btn btn-secondary" onclick="clearCache(); loadDepartmentData()" title="Full reload from server">Refresh</button>
+          <button class="btn btn-secondary" onclick="clearCache().then(function(){ loadDepartmentData(); })" title="Full reload from server">Refresh</button>
         </div>
       </div>
 
@@ -2149,8 +2149,10 @@
       var isCentral = (userRole === "Nodal Officer" || userRole === "PTA" || userRole === "Principal");
       var cacheKey = isCentral ? "gvc_erp_students_data_central" : ("gvc_erp_students_data_" + currentSelectedDept);
       var cacheTimeKey = isCentral ? "gvc_erp_students_time_central" : ("gvc_erp_students_time_" + currentSelectedDept);
-        idbRemove(cacheKey).catch(function(e) {});
-        idbRemove(cacheTimeKey).catch(function(e) {});
+      return Promise.all([
+        idbRemove(cacheKey).catch(function(e) {}),
+        idbRemove(cacheTimeKey).catch(function(e) {})
+      ]);
     }
 
     // Load student records
