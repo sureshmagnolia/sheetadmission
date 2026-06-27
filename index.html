@@ -4076,6 +4076,46 @@
     var seatMatrixUG = [];
     var currentMatrixType = 'pg';
     
+    function getDynamicQuotaLabels() {
+      var allLabels = new Set();
+      [seatMatrixPG, seatMatrixUG].forEach(function(matrix) {
+        if (!matrix || matrix.length === 0) return;
+        matrix.forEach(function(row) {
+          if (!row) return;
+          Object.keys(row).forEach(function(key) {
+            var upperKey = key.toString().trim().toUpperCase();
+            if (upperKey && upperKey !== "DEPARTMENT" && upperKey !== "TOTAL" && upperKey !== "PROGRAM") {
+              allLabels.add(upperKey);
+            }
+          });
+        });
+      });
+      var arr = Array.from(allLabels);
+      if (arr.length === 0) {
+        // Fallback to hardcoded if arrays are empty for some reason
+        return ["OPEN", "ETB", "MU", "LC", "EWS", "OBH", "SC", "ST", "TLM", "SP", "PWD", "UTL", "OBX", "SSQ"];
+      }
+      return arr.sort();
+    }
+
+    function populateQuotaDropdowns() {
+      var labels = getDynamicQuotaLabels();
+      var dds = [document.getElementById("wf-assigned-slot"), document.getElementById("edit-assigned-slot")];
+      dds.forEach(function(select) {
+        if (!select) return;
+        // Keep current selected value if any
+        var currentVal = select.value;
+        var html = "<option value=''>-- Select Slot --</option>";
+        labels.forEach(function(lbl) {
+          html += "<option value='" + lbl + "'>" + lbl + "</option>";
+        });
+        select.innerHTML = html;
+        if (currentVal && labels.indexOf(currentVal) > -1) {
+          select.value = currentVal;
+        }
+      });
+    }
+    
     function loadSeatMatrix() {
       google.script.run
         .withSuccessHandler(function(resJson) {
@@ -4083,6 +4123,7 @@
           if (res.success) {
             seatMatrixPG = res.pgData || [];
             seatMatrixUG = res.ugData || [];
+            populateQuotaDropdowns();
             if (userRole === "Faculty" || userRole === "HOD") {
               renderVacancySummary();
             }
@@ -4119,7 +4160,7 @@
       var tbody = document.getElementById("matrix-table-body");
       tbody.innerHTML = "";
       
-      var slots = ["OPEN", "ETB", "MU", "LC", "EWS", "OBH", "SC", "ST", "TLM", "SP", "PWD", "UTL", "OBX", "SSQ"];
+      var slots = getDynamicQuotaLabels();
       var currentData = (currentMatrixType === 'pg') ? seatMatrixPG : seatMatrixUG;
       
       currentData.forEach(function(item) {
@@ -4195,7 +4236,7 @@
         return;
       }
       
-      var slots = ["OPEN", "ETB", "MU", "LC", "EWS", "OBH", "SC", "ST", "TLM", "SP", "PWD", "UTL", "OBX", "SSQ"];
+      var slots = getDynamicQuotaLabels();
       
       // Compute filled slots
       var filledUG = {};
@@ -4755,7 +4796,7 @@
       });
       console.log(canvasId + " input userDept:", typeof userDept, JSON.stringify(userDept), "seatMatrixDepts:", JSON.stringify(seatMatrixDepts));
 
-      var quotaLabels = ["OPEN", "ETB", "MU", "LC", "EWS", "OBH", "SC", "ST", "TLM", "SP", "PWD", "UTL", "OBX", "SSQ"];
+      var quotaLabels = getDynamicQuotaLabels();
       var totalQuotas = quotaLabels.map(function() { return 0; });
       var filledQuotas = quotaLabels.map(function() { return 0; });
       
