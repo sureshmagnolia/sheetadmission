@@ -1069,6 +1069,7 @@
         <button class="tab-btn" id="tab-admission-register-btn" onclick="switchTab('admission-register')" style="display: none; background: none; border: none; color: var(--text-muted); font-weight: 500; padding: 10px 0; border-bottom: 2px solid transparent; cursor: pointer; font-size: 0.95rem; transition: var(--transition);">Admission Register</button>
         <button class="tab-btn" id="tab-analytics-btn" onclick="switchTab('analytics')" style="background: none; border: none; color: var(--text-muted); font-weight: 500; padding: 10px 0; border-bottom: 2px solid transparent; cursor: pointer; font-size: 0.95rem; transition: var(--transition);">Analytics Dashboard</button>
         <button class="tab-btn" id="tab-waiting-btn" onclick="switchTab('waiting')" style="display: none; background: none; border: none; color: var(--text-muted); font-weight: 500; padding: 10px 0; border-bottom: 2px solid transparent; cursor: pointer; font-size: 0.95rem; transition: var(--transition);">Waiting Queue</button>
+        <button class="tab-btn" id="tab-statistics-btn" onclick="switchTab('statistics')" style="display: none; background: none; border: none; color: var(--text-muted); font-weight: 500; padding: 10px 0; border-bottom: 2px solid transparent; cursor: pointer; font-size: 0.95rem; transition: var(--transition);">Statistics</button>
       </div>
 
       <!-- PTA Summary Widget for PTA Desk -->
@@ -1170,6 +1171,16 @@
           <h3 style="font-size: 1.1rem; font-weight: 600; margin-bottom: 15px; color: var(--text-main); text-align: center;">PTA Fee Collection Analysis</h3>
           <div style="position: relative; height: 320px; width: 100%;">
             <canvas id="ptaCollectionChart"></canvas>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Statistics Container -->
+      <div id="statistics-container" style="display: none; margin-top: 1rem;">
+        <div class="card" style="padding: 20px; background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 12px; box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);">
+          <h2 style="font-size: 1.5rem; font-weight: 600; color: var(--text-main); margin-bottom: 1.5rem; text-align: center;">Application Processing Statistics</h2>
+          <div id="statistics-table-wrapper" class="table-responsive mobile-card-table">
+            <!-- Table rendered by JS -->
           </div>
         </div>
       </div>
@@ -2068,6 +2079,8 @@
         if (matrixBtn) matrixBtn.style.display = "inline-block";
         if (dashboardTabs) dashboardTabs.style.display = "flex";
         if (waitingBtn) waitingBtn.style.display = "block";
+        var statsBtn = document.getElementById("tab-statistics-btn");
+        if (statsBtn) statsBtn.style.display = "block";
       } else if (userRole === "Principal") {
         if (dashboardTabs) dashboardTabs.style.display = "flex";
         if (idCardsBtn) idCardsBtn.style.display = "inline-block";
@@ -4360,9 +4373,10 @@
         var admissionRegisterBtn = document.getElementById("tab-admission-register-btn");
         var analyticsBtn = document.getElementById("tab-analytics-btn");
         var waitingBtn = document.getElementById("tab-waiting-btn");
+        var statsBtn = document.getElementById("tab-statistics-btn");
         
         // Reset all buttons
-        [pendingBtn, completedUgBtn, completedPgBtn, admissionRegisterBtn, analyticsBtn, waitingBtn].forEach(function(btn) {
+        [pendingBtn, completedUgBtn, completedPgBtn, admissionRegisterBtn, analyticsBtn, waitingBtn, statsBtn].forEach(function(btn) {
           if (btn) {
             btn.style.color = "var(--text-muted)";
             btn.style.fontWeight = "500";
@@ -4373,10 +4387,12 @@
         var tableCard = document.getElementById("student-table-card");
         var analyticsContainer = document.getElementById("analytics-container");
         var waitingContainer = document.getElementById("waiting-queue-container");
+        var statsContainer = document.getElementById("statistics-container");
         
         if (tab === 'analytics') {
           if (tableCard) tableCard.style.display = "none";
           if (waitingContainer) waitingContainer.style.display = "none";
+          if (statsContainer) statsContainer.style.display = "none";
           if (analyticsContainer) analyticsContainer.style.display = "block";
           if (analyticsBtn) {
             analyticsBtn.style.color = "var(--text-main)";
@@ -4387,6 +4403,7 @@
         } else if (tab === 'waiting') {
           if (tableCard) tableCard.style.display = "none";
           if (analyticsContainer) analyticsContainer.style.display = "none";
+          if (statsContainer) statsContainer.style.display = "none";
           if (waitingContainer) waitingContainer.style.display = "block";
           if (waitingBtn) {
             waitingBtn.style.color = "var(--text-main)";
@@ -4394,10 +4411,22 @@
             waitingBtn.style.borderBottomColor = "var(--primary)";
           }
           renderWaitingQueue();
+        } else if (tab === 'statistics') {
+          if (tableCard) tableCard.style.display = "none";
+          if (analyticsContainer) analyticsContainer.style.display = "none";
+          if (waitingContainer) waitingContainer.style.display = "none";
+          if (statsContainer) statsContainer.style.display = "block";
+          if (statsBtn) {
+            statsBtn.style.color = "var(--text-main)";
+            statsBtn.style.fontWeight = "600";
+            statsBtn.style.borderBottomColor = "var(--primary)";
+          }
+          renderStatistics();
         } else {
           if (tableCard) tableCard.style.display = "block";
           if (analyticsContainer) analyticsContainer.style.display = "none";
           if (waitingContainer) waitingContainer.style.display = "none";
+          if (statsContainer) statsContainer.style.display = "none";
           var activeBtn = pendingBtn;
           if (tab === 'completed-ug') activeBtn = completedUgBtn;
           else if (tab === 'completed-pg') activeBtn = completedPgBtn;
@@ -4410,6 +4439,179 @@
           }
           filterTable();
         }
+      }
+      
+      function renderStatistics() {
+        var stats = {};
+        var stages = ["Pending_Faculty", "Pending_Nodal", "Pending_PTA", "Pending_Principal", "Admitted", "TC Issued"];
+        
+        var today = new Date();
+        var yesterday = new Date(today);
+        yesterday.setDate(yesterday.getDate() - 1);
+        today.setHours(0,0,0,0);
+        yesterday.setHours(0,0,0,0);
+        
+        allStudents.forEach(function(s) {
+            var dtStr = "";
+            var status = s["Current_Status"] || "Pending_Faculty";
+            if (status.indexOf("Reverted") > -1) status = status.split(" ")[0];
+            
+            if (status === "Admitted" && s["Date_of_Admission"]) dtStr = s["Date_of_Admission"];
+            else if (status === "TC Issued" && s["Date_of_TC"]) dtStr = s["Date_of_TC"];
+            
+            var d = new Date(0);
+            var parsed = false;
+            if (dtStr) {
+                var str = dtStr.toString().trim();
+                if (str.match(/^\d{4}-\d{1,2}-\d{1,2}$/)) {
+                    var parts = str.split("-");
+                    d = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10)-1, parseInt(parts[2], 10));
+                    parsed = true;
+                } else {
+                    var parts = str.replace(/\//g, '-').split("-");
+                    if (parts.length === 3) {
+                        var y = parseInt(parts[2], 10);
+                        if (y < 100) y += 2000;
+                        d = new Date(y, parseInt(parts[1], 10)-1, parseInt(parts[0], 10));
+                        parsed = true;
+                    }
+                }
+            }
+            
+            // Helper function to parse Timestamp strings reliably
+            function parseTimestamp(ts) {
+                if (!ts) return null;
+                var tsStr = ts.toString().trim().split(" ")[0];
+                if (tsStr.match(/^\d{4}-\d{1,2}-\d{1,2}$/)) {
+                    var parts = tsStr.split("-");
+                    return new Date(parseInt(parts[0], 10), parseInt(parts[1], 10)-1, parseInt(parts[2], 10));
+                } else {
+                    var parts = tsStr.replace(/\//g, '-').split("-");
+                    if (parts.length === 3) {
+                        var y = parseInt(parts[2], 10);
+                        if (y < 100) y += 2000;
+                        return new Date(y, parseInt(parts[1], 10)-1, parseInt(parts[0], 10));
+                    }
+                }
+                return null;
+            }
+
+            if (!parsed) {
+                var rawTs = s["Timestamp"] || s["टाइमस्टैम्प"] || s["Timestamp "] || "";
+                if (status === "Pending_Faculty") {
+                    // For Department/Faculty statistics, strictly pull from Form Responses Timestamp
+                    var pTs = parseTimestamp(rawTs);
+                    if (pTs) d = pTs;
+                } else {
+                    // For all other intermediate states (Nodal, PTA, Principal), use System_Last_Modified
+                    if (s["System_Last_Modified"]) {
+                        var modVal = parseFloat(s["System_Last_Modified"]);
+                        if (!isNaN(modVal) && modVal > 0) d = new Date(modVal);
+                    } else if (rawTs) {
+                        // Fallback to Form Responses if System_Last_Modified is mysteriously missing
+                        var pTs = parseTimestamp(rawTs);
+                        if (pTs) d = pTs;
+                    }
+                }
+            }
+            
+            var bucket = "";
+            if (isNaN(d.getTime()) || d.getTime() === 0) {
+                bucket = "Unknown Date";
+            } else {
+                var dd = String(d.getDate()).padStart(2, '0');
+                var mm = String(d.getMonth() + 1).padStart(2, '0');
+                var yyyy = d.getFullYear();
+                bucket = dd + "/" + mm + "/" + yyyy;
+                
+                var dReset = new Date(d);
+                dReset.setHours(0,0,0,0);
+                if (dReset.getTime() === today.getTime()) bucket = "Today (" + bucket + ")";
+                else if (dReset.getTime() === yesterday.getTime()) bucket = "Yesterday (" + bucket + ")";
+            }
+            
+            if (!stats[bucket]) {
+                stats[bucket] = {};
+                stages.forEach(function(st) {
+                    stats[bucket][st] = { UG: 0, PG: 0 };
+                });
+                stats[bucket].sortKey = d.getTime();
+            }
+            
+            if (!stats[bucket][status]) stats[bucket][status] = { UG: 0, PG: 0 };
+            
+            var program = (s["Program_Type"] || s["Admission to the Programme"] || "").toString().trim().toUpperCase();
+            var pType = program.indexOf("B") === 0 ? "UG" : "PG";
+            stats[bucket][status][pType]++;
+        });
+        
+        var sortedBuckets = Object.keys(stats).sort(function(a, b) {
+            if (a === "Unknown Date") return 1;
+            if (b === "Unknown Date") return -1;
+            return stats[b].sortKey - stats[a].sortKey;
+        });
+        
+        var html = "<table style='width: 100%; border-collapse: collapse; text-align: center;'>";
+        html += "<thead><tr style='background: var(--card-border);'>";
+        html += "<th style='padding: 12px; border: 1px solid var(--card-border);'>Date</th>";
+        html += "<th style='padding: 12px; border: 1px solid var(--card-border);'>Department<br><span style='font-size:0.8em; color:var(--text-muted); font-weight:normal;'>(UG / PG / Total)</span></th>";
+        html += "<th style='padding: 12px; border: 1px solid var(--card-border);'>Nodal<br><span style='font-size:0.8em; color:var(--text-muted); font-weight:normal;'>(UG / PG / Total)</span></th>";
+        html += "<th style='padding: 12px; border: 1px solid var(--card-border);'>PTA<br><span style='font-size:0.8em; color:var(--text-muted); font-weight:normal;'>(UG / PG / Total)</span></th>";
+        html += "<th style='padding: 12px; border: 1px solid var(--card-border);'>Principal<br><span style='font-size:0.8em; color:var(--text-muted); font-weight:normal;'>(UG / PG / Total)</span></th>";
+        html += "<th style='padding: 12px; border: 1px solid var(--card-border);'>Admitted<br><span style='font-size:0.8em; color:var(--text-muted); font-weight:normal;'>(UG / PG / Total)</span></th>";
+        html += "<th style='padding: 12px; border: 1px solid var(--card-border);'>TC Issued<br><span style='font-size:0.8em; color:var(--text-muted); font-weight:normal;'>(UG / PG / Total)</span></th>";
+        html += "</tr></thead><tbody>";
+        
+        if (sortedBuckets.length === 0) {
+            html += "<tr><td colspan='7' style='padding: 20px; color: var(--text-muted);'>No data available.</td></tr>";
+        } else {
+            var grandTotals = { "Pending_Faculty": {UG:0, PG:0}, "Pending_Nodal": {UG:0, PG:0}, "Pending_PTA": {UG:0, PG:0}, "Pending_Principal": {UG:0, PG:0}, "Admitted": {UG:0, PG:0}, "TC Issued": {UG:0, PG:0} };
+            
+            sortedBuckets.forEach(function(b) {
+                html += "<tr style='border-bottom: 1px solid var(--card-border); transition: background 0.2s;' onmouseover='this.style.background=\"rgba(255,255,255,0.05)\"' onmouseout='this.style.background=\"transparent\"'>";
+                html += "<td style='padding: 15px 10px; border-right: 1px solid var(--card-border); font-weight: 600; color: var(--text-main);'>" + b + "</td>";
+                
+                var cols = ["Pending_Faculty", "Pending_Nodal", "Pending_PTA", "Pending_Principal", "Admitted", "TC Issued"];
+                cols.forEach(function(st) {
+                    var ug = stats[b][st] ? stats[b][st].UG : 0;
+                    var pg = stats[b][st] ? stats[b][st].PG : 0;
+                    var total = ug + pg;
+                    
+                    grandTotals[st].UG += ug;
+                    grandTotals[st].PG += pg;
+                    
+                    html += "<td style='padding: 15px 10px; border-right: 1px solid var(--card-border); font-size: 1.1rem;'>" + 
+                            "<span style='color: var(--accent-green); font-weight: bold;' title='UG'>" + ug + "</span>" +
+                            "<span style='color: var(--text-muted); margin: 0 6px;'>/</span>" + 
+                            "<span style='color: var(--accent-yellow); font-weight: bold;' title='PG'>" + pg + "</span>" +
+                            "<span style='color: var(--text-muted); margin: 0 6px;'>/</span>" + 
+                            "<span style='color: var(--text-main); font-weight: bold;' title='Total'>" + total + "</span>" +
+                            "</td>";
+                });
+                html += "</tr>";
+            });
+            
+            // Grand Total Row
+            html += "<tr style='background: rgba(255,255,255,0.03); font-weight: bold;'>";
+            html += "<td style='padding: 15px 10px; border-right: 1px solid var(--card-border); border-top: 2px solid var(--card-border); color: var(--text-main); text-transform: uppercase; font-size: 0.9em; letter-spacing: 1px;'>Grand Total</td>";
+            var cols = ["Pending_Faculty", "Pending_Nodal", "Pending_PTA", "Pending_Principal", "Admitted", "TC Issued"];
+            cols.forEach(function(st) {
+                var ug = grandTotals[st].UG;
+                var pg = grandTotals[st].PG;
+                var total = ug + pg;
+                html += "<td style='padding: 15px 10px; border-right: 1px solid var(--card-border); border-top: 2px solid var(--card-border); font-size: 1.15rem;'>" + 
+                        "<span style='color: var(--accent-green);'>" + ug + "</span>" +
+                        "<span style='color: var(--text-muted); margin: 0 6px;'>/</span>" + 
+                        "<span style='color: var(--accent-yellow);'>" + pg + "</span>" +
+                        "<span style='color: var(--text-muted); margin: 0 6px;'>/</span>" + 
+                        "<span style='color: var(--text-main);'>" + total + "</span>" +
+                        "</td>";
+            });
+            html += "</tr>";
+        }
+        
+        html += "</tbody></table>";
+        document.getElementById("statistics-table-wrapper").innerHTML = html;
       }
 
     function loadAnalyticsData() {

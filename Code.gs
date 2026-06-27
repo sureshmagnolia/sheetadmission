@@ -202,6 +202,8 @@ function getDepartmentData(department, lastSyncTime) {
       deltaCapids = {};
       var syncTimeMs = parseInt(lastSyncTime, 10);
       var masterTimeIdx = findHeaderIndex(masterHeaders, "Timestamp");
+      if (masterTimeIdx === -1) masterTimeIdx = 0; // Google Forms always puts timestamp in column A
+      
       if (masterTimeIdx !== -1) {
         masterValues.forEach(function(row) {
           var ts = row[masterTimeIdx];
@@ -281,6 +283,7 @@ function getDepartmentData(department, lastSyncTime) {
         // 1. Copy raw submission details with trimmed keys
         for (var c = 0; c < masterHeaders.length; c++) {
           var cleanKey = masterHeaders[c] ? masterHeaders[c].toString().trim() : "";
+          if (c === 0) cleanKey = "Timestamp"; // Google Forms puts Timestamp in A, regardless of language
           if (cleanKey) {
             profile[cleanKey] = row[c];
           }
@@ -352,6 +355,7 @@ function getDepartmentData(department, lastSyncTime) {
           var profile = {};
           for (var c = 0; c < masterHeaders.length; c++) {
             var cleanKey = masterHeaders[c] ? masterHeaders[c].toString().trim() : "";
+            if (c === 0) cleanKey = "Timestamp"; // Google Forms puts Timestamp in A, regardless of language
             if (cleanKey) {
               profile[cleanKey] = masterRow[c];
             }
@@ -456,6 +460,8 @@ function getAllDepartmentsData(lastSyncTime) {
       deltaCapids = {};
       var syncTimeMs = parseInt(lastSyncTime, 10);
       var masterTimeIdx = findHeaderIndex(masterHeaders, "Timestamp");
+      if (masterTimeIdx === -1) masterTimeIdx = 0; // Google Forms always puts timestamp in column A
+      
       if (masterTimeIdx !== -1) {
         masterValues.forEach(function(row) {
           var ts = row[masterTimeIdx];
@@ -533,6 +539,7 @@ function getAllDepartmentsData(lastSyncTime) {
       // 1. Copy raw submission details with trimmed keys
       for (var c = 0; c < masterHeaders.length; c++) {
         var cleanKey = masterHeaders[c] ? masterHeaders[c].toString().trim() : "";
+        if (c === 0) cleanKey = "Timestamp"; // Google Forms puts Timestamp in A, regardless of language
         if (cleanKey) {
           profile[cleanKey] = row[c];
         }
@@ -600,6 +607,7 @@ function getAllDepartmentsData(lastSyncTime) {
           var profile = {};
           for (var c = 0; c < masterHeaders.length; c++) {
             var cleanKey = masterHeaders[c] ? masterHeaders[c].toString().trim() : "";
+            if (c === 0) cleanKey = "Timestamp"; // Google Forms puts Timestamp in A, regardless of language
             if (cleanKey) {
               profile[cleanKey] = masterRow[c];
             }
@@ -1609,6 +1617,103 @@ function deduplicateSystemDB(dbSheet) {
       dbSheet.deleteRow(rowsToDelete[d]);
     }
   }
+}
+
+// Retroactively populate missing System_Last_Modified entries in System_DB based on Audit_Logs and Form Responses
+function backfillMissingTimestamps() {
+  var sheet = SpreadsheetApp.getActiveSpreadsheet();
+  var dbSheet = getOrCreateSystemDBSheet();
+  var logSheet = sheet.getSheetByName("Audit_Logs");
+  var masterSheet = getMasterSheet(sheet);
+  
+  if (!dbSheet || !masterSheet) return "Required sheets missing.";
+  
+  var dbLastRow = dbSheet.getLastRow();
+  if (dbLastRow < 2) return "Not enough data in System_DB.";
+  
+  var dbHeaders = dbSheet.getRange(1, 1, 1, dbSheet.getLastColumn()).getValues()[0];
+  var capidColIdx = findHeaderIndex(dbHeaders, "CAPID");
+  var modColIdx = findHeaderIndex(dbHeaders, "System_Last_Modified");
+  
+  if (capidColIdx === -1) return "CAPID column missing in System_DB.";
+  
+  // If System_Last_Modified column doesn't exist, create it
+  if (modColIdx === -1) {
+    modColIdx = dbHeaders.length;
+    dbSheet.getRange(1, modColIdx + 1).setValue("System_Last_Modified");
+  }
+  
+  var dbValues = dbSheet.getRange(2, 1, dbLastRow - 1, dbSheet.getLastColumn()).getValues();
+  
+  // Baseline timestamps from Master Responses (Form Responses)
+  var logMap = {};
+  var masterLastRow = masterSheet.getLastRow();
+  if (masterLastRow >= 2) {
+    var masterValues = masterSheet.getRange(2, 1, masterLastRow - 1, masterSheet.getLastColumn()).getValues();
+    var masterHeaders = masterSheet.getRange(1, 1, 1, masterSheet.getLastColumn()).getValues()[0];
+    var masterTsCol = findHeaderIndex(masterHeaders, "Timestamp");
+    if (masterTsCol === -1) masterTsCol = 0; // Google Forms always puts timestamp in column A
+    var masterCapidCol = findHeaderIndex(masterHeaders, KEY_HEADER);
+    
+    if (masterTsCol !== -1 && masterCapidCol !== -1) {
+      for (var i = 0; i < masterValues.length; i++) {
+        var ts = masterValues[i][masterTsCol];
+        var cId = masterValues[i][masterCapidCol];
+        if (ts && ts instanceof Date && cId) {
+          cId = cId.toString().trim().toLowerCase();
+          logMap[cId] = ts.getTime();
+        }
+      }
+    }
+  }
+  
+  // Override with latest action from Audit Logs (if available)
+  if (logSheet) {
+    var logLastRow = logSheet.getLastRow();
+    if (logLastRow >= 2) {
+      var logValues = logSheet.getRange(2, 1, logLastRow - 1, logSheet.getLastColumn()).getValues();
+      var logHeaders = logSheet.getRange(1, 1, 1, logSheet.getLastColumn()).getValues()[0];
+      var logTsCol = findHeaderIndex(logHeaders, "Timestamp");
+      if (logTsCol === -1) logTsCol = 0; // Fallback to col A
+      var logCapidCol = findHeaderIndex(logHeaders, "CAPID");
+      if (logCapidCol === -1) logCapidCol = 2; // Fallback to col C
+      
+      for (var i = 0; i < logValues.length; i++) {
+        var ts = logValues[i][logTsCol];
+        var cId = logValues[i][logCapidCol];
+        if (ts && ts instanceof Date && cId) {
+          cId = cId.toString().trim().toLowerCase();
+          var tsTime = ts.getTime();
+          if (!logMap[cId] || tsTime > logMap[cId]) {
+            logMap[cId] = tsTime; // Keep the latest action timestamp
+          }
+        }
+      }
+    }
+  }
+  
+  var updateCount = 0;
+  var colUpdates = [];
+  
+  for (var i = 0; i < dbValues.length; i++) {
+    var cId = dbValues[i][capidColIdx] ? dbValues[i][capidColIdx].toString().trim().toLowerCase() : "";
+    var currentMod = dbValues[i][modColIdx];
+    
+    // If System_Last_Modified is empty, fill it using Form Responses / Audit Logs
+    if (cId && !currentMod && logMap[cId]) {
+      colUpdates.push([logMap[cId]]);
+      updateCount++;
+    } else {
+      // Keep existing data to maintain column integrity
+      colUpdates.push([currentMod !== undefined ? currentMod : ""]);
+    }
+  }
+  
+  if (colUpdates.length > 0) {
+    dbSheet.getRange(2, modColIdx + 1, colUpdates.length, 1).setValues(colUpdates);
+  }
+  
+  return "Successfully backfilled timestamps for " + updateCount + " students.";
 }
 
 // Retroactively populate missing PTA_Payment_Date, Date_of_Admission, and Date_of_TC entries in System_DB based on Audit_Logs timestamps
