@@ -2138,33 +2138,36 @@
           if (!cachedData || !cacheTime) hideLoader();
           var res = JSON.parse(responseJson);
           if (res.success) {
-            if (res.isDelta && cachedData) {
-               var deltaArr = res.data;
-               if (deltaArr.length > 0) {
-                 var masterMap = {};
-                 allStudents.forEach(function(s, idx) {
-                    var cid = s["CAP id (Enter the full cap id without any spaces)"] || s["CAPID"];
-                    var dept = s["System_Department"] || s["Department"] || "";
-                    if (cid) masterMap[cid.toString().toLowerCase() + "|" + dept.toLowerCase()] = idx;
-                 });
-                 deltaArr.forEach(function(s) {
-                    var cid = s["CAP id (Enter the full cap id without any spaces)"] || s["CAPID"];
-                    var dept = s["System_Department"] || s["Department"] || "";
-                    var key = "";
-                    if (cid) key = cid.toString().toLowerCase() + "|" + dept.toLowerCase();
-                    
-                    if (key && masterMap.hasOwnProperty(key)) {
-                       allStudents[masterMap[key]] = s;
-                    } else if (key) {
-                       allStudents.push(s);
-                    }
-                 });
-                 showToast("Updated " + deltaArr.length + " modified record(s)", false);
-               }
-            } else {
-               allStudents = res.data;
-            }
-            idbSet(cacheKey, JSON.stringify(allStudents)).catch(function(e) {});
+             if (res.isDelta && cachedData) {
+                var deltaArr = res.data;
+                if (deltaArr.length > 0) {
+                  var masterMap = {};
+                  allStudents.forEach(function(s, idx) {
+                     var cid = s["CAP id (Enter the full cap id without any spaces)"] || s["CAPID"];
+                     var dept = s["System_Department"] || s["Department"] || "";
+                     if (cid) masterMap[cid.toString().toLowerCase() + "|" + dept.toLowerCase()] = idx;
+                  });
+                  deltaArr.forEach(function(s) {
+                     var cid = s["CAP id (Enter the full cap id without any spaces)"] || s["CAPID"];
+                     var dept = s["System_Department"] || s["Department"] || "";
+                     var key = "";
+                     if (cid) key = cid.toString().toLowerCase() + "|" + dept.toLowerCase();
+                     
+                     if (key && masterMap.hasOwnProperty(key)) {
+                        allStudents[masterMap[key]] = s;
+                     } else if (key) {
+                        allStudents.push(s);
+                     }
+                  });
+                  showToast("Sync complete: " + deltaArr.length + " record(s) updated.", false);
+                } else {
+                  showToast("Sync complete: No new changes found.", false);
+                }
+             } else {
+                allStudents = res.data;
+                showToast("Full refresh complete.", false);
+             }
+             idbSet(cacheKey, JSON.stringify(allStudents)).catch(function(e) {});
             idbSet(cacheTimeKey, res.syncTime ? res.syncTime.toString() : new Date().getTime().toString()).catch(function(e) {});
             filterTable();
             loadSeatMatrix();
