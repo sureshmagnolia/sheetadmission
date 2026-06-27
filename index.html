@@ -3291,6 +3291,35 @@
         return;
       }
       
+      // Check if slot is full and warn
+      var progType = (activeStudent["Program_Type"] || activeStudent["Admission to the Programme"] || "").toString().trim().toUpperCase();
+      var isUG = progType.indexOf("B") === 0;
+      var deptMatrix = isUG ? seatMatrixUG : seatMatrixPG;
+      var deptRow = deptMatrix.find(function(m) { return m.Department === currentSelectedDept; });
+      var totalQuota = 0;
+      if (deptRow && deptRow[assignedSlot]) {
+        totalQuota = parseInt(deptRow[assignedSlot]) || 0;
+      }
+      
+      var filledSeats = 0;
+      allStudents.forEach(function(s) {
+        var status = s["Current_Status"];
+        if (status && status !== "Pending_Faculty" && !status.includes("Reverted")) {
+          var sProgType = (s["Program_Type"] || s["Admission to the Programme"] || "").toString().trim().toUpperCase();
+          var sIsUG = sProgType.indexOf("B") === 0;
+          if (sIsUG === isUG) {
+             var sAssigned = (s["Assigned_Slot"] || "").toString().trim().toUpperCase();
+             if (sAssigned === assignedSlot) filledSeats++;
+          }
+        }
+      });
+      
+      if (filledSeats >= totalQuota) {
+        if (!confirm("Warning: The " + assignedSlot + " slot appears to be fully occupied (" + filledSeats + "/" + totalQuota + " filled in Seat Matrix). Are you sure you want to allot this student to this slot?")) {
+          return;
+        }
+      }
+      
       var dataToUpdate = compileUpdatedProfileData();
       dataToUpdate["Faculty_Remarks"] = remarks;
       dataToUpdate["Assigned_Slot"] = assignedSlot;
