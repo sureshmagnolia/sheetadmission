@@ -2391,17 +2391,12 @@
         });
       } else {
         filtered.sort(function(a, b) {
-          // If we are in Completed UG or PG lists, sort by Token_Number descending (Last to 1st)
+          // If we are in Completed UG or PG lists, sort by System_Last_Modified descending to show recently completed first
           if (currentTab === "completed-ug" || currentTab === "completed-pg") {
-            var tokA = (a["Token_Number"] || "").toString().trim();
-            var tokB = (b["Token_Number"] || "").toString().trim();
-            var tNumA = parseInt(tokA.replace(/\D/g, ''), 10);
-            var tNumB = parseInt(tokB.replace(/\D/g, ''), 10);
-            
-            if (!isNaN(tNumA) && !isNaN(tNumB)) {
-              if (tNumA !== tNumB) return tNumB - tNumA;
-            } else if (tokA || tokB) {
-              return tokB.localeCompare(tokA);
+            var modA = parseFloat(a["System_Last_Modified"]) || 0;
+            var modB = parseFloat(b["System_Last_Modified"]) || 0;
+            if (modA !== modB) {
+              return modB - modA; // Descending (most recently modified at top)
             }
           }
           // Default fallback to registration timestamp descending (Last to 1st)
