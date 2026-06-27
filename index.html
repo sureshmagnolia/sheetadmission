@@ -1038,7 +1038,8 @@
           <button class="btn btn-success" id="btn-pta-balance" style="display: none;" onclick="generateDailyBalanceSheet()">Balance Sheet</button>
           <button class="btn btn-primary" id="btn-principal-idcards" style="display: none;" onclick="openIDCardsModal()">Generate ID Cards</button>
           <button class="btn btn-primary" onclick="printStudentList()">Print Student List</button>
-          <button class="btn btn-secondary" onclick="clearCache(); loadDepartmentData()">Refresh</button>
+          <button class="btn btn-secondary" onclick="loadDepartmentData()" title="Quick sync recent changes">Sync</button>
+          <button class="btn btn-secondary" onclick="clearCache(); loadDepartmentData()" title="Full reload from server">Refresh</button>
         </div>
       </div>
 
@@ -2398,6 +2399,16 @@
             if (modA !== modB) {
               return modB - modA; // Descending (most recently modified at top)
             }
+          } else if (currentTab !== "pending") {
+            // Completed lists (Department, Nodal, PTA) sort by Token Number (Last to 1st)
+            var tokA = (a["Token_Number"] || "").toString().trim();
+            var tokB = (b["Token_Number"] || "").toString().trim();
+            var numA = parseInt(tokA.replace(/\D/g, ''), 10);
+            var numB = parseInt(tokB.replace(/\D/g, ''), 10);
+            if (!isNaN(numA) && !isNaN(numB)) {
+              if (numA !== numB) return numB - numA;
+            }
+            if (tokA !== tokB) return tokB.localeCompare(tokA);
           }
           // Default fallback to registration timestamp descending (Last to 1st)
           var timeA = new Date(a["Timestamp"] || 0).getTime();
@@ -4749,6 +4760,18 @@
           var tokA = a["Token_Number"] || "";
           var tokB = b["Token_Number"] || "";
           return tokA.localeCompare(tokB);
+        });
+      } else if (currentTab !== "admission-register") {
+        filtered.sort(function(a, b) {
+          var tokA = (a["Token_Number"] || "").toString().trim();
+          var tokB = (b["Token_Number"] || "").toString().trim();
+          var numA = parseInt(tokA.replace(/\D/g, ''), 10);
+          var numB = parseInt(tokB.replace(/\D/g, ''), 10);
+          if (!isNaN(numA) && !isNaN(numB)) {
+            if (numA !== numB) return numB - numA;
+          }
+          if (tokA !== tokB) return tokB.localeCompare(tokA);
+          return 0;
         });
       }
       
