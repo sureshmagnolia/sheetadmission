@@ -150,42 +150,62 @@ function getOrCreateSystemDBSheet() {
           .setFontColor("#ffffff");
       }
     });
-      
-    // --- Auto-migrate Student_Key format from legacy formats to (CAPID|Department) ---
-    var finalHeaders = dbSheet.getRange(1, 1, 1, dbSheet.getLastColumn()).getValues()[0];
-    var keyIdx = findHeaderIndex(finalHeaders, "Student_Key");
-    var capIdx = findHeaderIndex(finalHeaders, "CAPID");
-    var deptIdx = findHeaderIndex(finalHeaders, "Department");
-    
-    if (keyIdx !== -1 && capIdx !== -1 && deptIdx !== -1 && dbSheet.getLastRow() > 1) {
-      var rowCount = dbSheet.getLastRow() - 1;
-      var keyRange = dbSheet.getRange(2, keyIdx + 1, rowCount, 1);
-      var capRange = dbSheet.getRange(2, capIdx + 1, rowCount, 1);
-      var deptRange = dbSheet.getRange(2, deptIdx + 1, rowCount, 1);
-      
-      var keys = keyRange.getValues();
-      var caps = capRange.getValues();
-      var depts = deptRange.getValues();
-      
-      var keysChanged = false;
-      for (var i = 0; i < keys.length; i++) {
-        var c = caps[i][0] ? caps[i][0].toString().trim() : "";
-        var d = depts[i][0] ? depts[i][0].toString().trim() : "";
-        if (c && d) {
-           var expectedKey = c + "|" + d;
-           if (keys[i][0] !== expectedKey) {
-             keys[i][0] = expectedKey;
-             keysChanged = true;
-           }
-        }
-      }
-      if (keysChanged) {
-        keyRange.setValues(keys);
-      }
-    }
-    // --------------------------------------------------------------------------------
   }
   return dbSheet;
+}
+
+// ==============================================================================
+// ONE-TIME MIGRATION SCRIPT
+// Run this function manually from the Apps Script Editor to unify legacy 
+// CAP|Email Student_Key formats to the new CAP|Department format.
+// ==============================================================================
+function migrateLegacyStudentKeys() {
+  var sheet = SpreadsheetApp.getActiveSpreadsheet();
+  var dbSheet = sheet.getSheetByName(SYSTEM_DB_SHEET_NAME);
+  
+  if (!dbSheet) {
+    Logger.log("System_DB sheet not found.");
+    return;
+  }
+  
+  var finalHeaders = dbSheet.getRange(1, 1, 1, dbSheet.getLastColumn()).getValues()[0];
+  var keyIdx = findHeaderIndex(finalHeaders, "Student_Key");
+  var capIdx = findHeaderIndex(finalHeaders, "CAPID");
+  var deptIdx = findHeaderIndex(finalHeaders, "Department");
+  
+  if (keyIdx !== -1 && capIdx !== -1 && deptIdx !== -1 && dbSheet.getLastRow() > 1) {
+    var rowCount = dbSheet.getLastRow() - 1;
+    var keyRange = dbSheet.getRange(2, keyIdx + 1, rowCount, 1);
+    var capRange = dbSheet.getRange(2, capIdx + 1, rowCount, 1);
+    var deptRange = dbSheet.getRange(2, deptIdx + 1, rowCount, 1);
+    
+    var keys = keyRange.getValues();
+    var caps = capRange.getValues();
+    var depts = deptRange.getValues();
+    
+    var keysChanged = false;
+    var updatedCount = 0;
+    for (var i = 0; i < keys.length; i++) {
+      var c = caps[i][0] ? caps[i][0].toString().trim() : "";
+      var d = depts[i][0] ? depts[i][0].toString().trim() : "";
+      if (c && d) {
+         var expectedKey = c + "|" + d;
+         if (keys[i][0] !== expectedKey) {
+           keys[i][0] = expectedKey;
+           keysChanged = true;
+           updatedCount++;
+         }
+      }
+    }
+    if (keysChanged) {
+      keyRange.setValues(keys);
+      Logger.log("Successfully migrated " + updatedCount + " legacy keys.");
+    } else {
+      Logger.log("All keys are already in the correct format. No migration needed.");
+    }
+  } else {
+    Logger.log("Could not perform migration. Ensure Student_Key, CAPID, and Department columns exist and data is present.");
+  }
 }
 
 // onFormSubmit Trigger: Handled live on dashboard verification, no-op for background sync
