@@ -150,6 +150,40 @@ function getOrCreateSystemDBSheet() {
           .setFontColor("#ffffff");
       }
     });
+      
+    // --- Auto-migrate Student_Key format from legacy formats to (CAPID|Department) ---
+    var finalHeaders = dbSheet.getRange(1, 1, 1, dbSheet.getLastColumn()).getValues()[0];
+    var keyIdx = findHeaderIndex(finalHeaders, "Student_Key");
+    var capIdx = findHeaderIndex(finalHeaders, "CAPID");
+    var deptIdx = findHeaderIndex(finalHeaders, "Department");
+    
+    if (keyIdx !== -1 && capIdx !== -1 && deptIdx !== -1 && dbSheet.getLastRow() > 1) {
+      var rowCount = dbSheet.getLastRow() - 1;
+      var keyRange = dbSheet.getRange(2, keyIdx + 1, rowCount, 1);
+      var capRange = dbSheet.getRange(2, capIdx + 1, rowCount, 1);
+      var deptRange = dbSheet.getRange(2, deptIdx + 1, rowCount, 1);
+      
+      var keys = keyRange.getValues();
+      var caps = capRange.getValues();
+      var depts = deptRange.getValues();
+      
+      var keysChanged = false;
+      for (var i = 0; i < keys.length; i++) {
+        var c = caps[i][0] ? caps[i][0].toString().trim() : "";
+        var d = depts[i][0] ? depts[i][0].toString().trim() : "";
+        if (c && d) {
+           var expectedKey = c + "|" + d;
+           if (keys[i][0] !== expectedKey) {
+             keys[i][0] = expectedKey;
+             keysChanged = true;
+           }
+        }
+      }
+      if (keysChanged) {
+        keyRange.setValues(keys);
+      }
+    }
+    // --------------------------------------------------------------------------------
   }
   return dbSheet;
 }
