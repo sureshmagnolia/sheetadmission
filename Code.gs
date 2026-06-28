@@ -370,7 +370,7 @@ function getDepartmentData(department, lastSyncTime) {
         } else if (emailFallbackIndex !== -1 && row[emailFallbackIndex]) {
           email = row[emailFallbackIndex].toString().trim();
         }
-        var studentKey = capid + "|" + email;
+        
         
         var profile = {};
         // 1. Copy raw submission details with trimmed keys
@@ -662,7 +662,7 @@ function getAllDepartmentsData(lastSyncTime) {
       } else if (emailFallbackIndex !== -1 && row[emailFallbackIndex]) {
         email = row[emailFallbackIndex].toString().trim();
       }
-      var studentKey = capid + "|" + email;
+      
       var studentDept = row[deptIndex] ? row[deptIndex].toString().trim() : "";
       processedKeys[capid.toLowerCase() + "|" + studentDept.toLowerCase()] = true;
       
