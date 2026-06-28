@@ -364,50 +364,58 @@
             }
         }
 
-        function fetchFreshData(useProxy = false) {
+        function fetchFreshData(proxyIndex = -1) {
             showLoader();
-            updateStatusText(useProxy ? "Fetching via secure proxy (local mode)..." : "Fetching live data from Google Sheets...");
             
-            if (useProxy) {
-                const proxyUrl = "https://api.allorigins.win/get?url=" + encodeURIComponent(CSV_URL);
-                $.getJSON(proxyUrl, function(data) {
-                    if (data && data.contents) {
-                        Papa.parse(data.contents, {
-                            header: true,
-                            skipEmptyLines: true,
-                            complete: function(results) {
-                                saveAndProcess(results.data);
-                            },
-                            error: function() { proxyFailedFallback(); }
-                        });
-                    } else {
-                        proxyFailedFallback();
-                    }
-                }).fail(function() {
-                    proxyFailedFallback();
-                });
-                return;
-            }
+            const proxies = [
+                "https://api.allorigins.win/raw?url=",
+                "https://api.codetabs.com/v1/proxy?quest=",
+                "https://corsproxy.io/?"
+            ];
 
-            Papa.parse(CSV_URL, {
+            const useProxy = proxyIndex >= 0;
+            updateStatusText(useProxy ? `Fetching via secure proxy fallback ${proxyIndex + 1}...` : "Fetching live data from Google Sheets...");
+            
+            const fetchUrl = useProxy ? proxies[proxyIndex] + encodeURIComponent(CSV_URL) : CSV_URL;
+
+            Papa.parse(fetchUrl, {
                 download: true,
                 header: true,
                 skipEmptyLines: true,
                 complete: function(results) {
-                    const data = results.data;
-                    saveAndProcess(data);
+                    // Check if proxy returned an HTML error page (like Cloudflare 522) instead of CSV
+                    if (useProxy && results.data.length > 0 && results.data[0] && (results.data[0]["<!DOCTYPE html>"] !== undefined || results.data[0]["<html>"] !== undefined)) {
+                        tryNextProxy(proxyIndex);
+                        return;
+                    }
+                    saveAndProcess(results.data);
                 },
                 error: function(err) {
                     console.error("PapaParse Fetch Error:", err);
                     
-                    if (window.location.protocol === 'file:' || err.type === "network" || String(err).includes('ProgressEvent')) {
-                        console.log("CORS block detected. Attempting proxy fallback...");
-                        fetchFreshData(true);
+                    if (!useProxy && (window.location.protocol === 'file:' || err.type === "network" || String(err).includes('ProgressEvent'))) {
+                        console.log("CORS block detected. Attempting first proxy fallback...");
+                        fetchFreshData(0);
                         return;
                     }
-                    proxyFailedFallback();
+                    
+                    if (useProxy) {
+                        tryNextProxy(proxyIndex);
+                    } else {
+                        proxyFailedFallback();
+                    }
                 }
             });
+            
+            function tryNextProxy(currentIndex) {
+                const nextIndex = currentIndex + 1;
+                if (nextIndex < proxies.length) {
+                    console.warn(`Proxy ${currentIndex + 1} failed or returned error page. Trying Proxy ${nextIndex + 1}...`);
+                    fetchFreshData(nextIndex);
+                } else {
+                    proxyFailedFallback();
+                }
+            }
         }
 
         function proxyFailedFallback() {
@@ -421,7 +429,7 @@
                 } catch(e) {}
             } else {
                 hideLoader();
-                alert("Failed to load data (Likely CORS block) and no offline cache available.");
+                alert("Failed to load data natively and all proxy fallbacks failed. The public proxies might be temporarily down.");
             }
         }
 
