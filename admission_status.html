@@ -485,22 +485,44 @@
                 // Skip invalid rows
                 if (!row["Category"]) return;
 
-                // Determine badge color based on category text
-                const catStr = row["Category"].toUpperCase();
-                let badgeClass = "bg-primary";
-                if (catStr.includes("GENERAL") || catStr === "GEN") badgeClass = "bg-primary";
-                else if (catStr.includes("SC")) badgeClass = "bg-danger";
-                else if (catStr.includes("ST")) badgeClass = "bg-warning text-dark";
-                else if (catStr.includes("OBC")) badgeClass = "bg-info text-dark";
-                else if (catStr.includes("MUSLIM") || catStr === "MU") badgeClass = "bg-success";
-                else if (catStr.includes("EZHAVA") || catStr === "EZ") badgeClass = "bg-secondary";
-                else if (catStr.includes("LC") || catStr.includes("AI")) badgeClass = "bg-dark";
-                else badgeClass = "bg-purple"; // fallback
+                const catStr = row["Category"].trim();
+                const upperStr = catStr.toUpperCase();
                 
-                // For fallback if undefined
-                const badgeStyle = badgeClass === "bg-purple" ? "background-color: #8b5cf6; color: white;" : "";
+                // Pre-defined extended palette for common categories
+                const predefinedColors = {
+                    "GENERAL": "#3b82f6",
+                    "GEN": "#3b82f6",
+                    "SC": "#ef4444",
+                    "ST": "#f59e0b",
+                    "OBC": "#10b981",
+                    "MUSLIM": "#059669",
+                    "MU": "#059669",
+                    "EZHAVA": "#8b5cf6",
+                    "EZ": "#8b5cf6",
+                    "LC": "#6366f1",
+                    "LC/AI": "#6366f1",
+                    "AI": "#6366f1",
+                    "EWS": "#0ea5e9",
+                    "OBH": "#d946ef",
+                    "OEC": "#ec4899",
+                    "SPORTS": "#eab308",
+                    "PWD": "#64748b"
+                };
 
-                const categoryBadge = `<span class="badge ${badgeClass} rounded-pill px-3 py-2 shadow-sm" style="${badgeStyle}">${row["Category"]}</span>`;
+                let badgeColor = predefinedColors[upperStr];
+                
+                // If not in predefined list, generate a unique vibrant color via hash
+                if (!badgeColor) {
+                    let hash = 0;
+                    for (let i = 0; i < upperStr.length; i++) {
+                        hash = upperStr.charCodeAt(i) + ((hash << 5) - hash);
+                    }
+                    const h = Math.abs(hash) % 360;
+                    badgeColor = `hsl(${h}, 75%, 45%)`;
+                }
+
+                // Add text shadow to ensure text is readable regardless of color
+                const categoryBadge = `<span class="badge rounded-pill px-3 py-2 shadow-sm" style="background-color: ${badgeColor}; color: white; border: 1px solid rgba(0,0,0,0.1);">${catStr}</span>`;
 
                 const tr = $('<tr></tr>');
                 tr.append(`<td data-label="Category">${categoryBadge}</td>`);
