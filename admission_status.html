@@ -309,12 +309,23 @@
         let currentDepartment = '';
         let interactionsSetup = false;
 
+        // Safe localStorage wrappers to prevent iframe cross-origin crashes
+        function getCache(key) {
+            try { return localStorage.getItem(key); } catch(e) { return null; }
+        }
+        function setCache(key, val) {
+            try { localStorage.setItem(key, val); } catch(e) {}
+        }
+        function removeCache(key) {
+            try { localStorage.removeItem(key); } catch(e) {}
+        }
+
         $(document).ready(function() {
             initData();
 
             $('#refresh-btn').click(function() {
-                localStorage.removeItem(CACHE_KEY);
-                localStorage.removeItem(CACHE_TIME_KEY);
+                removeCache(CACHE_KEY);
+                removeCache(CACHE_TIME_KEY);
                 fetchFreshData();
             });
         });
@@ -338,8 +349,8 @@
         }
 
         function initData() {
-            const cachedTime = localStorage.getItem(CACHE_TIME_KEY);
-            const cachedData = localStorage.getItem(CACHE_KEY);
+            const cachedTime = getCache(CACHE_TIME_KEY);
+            const cachedData = getCache(CACHE_KEY);
             const now = new Date().getTime();
 
             if (cachedData && cachedTime && (now - parseInt(cachedTime)) < CACHE_DURATION_MS) {
@@ -370,7 +381,7 @@
                     updateStatusText("Error fetching data. Check console.", true);
                     
                     // Fallback to offline cache if available
-                    const cachedDataStr = localStorage.getItem(CACHE_KEY);
+                    const cachedDataStr = getCache(CACHE_KEY);
                     if (cachedDataStr) {
                         try {
                             const cachedData = JSON.parse(cachedDataStr);
@@ -387,8 +398,8 @@
 
         function saveAndProcess(data) {
             const now = new Date().getTime();
-            localStorage.setItem(CACHE_KEY, JSON.stringify(data));
-            localStorage.setItem(CACHE_TIME_KEY, now.toString());
+            setCache(CACHE_KEY, JSON.stringify(data));
+            setCache(CACHE_TIME_KEY, now.toString());
             
             updateStatusText("Data just updated.");
             processData(data);
