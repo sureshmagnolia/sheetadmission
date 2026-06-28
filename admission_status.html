@@ -364,11 +364,13 @@
             }
         }
 
-        function fetchFreshData() {
+        function fetchFreshData(useProxy = false) {
             showLoader();
-            updateStatusText("Fetching live data from Google Sheets...");
+            updateStatusText(useProxy ? "Fetching via secure proxy (local mode)..." : "Fetching live data from Google Sheets...");
             
-            Papa.parse(CSV_URL, {
+            const fetchUrl = useProxy ? "https://api.allorigins.win/raw?url=" + encodeURIComponent(CSV_URL) : CSV_URL;
+
+            Papa.parse(fetchUrl, {
                 download: true,
                 header: true,
                 skipEmptyLines: true,
@@ -378,6 +380,14 @@
                 },
                 error: function(err) {
                     console.error("PapaParse Fetch Error:", err);
+                    
+                    // If it failed and we haven't tried the proxy yet, try it now (useful for file:// origin)
+                    if (!useProxy && (window.location.protocol === 'file:' || err.type === "network" || String(err).includes('ProgressEvent'))) {
+                        console.log("CORS block detected. Attempting proxy fallback...");
+                        fetchFreshData(true);
+                        return;
+                    }
+
                     updateStatusText("Error fetching data. Check console.", true);
                     
                     // Fallback to offline cache if available
