@@ -368,9 +368,28 @@
             showLoader();
             updateStatusText(useProxy ? "Fetching via secure proxy (local mode)..." : "Fetching live data from Google Sheets...");
             
-            const fetchUrl = useProxy ? "https://api.allorigins.win/raw?url=" + encodeURIComponent(CSV_URL) : CSV_URL;
+            if (useProxy) {
+                const proxyUrl = "https://api.allorigins.win/get?url=" + encodeURIComponent(CSV_URL);
+                $.getJSON(proxyUrl, function(data) {
+                    if (data && data.contents) {
+                        Papa.parse(data.contents, {
+                            header: true,
+                            skipEmptyLines: true,
+                            complete: function(results) {
+                                saveAndProcess(results.data);
+                            },
+                            error: function() { proxyFailedFallback(); }
+                        });
+                    } else {
+                        proxyFailedFallback();
+                    }
+                }).fail(function() {
+                    proxyFailedFallback();
+                });
+                return;
+            }
 
-            Papa.parse(fetchUrl, {
+            Papa.parse(CSV_URL, {
                 download: true,
                 header: true,
                 skipEmptyLines: true,
@@ -381,29 +400,29 @@
                 error: function(err) {
                     console.error("PapaParse Fetch Error:", err);
                     
-                    // If it failed and we haven't tried the proxy yet, try it now (useful for file:// origin)
-                    if (!useProxy && (window.location.protocol === 'file:' || err.type === "network" || String(err).includes('ProgressEvent'))) {
+                    if (window.location.protocol === 'file:' || err.type === "network" || String(err).includes('ProgressEvent')) {
                         console.log("CORS block detected. Attempting proxy fallback...");
                         fetchFreshData(true);
                         return;
                     }
-
-                    updateStatusText("Error fetching data. Check console.", true);
-                    
-                    // Fallback to offline cache if available
-                    const cachedDataStr = getCache(CACHE_KEY);
-                    if (cachedDataStr) {
-                        try {
-                            const cachedData = JSON.parse(cachedDataStr);
-                            processData(cachedData);
-                            updateStatusText("Network error. Showing cached data.");
-                        } catch(e) {}
-                    } else {
-                        hideLoader();
-                        alert("Failed to load data (Likely CORS block) and no offline cache available.");
-                    }
+                    proxyFailedFallback();
                 }
             });
+        }
+
+        function proxyFailedFallback() {
+            updateStatusText("Error fetching data. Check console.", true);
+            const cachedDataStr = getCache(CACHE_KEY);
+            if (cachedDataStr) {
+                try {
+                    const cachedData = JSON.parse(cachedDataStr);
+                    processData(cachedData);
+                    updateStatusText("Network error. Showing cached data.");
+                } catch(e) {}
+            } else {
+                hideLoader();
+                alert("Failed to load data (Likely CORS block) and no offline cache available.");
+            }
         }
 
         function saveAndProcess(data) {
