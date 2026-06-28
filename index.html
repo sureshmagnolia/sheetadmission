@@ -1306,6 +1306,38 @@
                   </select>
                   <label for="wf-verified-index-mark" style="margin-top: 10px;">Verified Index Mark</label>
                   <input type="number" class="form-control" id="wf-verified-index-mark" style="margin-bottom: 10px;" placeholder="Enter verified index mark" />
+                  
+                  <label for="wf-allotted-category" style="margin-top: 10px;">Allotted Category</label>
+                  <select class="form-control" id="wf-allotted-category" style="margin-bottom: 10px;">
+                    <option value="">-- Select Category --</option>
+                    <option value="OPEN">OPEN</option>
+                    <option value="ETB">ETB</option>
+                    <option value="MU">MU</option>
+                    <option value="LC">LC</option>
+                    <option value="EWS">EWS</option>
+                    <option value="OBH">OBH</option>
+                    <option value="SC">SC</option>
+                    <option value="ST">ST</option>
+                    <option value="TLM">TLM</option>
+                    <option value="SP">SP</option>
+                    <option value="PWD">PWD</option>
+                    <option value="UTL">UTL</option>
+                    <option value="OBX">OBX</option>
+                    <option value="SSQ">SSQ</option>
+                  </select>
+
+                  <div id="wrapper-additional-language" style="display: none;">
+                    <label for="wf-additional-language" style="margin-top: 10px;">Additional Language</label>
+                    <select class="form-control" id="wf-additional-language" style="margin-bottom: 10px;">
+                      <option value="">-- Select Language --</option>
+                      <option value="Arabic">Arabic</option>
+                      <option value="Hindi">Hindi</option>
+                      <option value="Malayalam">Malayalam</option>
+                      <option value="Sanskrit">Sanskrit</option>
+                      <option value="Tamil">Tamil</option>
+                    </select>
+                  </div>
+
                   <label for="wf-faculty-remarks">Faculty Audit & Verification Remarks</label>
                   <textarea class="form-control" id="wf-faculty-remarks" rows="2" placeholder="Input eligibility verification notes..."></textarea>
                 </div>
@@ -2976,6 +3008,13 @@
 
       // Setup inputs depending on user role
        document.getElementById("wf-assigned-slot").value = student["Assigned_Slot"] || "";
+      document.getElementById("wf-allotted-category").value = student["Allotted_Category"] || student["Assigned_Slot"] || "";
+      document.getElementById("wf-additional-language").value = student["Additional_Language"] || "";
+      
+      var prog = (student["Program_Type"] || student["Admission to the Programme"] || "").toString().trim().toUpperCase();
+      var isUG = (prog.indexOf("B") === 0 || prog === "UG");
+      document.getElementById("wrapper-additional-language").style.display = isUG ? "block" : "none";
+
       document.getElementById("wf-verified-index-mark").value = student["Verified_Index_Mark"] || student["Index Marks (as per admit/allotment card)"] || student["Index Mark"] || "";
       document.getElementById("wf-faculty-remarks").value = student["Faculty_Remarks"] || "";
       document.getElementById("wf-nodal-remarks").value = student["Nodal_Remarks"] || "";
@@ -3278,6 +3317,19 @@
       var assignedSlot = document.getElementById("wf-assigned-slot").value;
       var verifiedIndexMark = document.getElementById("wf-verified-index-mark").value;
       
+      var allottedCategory = document.getElementById("wf-allotted-category").value;
+      var additionalLanguage = document.getElementById("wf-additional-language").value;
+      var progType = (activeStudent["Program_Type"] || activeStudent["Admission to the Programme"] || "").toString().trim().toUpperCase();
+      var isUG = progType.indexOf("B") === 0;
+
+      if (!allottedCategory) {
+        showToast("Please select the Allotted Category.", true);
+        return;
+      }
+      if (isUG && !additionalLanguage) {
+        showToast("Please select the Additional Language.", true);
+        return;
+      }
       if (!assignedSlot) {
         showToast("Please assign a slot (Seat Matrix) before verifying.", true);
         return;
@@ -3292,8 +3344,6 @@
       }
       
       // Check if slot is full and warn
-      var progType = (activeStudent["Program_Type"] || activeStudent["Admission to the Programme"] || "").toString().trim().toUpperCase();
-      var isUG = progType.indexOf("B") === 0;
       var deptMatrix = isUG ? seatMatrixUG : seatMatrixPG;
       var deptRow = deptMatrix.find(function(m) { return m.Department === currentSelectedDept; });
       var totalQuota = 0;
@@ -3324,6 +3374,9 @@
       dataToUpdate["Faculty_Remarks"] = remarks;
       dataToUpdate["Assigned_Slot"] = assignedSlot;
       dataToUpdate["Verified_Index_Mark"] = verifiedIndexMark;
+      dataToUpdate["Allotted_Category"] = allottedCategory;
+      dataToUpdate["Additional_Language"] = additionalLanguage;
+      dataToUpdate["Parent_Mobile"] = activeStudent["Parent/Guardian contact number"] || "";
       dataToUpdate["Current_Status"] = "Pending_Nodal";
       
       sendUpdate(dataToUpdate, function(res) {
@@ -3665,6 +3718,9 @@
         dataToUpdate["Faculty_Remarks"] = document.getElementById("wf-faculty-remarks").value;
         dataToUpdate["Assigned_Slot"] = document.getElementById("wf-assigned-slot").value;
         dataToUpdate["Verified_Index_Mark"] = document.getElementById("wf-verified-index-mark").value;
+        dataToUpdate["Allotted_Category"] = document.getElementById("wf-allotted-category").value;
+        dataToUpdate["Additional_Language"] = document.getElementById("wf-additional-language").value;
+        dataToUpdate["Parent_Mobile"] = activeStudent["Parent/Guardian contact number"] || "";
       } else if (userRole === "Nodal Officer") {
         dataToUpdate["Nodal_Remarks"] = document.getElementById("wf-nodal-remarks").value;
       } else if (userRole === "PTA") {

@@ -1,0 +1,545 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Live Admission Status</title>
+    
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    
+    <!-- DataTables CSS -->
+    <link href="https://cdn.datatables.net/1.13.7/css/dataTables.bootstrap5.min.css" rel="stylesheet">
+    <link href="https://cdn.datatables.net/responsive/2.5.0/css/responsive.bootstrap5.min.css" rel="stylesheet">
+    
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8f9fa;
+            color: #334155;
+        }
+
+        .navbar-brand {
+            font-weight: 700;
+            letter-spacing: -0.5px;
+        }
+
+        /* KPI Cards */
+        .kpi-card {
+            border: none;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            transition: transform 0.2s ease-in-out;
+        }
+        
+        .kpi-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .kpi-icon {
+            font-size: 2rem;
+            opacity: 0.8;
+        }
+
+        .bg-primary-gradient { background: linear-gradient(135deg, #4f46e5 0%, #3b82f6 100%); color: white; }
+        .bg-success-gradient { background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; }
+        .bg-warning-gradient { background: linear-gradient(135deg, #f59e0b 0%, #ea580c 100%); color: white; }
+
+        /* Custom Navbar */
+        .navbar-custom {
+            background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+            box-shadow: 0 4px 6px -1px rgba(99, 102, 241, 0.2);
+        }
+
+        /* Vibrant Tabs */
+        .nav-pills .nav-link {
+            color: #64748b;
+            border-radius: 50rem;
+            margin-right: 0.5rem;
+            transition: all 0.3s ease;
+        }
+        .nav-pills .nav-link:hover {
+            background-color: #f1f5f9;
+        }
+        .nav-pills .nav-link.active {
+            background: linear-gradient(135deg, #ec4899 0%, #a855f7 100%);
+            color: white !important;
+            box-shadow: 0 4px 10px -2px rgba(236, 72, 153, 0.4);
+        }
+
+        /* Table Card */
+        .table-card {
+            border: none;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            background: #ffffff;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        /* DataTables Customization */
+        table.dataTable {
+            border-collapse: collapse !important;
+            font-size: 0.95rem;
+        }
+        table.dataTable thead th {
+            background-color: #f8fafc;
+            color: #475569;
+            font-weight: 600;
+            border-bottom: 2px solid #e2e8f0;
+            padding: 10px 12px;
+        }
+        table.dataTable tbody td {
+            padding: 10px 12px;
+            border-bottom: 1px solid #e2e8f0;
+            vertical-align: middle;
+        }
+        table.dataTable tbody tr:hover {
+            background-color: #f1f5f9;
+        }
+
+        /* Mobile Card Style Table */
+        @media (max-width: 767px) {
+            #admissionTable thead {
+                display: none;
+            }
+            #admissionTable tbody tr {
+                display: block;
+                margin-bottom: 1rem;
+                background: #ffffff;
+                border: 1px solid #e2e8f0;
+                border-radius: 10px;
+                box-shadow: 0 2px 4px rgba(0,0,0,0.04);
+                padding: 12px;
+            }
+            #admissionTable tbody td {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                border-bottom: 1px solid #f1f5f9;
+                padding: 8px 4px;
+                text-align: right;
+            }
+            #admissionTable tbody td:last-child {
+                border-bottom: none;
+            }
+            #admissionTable tbody td::before {
+                content: attr(data-label);
+                font-weight: 600;
+                color: #64748b;
+                text-align: left;
+                margin-right: 15px;
+            }
+            .table-card {
+                padding: 10px;
+                background: transparent;
+                box-shadow: none;
+            }
+            /* Align text appropriately in card view */
+            .text-center {
+                text-align: right !important;
+            }
+        }
+
+        .badge-ug { background-color: #e0e7ff; color: #4338ca; }
+        .badge-pg { background-color: #fce7f3; color: #be185d; }
+        
+        /* Status Bar */
+        .status-bar {
+            background: #ffffff;
+            border-radius: 8px;
+            padding: 10px 15px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.9rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .loader-overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(255, 255, 255, 0.9);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+            flex-direction: column;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Loader -->
+    <div id="loader" class="loader-overlay">
+        <div class="spinner-border text-primary" style="width: 3rem; height: 3rem;" role="status">
+            <span class="visually-hidden">Loading...</span>
+        </div>
+        <h5 class="mt-3 text-muted">Fetching Live Admission Data...</h5>
+    </div>
+
+    <!-- Navbar -->
+    <nav class="navbar navbar-expand-lg navbar-dark navbar-custom mb-4 py-3">
+        <div class="container">
+            <a class="navbar-brand fs-4" href="#"><i class="fa-solid fa-graduation-cap me-2 text-warning"></i> Admission Dashboard</a>
+        </div>
+    </nav>
+
+    <div class="container">
+        
+        <!-- Status Bar -->
+        <div class="status-bar">
+            <div>
+                <i class="fa-solid fa-clock text-muted me-1"></i> 
+                <span id="last-updated-text" class="fw-semibold text-secondary">Checking data...</span>
+            </div>
+            <div>
+                <button id="refresh-btn" class="btn btn-sm btn-outline-primary">
+                    <i class="fa-solid fa-arrows-rotate me-1"></i> Force Refresh
+                </button>
+            </div>
+        </div>
+
+        <!-- Program Tabs -->
+        <ul class="nav nav-pills mb-4" id="programTabs" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active fw-semibold px-4" id="ug-tab" data-program="UG" data-bs-toggle="pill" type="button" role="tab" aria-selected="true">UG Programs</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link fw-semibold px-4" id="pg-tab" data-program="PG" data-bs-toggle="pill" type="button" role="tab" aria-selected="false">PG Programs</button>
+            </li>
+        </ul>
+
+        <!-- Department Selector -->
+        <div class="row mb-4">
+            <div class="col-md-6 col-lg-5">
+                <label for="deptDropdown" class="form-label fw-semibold text-secondary"><i class="fa-solid fa-building me-1"></i> Select Department</label>
+                <select id="deptDropdown" class="form-select form-select-lg shadow-sm border-0 bg-white">
+                    <option value="">Loading departments...</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- KPI Cards -->
+        <div class="row mb-4">
+            <div class="col-md-4 mb-3">
+                <div class="card kpi-card bg-primary-gradient h-100">
+                    <div class="card-body d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="text-uppercase mb-1" style="opacity: 0.9;">Total Seats</h6>
+                            <h2 class="mb-0 fw-bold" id="kpi-total-seats">--</h2>
+                        </div>
+                        <div class="kpi-icon"><i class="fa-solid fa-chair"></i></div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4 mb-3">
+                <div class="card kpi-card bg-success-gradient h-100">
+                    <div class="card-body d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="text-uppercase mb-1" style="opacity: 0.9;">Total Filled</h6>
+                            <h2 class="mb-0 fw-bold" id="kpi-total-filled">--</h2>
+                        </div>
+                        <div class="kpi-icon"><i class="fa-solid fa-user-check"></i></div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4 mb-3">
+                <div class="card kpi-card bg-warning-gradient h-100">
+                    <div class="card-body d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="text-uppercase mb-1" style="opacity: 0.9;">Total Vacant</h6>
+                            <h2 class="mb-0 fw-bold" id="kpi-total-vacant">--</h2>
+                        </div>
+                        <div class="kpi-icon"><i class="fa-solid fa-door-open"></i></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Table Container -->
+        <div class="table-card">
+            <h4 class="mb-4 fw-semibold text-dark"><i class="fa-solid fa-table-list text-primary me-2"></i> Category Split</h4>
+            <table id="admissionTable" class="table table-sm table-hover w-100">
+                <thead>
+                    <tr>
+                        <th>Category</th>
+                        <th class="text-center">Total Seats</th>
+                        <th class="text-center">Filled</th>
+                        <th class="text-center">Vacant</th>
+                        <th class="text-center">Lowest Index Mark</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- Populated by JS -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <!-- jQuery (required for DataTables) -->
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <!-- Bootstrap 5 Bundle -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- PapaParse (CSV Parser) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+    <!-- DataTables JS -->
+    <script src="https://cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.7/js/dataTables.bootstrap5.min.js"></script>
+    <script src="https://cdn.datatables.net/responsive/2.5.0/js/dataTables.responsive.min.js"></script>
+    <script src="https://cdn.datatables.net/responsive/2.5.0/js/responsive.bootstrap5.min.js"></script>
+
+    <script>
+        const CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQTEqsjfPiFKan9PIeVgZvnwaaWgh_UZ-L5W-BVuRT3crlkhf5ijLyriSfqGLHIY5ZTnaUX87GlkSdn/pub?gid=728460893&single=true&output=csv";
+        const CACHE_KEY = "admission_data_cache";
+        const CACHE_TIME_KEY = "admission_data_timestamp";
+        const CACHE_DURATION_MS = 30 * 60 * 1000; // 30 minutes
+
+        let dataTableInstance = null;
+        let globalData = [];
+        let currentProgram = 'UG';
+        let currentDepartment = '';
+        let interactionsSetup = false;
+
+        $(document).ready(function() {
+            initData();
+
+            $('#refresh-btn').click(function() {
+                localStorage.removeItem(CACHE_KEY);
+                localStorage.removeItem(CACHE_TIME_KEY);
+                fetchFreshData();
+            });
+        });
+
+        function setupInteractions() {
+            if (interactionsSetup) return;
+            
+            // Tab changes
+            $('button[data-bs-toggle="pill"]').on('shown.bs.tab', function (e) {
+                currentProgram = $(e.target).data('program');
+                renderDashboard();
+            });
+
+            // Dropdown changes
+            $('#deptDropdown').on('change', function() {
+                currentDepartment = $(this).val();
+                renderSelectedDepartment();
+            });
+            
+            interactionsSetup = true;
+        }
+
+        function initData() {
+            const cachedTime = localStorage.getItem(CACHE_TIME_KEY);
+            const cachedData = localStorage.getItem(CACHE_KEY);
+            const now = new Date().getTime();
+
+            if (cachedData && cachedTime && (now - parseInt(cachedTime)) < CACHE_DURATION_MS) {
+                // Use cached data
+                const ageMinutes = Math.floor((now - parseInt(cachedTime)) / 60000);
+                updateStatusText(`Data cached ${ageMinutes} minute(s) ago.`);
+                processCSV(cachedData);
+            } else {
+                // Fetch fresh data
+                fetchFreshData();
+            }
+        }
+
+        function fetchFreshData() {
+            showLoader();
+            updateStatusText("Fetching live data from Google Sheets...");
+            
+            Papa.parse(CSV_URL, {
+                download: true,
+                header: true,
+                skipEmptyLines: true,
+                complete: function(results) {
+                    const data = results.data;
+                    saveAndProcess(data);
+                },
+                error: function(err) {
+                    console.error("PapaParse Fetch Error:", err);
+                    updateStatusText("Error fetching data. Check console.", true);
+                    
+                    // Fallback to offline cache if available
+                    const cachedDataStr = localStorage.getItem(CACHE_KEY);
+                    if (cachedDataStr) {
+                        try {
+                            const cachedData = JSON.parse(cachedDataStr);
+                            processData(cachedData);
+                            updateStatusText("Network error. Showing cached data.");
+                        } catch(e) {}
+                    } else {
+                        hideLoader();
+                        alert("Failed to load data (Likely CORS block) and no offline cache available.");
+                    }
+                }
+            });
+        }
+
+        function saveAndProcess(data) {
+            const now = new Date().getTime();
+            localStorage.setItem(CACHE_KEY, JSON.stringify(data));
+            localStorage.setItem(CACHE_TIME_KEY, now.toString());
+            
+            updateStatusText("Data just updated.");
+            processData(data);
+        }
+
+        function processCSV(cachedDataStr) {
+            try {
+                processData(JSON.parse(cachedDataStr));
+            } catch (e) {
+                console.error("Error parsing cache:", e);
+                fetchFreshData();
+            }
+        }
+
+        function processData(data) {
+            globalData = data;
+            setupInteractions();
+            renderDashboard();
+            hideLoader();
+        }
+
+        function renderDashboard() {
+            // Filter data for the current program
+            const programData = globalData.filter(row => (row["UG/PG"] || "").toUpperCase() === currentProgram);
+            
+            // Extract unique departments
+            const departments = [...new Set(programData.map(row => row["Department"]).filter(d => d))].sort();
+            
+            // Populate dropdown
+            const dropdown = $('#deptDropdown');
+            dropdown.empty();
+            
+            if (departments.length === 0) {
+                dropdown.append('<option value="">No departments available</option>');
+                currentDepartment = '';
+            } else {
+                departments.forEach(dept => {
+                    dropdown.append(`<option value="${dept}">${dept}</option>`);
+                });
+                currentDepartment = departments[0]; // Select the first one by default
+            }
+            
+            // Render the table and KPIs for the selected department
+            renderSelectedDepartment();
+        }
+
+        function renderSelectedDepartment() {
+            if (!currentDepartment) {
+                renderKPIs([]);
+                renderTable([]);
+                return;
+            }
+            
+            // Filter global data for current program AND current department
+            const filteredData = globalData.filter(row => 
+                (row["UG/PG"] || "").toUpperCase() === currentProgram && 
+                row["Department"] === currentDepartment
+            );
+            
+            renderKPIs(filteredData);
+            renderTable(filteredData);
+        }
+
+        function renderKPIs(data) {
+            let totalSeats = 0;
+            let totalFilled = 0;
+            let totalVacant = 0;
+
+            data.forEach(row => {
+                const seats = parseInt(row["Total Seats"]) || 0;
+                const filled = parseInt(row["Filled"]) || 0;
+                const vacant = parseInt(row["Vacant"]) || 0;
+
+                totalSeats += seats;
+                totalFilled += filled;
+                totalVacant += vacant;
+            });
+
+            $('#kpi-total-seats').text(totalSeats.toLocaleString());
+            $('#kpi-total-filled').text(totalFilled.toLocaleString());
+            $('#kpi-total-vacant').text(totalVacant.toLocaleString());
+        }
+
+        function renderTable(data) {
+            // Destroy existing table if it exists to prevent DataTables error on re-initialization
+            if (dataTableInstance) {
+                dataTableInstance.destroy();
+                $('#admissionTable tbody').empty();
+            }
+
+            const tbody = $('#admissionTable tbody');
+            
+            data.forEach(row => {
+                // Skip invalid rows
+                if (!row["Category"]) return;
+
+                // Determine badge color based on category text
+                const catStr = row["Category"].toUpperCase();
+                let badgeClass = "bg-primary";
+                if (catStr.includes("GENERAL") || catStr === "GEN") badgeClass = "bg-primary";
+                else if (catStr.includes("SC")) badgeClass = "bg-danger";
+                else if (catStr.includes("ST")) badgeClass = "bg-warning text-dark";
+                else if (catStr.includes("OBC")) badgeClass = "bg-info text-dark";
+                else if (catStr.includes("MUSLIM") || catStr === "MU") badgeClass = "bg-success";
+                else if (catStr.includes("EZHAVA") || catStr === "EZ") badgeClass = "bg-secondary";
+                else if (catStr.includes("LC") || catStr.includes("AI")) badgeClass = "bg-dark";
+                else badgeClass = "bg-purple"; // fallback
+                
+                // For fallback if undefined
+                const badgeStyle = badgeClass === "bg-purple" ? "background-color: #8b5cf6; color: white;" : "";
+
+                const categoryBadge = `<span class="badge ${badgeClass} rounded-pill px-3 py-2 shadow-sm" style="${badgeStyle}">${row["Category"]}</span>`;
+
+                const tr = $('<tr></tr>');
+                tr.append(`<td data-label="Category">${categoryBadge}</td>`);
+                tr.append(`<td data-label="Total Seats" class="text-center align-middle fs-6">${row["Total Seats"] || "0"}</td>`);
+                tr.append(`<td data-label="Filled" class="text-center text-success fw-bold align-middle fs-6">${row["Filled"] || "0"}</td>`);
+                tr.append(`<td data-label="Vacant" class="text-center text-danger fw-bold align-middle fs-6">${row["Vacant"] || "0"}</td>`);
+                tr.append(`<td data-label="Lowest Index" class="text-center text-muted align-middle fs-6">${row["Lowest Index Mark"] || "-"}</td>`);
+                
+                tbody.append(tr);
+            });
+
+            dataTableInstance = $('#admissionTable').DataTable({
+                responsive: false, // Disabled native responsive to use custom CSS cards
+                pageLength: 25,
+                bLengthChange: false, // hide length change for cleaner UI
+                language: {
+                    search: "<i class='fa-solid fa-search text-muted'></i>",
+                    searchPlaceholder: "Search categories..."
+                }
+            });
+        }
+
+        function updateStatusText(msg, isError = false) {
+            const el = $('#last-updated-text');
+            el.text(msg);
+            if (isError) {
+                el.removeClass('text-secondary').addClass('text-danger');
+            } else {
+                el.removeClass('text-danger').addClass('text-secondary');
+            }
+        }
+
+        function showLoader() {
+            $('#loader').fadeIn(200);
+        }
+
+        function hideLoader() {
+            $('#loader').fadeOut(300);
+        }
+    </script>
+</body>
+</html>
