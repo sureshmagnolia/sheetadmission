@@ -1942,4 +1942,79 @@ function formatDateToDDMMYY(date, tz) {
   }
 }
 
-
+// ==============================================================================
+// ONE-TIME MIGRATION SCRIPT
+// Run this function manually to backfill Parent_Mobile in System_DB from Master Responses
+// ==============================================================================
+function backfillParentMobile() {
+  var sheet = SpreadsheetApp.getActiveSpreadsheet();
+  var dbSheet = sheet.getSheetByName(SYSTEM_DB_SHEET_NAME);
+  var masterSheet = getMasterSheet(sheet);
+  
+  if (!dbSheet || !masterSheet) {
+    Logger.log("System_DB or Master sheet not found.");
+    return;
+  }
+  
+  var masterHeaders = masterSheet.getRange(1, 1, 1, masterSheet.getLastColumn()).getValues()[0];
+  var mCapIdx = findHeaderIndex(masterHeaders, KEY_HEADER);
+  var mMobileIdx = findHeaderIndex(masterHeaders, "Parent/Guardian contact number");
+  
+  if (mCapIdx === -1 || mMobileIdx === -1) {
+    Logger.log("Missing CAP ID or Parent/Guardian contact number in master sheet.");
+    return;
+  }
+  
+  var masterData = (masterSheet.getLastRow() > 1) ? masterSheet.getRange(2, 1, masterSheet.getLastRow() - 1, masterSheet.getLastColumn()).getValues() : [];
+  var mobileMap = {};
+  
+  masterData.forEach(function(row) {
+    var capid = row[mCapIdx] ? row[mCapIdx].toString().trim().toLowerCase() : "";
+    var mobile = row[mMobileIdx] ? row[mMobileIdx].toString().trim() : "";
+    if (capid && mobile) {
+      mobileMap[capid] = mobile;
+    }
+  });
+  
+  var dbHeaders = dbSheet.getRange(1, 1, 1, dbSheet.getLastColumn()).getValues()[0];
+  var dbCapIdx = findHeaderIndex(dbHeaders, "CAPID");
+  var dbMobileIdx = findHeaderIndex(dbHeaders, "Parent_Mobile");
+  
+  if (dbCapIdx === -1 || dbMobileIdx === -1) {
+    Logger.log("Missing CAPID or Parent_Mobile in System_DB.");
+    return;
+  }
+  
+  if (dbSheet.getLastRow() > 1) {
+    var rowCount = dbSheet.getLastRow() - 1;
+    var capRange = dbSheet.getRange(2, dbCapIdx + 1, rowCount, 1);
+    var mobileRange = dbSheet.getRange(2, dbMobileIdx + 1, rowCount, 1);
+    
+    var caps = capRange.getValues();
+    var mobiles = mobileRange.getValues();
+    
+    var updatedCount = 0;
+    var isChanged = false;
+    
+    for (var i = 0; i < caps.length; i++) {
+      var c = caps[i][0] ? caps[i][0].toString().trim().toLowerCase() : "";
+      var m = mobiles[i][0] ? mobiles[i][0].toString().trim() : "";
+      
+      // If the DB mobile is empty, but we found it in the master sheet, update it
+      if (c && !m && mobileMap[c]) {
+        mobiles[i][0] = mobileMap[c];
+        updatedCount++;
+        isChanged = true;
+      }
+    }
+    
+    if (isChanged) {
+      mobileRange.setValues(mobiles);
+      Logger.log("Successfully backfilled " + updatedCount + " Parent_Mobile entries.");
+    } else {
+      Logger.log("No empty Parent_Mobile entries found that needed backfilling.");
+    }
+  } else {
+    Logger.log("System_DB is empty.");
+  }
+}
