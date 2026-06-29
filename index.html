@@ -2489,6 +2489,16 @@
             if (modA !== modB) {
               return modB - modA; // Descending (most recently modified at top)
             }
+          } else if (currentTab === "pending" && (userRole === "Nodal Officer" || userRole === "PTA" || userRole === "Principal")) {
+            // Pending lists for central desks sort by Token Number (1st to Last - Ascending)
+            var tokA = (a["Token_Number"] || "").toString().trim();
+            var tokB = (b["Token_Number"] || "").toString().trim();
+            var numA = parseInt(tokA.replace(/\D/g, ''), 10);
+            var numB = parseInt(tokB.replace(/\D/g, ''), 10);
+            if (!isNaN(numA) && !isNaN(numB)) {
+              if (numA !== numB) return numA - numB;
+            }
+            if (tokA !== tokB) return tokA.localeCompare(tokB);
           } else if (currentTab !== "pending") {
             // Completed lists (Department, Nodal, PTA) sort by Token Number (Last to 1st)
             var tokA = (a["Token_Number"] || "").toString().trim();
@@ -5242,9 +5252,15 @@
       
       if (currentTab === "pending") {
         filtered.sort(function(a, b) {
-          var tokA = a["Token_Number"] || "";
-          var tokB = b["Token_Number"] || "";
-          return tokA.localeCompare(tokB);
+          var tokA = (a["Token_Number"] || "").toString().trim();
+          var tokB = (b["Token_Number"] || "").toString().trim();
+          var numA = parseInt(tokA.replace(/\D/g, ''), 10);
+          var numB = parseInt(tokB.replace(/\D/g, ''), 10);
+          if (!isNaN(numA) && !isNaN(numB)) {
+            if (numA !== numB) return numA - numB;
+          }
+          if (tokA !== tokB) return tokA.localeCompare(tokB);
+          return 0;
         });
       } else if (currentTab !== "admission-register") {
         filtered.sort(function(a, b) {
