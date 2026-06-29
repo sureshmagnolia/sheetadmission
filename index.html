@@ -3393,7 +3393,7 @@
         activeStudent["Assigned_Slot"] = assignedSlot;
         activeStudent["Verified_Index_Mark"] = verifiedIndexMark;
         setupWorkflowButtons(activeStudent);
-        switchTab(currentTab);
+        loadDepartmentData();
       });
     }
 
@@ -3408,7 +3408,7 @@
       sendUpdate(dataToUpdate, function(res) {
         showToast("Approved and forwarded to PTA Desk.");
         closeModal();
-        switchTab(currentTab);
+        loadDepartmentData();
       });
     }
 
@@ -3426,7 +3426,7 @@
       sendUpdate(dataToUpdate, function(res) {
         showToast("Student reverted to Faculty Desk.");
         closeModal();
-        switchTab(currentTab);
+        loadDepartmentData();
       });
     }
 
@@ -3471,7 +3471,7 @@
         setupWorkflowButtons(activeStudent);
         printPTAReceipt();
         // Defer data reload until after receipt tab is opened to avoid blocking UI
-        setTimeout(function() { switchTab(currentTab); }, 1500);
+        setTimeout(function() { loadDepartmentData(); }, 1500);
       });
     }
 
@@ -3496,7 +3496,7 @@
         activeStudent["Principal_Remarks"] = remarks;
         activeStudent["Current_Status"] = "Admitted";
         setupWorkflowButtons(activeStudent);
-        setTimeout(function() { switchTab(currentTab); }, 800);
+        setTimeout(function() { loadDepartmentData(); }, 800);
       });
     }
 
@@ -3571,7 +3571,7 @@
         activeStudent["Principal_Remarks"] = remarks;
         activeStudent["Current_Status"] = "TC Issued";
         closeTCIssueModal();
-        setTimeout(function() { switchTab(currentTab); }, 800);
+        setTimeout(function() { loadDepartmentData(); }, 800);
       });
     }
 
@@ -3589,7 +3589,7 @@
         showToast("TC cancelled successfully. Student reverted to Admitted status.");
         activeStudent["Current_Status"] = "Admitted";
         closeModal();
-        setTimeout(function() { switchTab(currentTab); }, 800);
+        setTimeout(function() { loadDepartmentData(); }, 800);
       });
     }
 
@@ -3664,7 +3664,7 @@
         activeStudent["Assigned_Slot"] = newSlot;
         document.getElementById("change-slot-container").style.display = "none";
         setupWorkflowButtons(activeStudent);
-        switchTab(currentTab);
+        loadDepartmentData();
       });
     }
 
@@ -3705,7 +3705,7 @@
       sendUpdate(dataToUpdate, function(res) {
         showToast("Student reverted successfully to " + newStatus.replace('_', ' '));
         closeModal();
-        switchTab(currentTab);
+        loadDepartmentData();
       });
     }
 
@@ -3744,7 +3744,7 @@
             activeStudent[key] = dataToUpdate[key];
           }
         }
-        switchTab(currentTab);
+        loadDepartmentData();
       });
     }
 
