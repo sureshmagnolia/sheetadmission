@@ -2874,6 +2874,23 @@
 
       // Apply PTA desk privacy controls - only show essential fields, hide photo container
       var fieldsToDisplay = [].concat(displayFields);
+      
+      // Inject Admission Number for Principal so they can edit it in the admission register
+      if (userRole === "Principal") {
+        var deptIndex = -1;
+        for (var i = 0; i < fieldsToDisplay.length; i++) {
+          if (fieldsToDisplay[i].key === "Admission to the Department") {
+            deptIndex = i;
+            break;
+          }
+        }
+        if (deptIndex !== -1) {
+          fieldsToDisplay.splice(deptIndex + 1, 0, { key: "Admission_Number", label: "College Admission Number" });
+        } else {
+          fieldsToDisplay.unshift({ key: "Admission_Number", label: "College Admission Number" });
+        }
+      }
+
       if (userRole === "PTA") {
         photoBox.style.display = "none";
         var ptaAllowed = [
