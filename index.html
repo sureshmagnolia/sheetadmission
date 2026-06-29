@@ -2433,7 +2433,7 @@
         var status = s["Current_Status"] || "Pending_Faculty";
         
         var progType = (s["Program_Type"] || s["Admission to the Programme"] || "").toString().trim().toUpperCase();
-        var isUG = progType.indexOf("B") === 0;
+        var isUG = (progType.indexOf("B") === 0 || progType === "UG");
         
         if (currentTab === "completed-ug" && !isUG) return false;
         if (currentTab === "completed-pg" && isUG) return false;
@@ -2609,7 +2609,7 @@
         if (status === "Pending_Faculty" || status.includes("Reverted") || status === "Pending_Nodal") {
           var dept = (s["Department"] || s["Admission to the Department"] || "Unknown").toString().trim();
           var progType = (s["Program_Type"] || s["Admission to the Programme"] || "").toString().trim().toUpperCase();
-          var isUG = progType.indexOf("B") === 0; // Starts with B (BA, BSc, BCom)
+          var isUG = (progType.indexOf("B") === 0 || progType === "UG"); // Starts with B (BA, BSc, BCom)
           
           if (!deptMap[dept]) {
             deptMap[dept] = {
@@ -3347,7 +3347,7 @@
       var allottedCategory = document.getElementById("wf-allotted-category").value;
       var additionalLanguage = document.getElementById("wf-additional-language").value;
       var progType = (activeStudent["Program_Type"] || activeStudent["Admission to the Programme"] || "").toString().trim().toUpperCase();
-      var isUG = progType.indexOf("B") === 0;
+      var isUG = (progType.indexOf("B") === 0 || progType === "UG");
 
       if (!allottedCategory) {
         showToast("Please select the Allotted Category.", true);
@@ -3383,7 +3383,7 @@
         var status = s["Current_Status"];
         if (status && status !== "Pending_Faculty" && !status.includes("Reverted")) {
           var sProgType = (s["Program_Type"] || s["Admission to the Programme"] || "").toString().trim().toUpperCase();
-          var sIsUG = sProgType.indexOf("B") === 0;
+          var sIsUG = (sProgType.indexOf("B") === 0 || sProgType === "UG");
           if (sIsUG === isUG) {
              var sAssigned = (s["Assigned_Slot"] || "").toString().trim().toUpperCase();
              if (sAssigned === assignedSlot) filledSeats++;
@@ -4437,7 +4437,7 @@
           if (assigned) {
             var normAssigned = assigned.toString().trim().toUpperCase();
             var progType = (s["Program_Type"] || s["Admission to the Programme"] || "").toString().trim().toUpperCase();
-            var isUG = progType.indexOf("B") === 0;
+            var isUG = (progType.indexOf("B") === 0 || progType === "UG");
             if (isUG) {
               if (filledUG[normAssigned] !== undefined) {
                 filledUG[normAssigned]++;
@@ -4846,7 +4846,7 @@
             if (!stats[bucket][status]) stats[bucket][status] = { UG: 0, PG: 0 };
             
             var program = (s["Program_Type"] || s["Admission to the Programme"] || "").toString().trim().toUpperCase();
-            var pType = program.indexOf("B") === 0 ? "UG" : "PG";
+            var pType = (program.indexOf("B") === 0 || program === "UG") ? "UG" : "PG";
             stats[bucket][status][pType]++;
         });
         
@@ -5096,7 +5096,7 @@
       var pgStudents = [];
       studentsList.forEach(function(st) {
         var progType = (st.Program_Type || "").toString().trim().toUpperCase();
-        if (progType.indexOf("B") === 0) {
+        if (progType.indexOf("B") === 0 || progType === "UG") {
           ugStudents.push(st);
         } else {
           pgStudents.push(st);
@@ -5570,7 +5570,7 @@
         // Calculate Batch based on Admission Year
         var yr = s["Year_of_Admission"] || s["Year of Admission"] || new Date().getFullYear();
         var progType = (s["Program_Type"] || s["Admission to the Programme"] || "").toString().trim().toUpperCase();
-        var isUG = progType.indexOf("B") === 0;
+        var isUG = (progType.indexOf("B") === 0 || progType === "UG");
         var batch = isUG ? (yr + "-" + (parseInt(yr) + 3)) : (yr + "-" + (parseInt(yr) + 2));
         
         // Calculate Validity Date (UG: 4 academic years, PG: 2 academic years, ending May 31st)
