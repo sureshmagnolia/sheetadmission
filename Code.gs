@@ -1015,18 +1015,17 @@ function updateStudentData(department, capid, email, updatedData, operatorRole, 
       var deptColIdx = findHeaderIndex(dbHeaders, "Department");
       var capidColIdx = findHeaderIndex(dbHeaders, "CAPID");
       
-      var dbValuesAll2 = dbSheet.getRange(2, 1, dbSheet.getLastRow() - 1, dbHeaders.length).getValues();
-      for (var r = 0; r < dbValuesAll2.length; r++) {
-        var rowCid = dbValuesAll2[r][capidColIdx] ? dbValuesAll2[r][capidColIdx].toString().trim().toLowerCase() : "";
-        var rowDept = dbValuesAll2[r][deptColIdx] ? dbValuesAll2[r][deptColIdx].toString().trim().toLowerCase() : "";
-        var rowStatus = dbValuesAll2[r][statusColIdx] ? dbValuesAll2[r][statusColIdx].toString().trim() : "";
+      for (var r = 0; r < dbValuesAll.length; r++) {
+        var rowCid = dbValuesAll[r][capidColIdx] ? dbValuesAll[r][capidColIdx].toString().trim().toLowerCase() : "";
+        var rowDept = dbValuesAll[r][deptColIdx] ? dbValuesAll[r][deptColIdx].toString().trim().toLowerCase() : "";
+        var rowStatus = dbValuesAll[r][statusColIdx] ? dbValuesAll[r][statusColIdx].toString().trim() : "";
         
         if (rowCid === capidLower && rowDept !== deptLower && rowStatus === "Admitted") {
           var otherRowIdx = r + 2;
           var otherRowRange = dbSheet.getRange(otherRowIdx, 1, 1, dbHeaders.length);
           var otherRowVals = otherRowRange.getValues()[0];
           
-          otherRowVals[statusColIdx] = "TC Issued";
+          otherRowVals[statusColIdx] = "Transferred Out";
           
           var otherTcCol = findHeaderIndex(dbHeaders, "Date_of_TC");
           var otherTransferCol = findHeaderIndex(dbHeaders, "Date_of_Transfer");
@@ -1036,7 +1035,7 @@ function updateStudentData(department, capid, email, updatedData, operatorRole, 
           if (otherTransferCol !== -1) otherRowVals[otherTransferCol] = dateFormatted;
           
           otherRowRange.setValues([otherRowVals]);
-          logActivity(capid, email, studentName, rowDept, "Admitted", "TC Issued", "System (Transfer)", operatorDept, "TC auto-issued due to department transfer to " + department);
+          logActivity(capid, email, studentName, rowDept, "Admitted", "Transferred Out", "System (Transfer)", operatorDept, "Record archived as Transferred Out due to transfer to " + department);
           break;
         }
       }

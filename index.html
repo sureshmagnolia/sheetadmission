@@ -2922,9 +2922,22 @@
           val = formatDateToYYYYMMDD(val);
         }
         
+        var lowerLabel = f.label.toLowerCase();
+        var inputStyle = "";
+        
+        if (lowerLabel.includes("name") || lowerLabel.includes("email") || lowerLabel.includes("mobile") || lowerLabel.includes("dob") || lowerLabel.includes("gender") || lowerLabel.includes("address") || lowerLabel.includes("aadhaar") || lowerLabel.includes("religion") || lowerLabel.includes("caste") || lowerLabel.includes("family") || lowerLabel.includes("income") || lowerLabel.includes("parent") || lowerLabel.includes("pwd")) {
+          inputStyle = "background-color: rgba(59, 130, 246, 0.05) !important; border-left: 3px solid #3b82f6 !important;";
+        } else if (lowerLabel.includes("program") || lowerLabel.includes("department") || lowerLabel.includes("category") || lowerLabel.includes("index") || lowerLabel.includes("institution") || lowerLabel.includes("semester") || lowerLabel.includes("promotion")) {
+          inputStyle = "background-color: rgba(16, 185, 129, 0.05) !important; border-left: 3px solid #10b981 !important;";
+        } else if (lowerLabel.includes("file") || lowerLabel.includes("certificate") || lowerLabel.includes("receipt") || lowerLabel.includes("card") || lowerLabel.includes("form") || lowerLabel.includes("tc") || lowerLabel.includes("mark list") || lowerLabel.includes("ncc") || lowerLabel.includes("nss") || lowerLabel.includes("arts") || lowerLabel.includes("dependent")) {
+          inputStyle = "background-color: rgba(245, 158, 11, 0.05) !important; border-left: 3px solid #f59e0b !important;";
+        } else if (lowerLabel.includes("pta") || lowerLabel.includes("fee") || lowerLabel.includes("amount") || lowerLabel.includes("fund") || lowerLabel.includes("dues")) {
+          inputStyle = "background-color: rgba(139, 92, 246, 0.05) !important; border-left: 3px solid #8b5cf6 !important;";
+        }
+        
         if (f.key === "Actual Category") {
           var selectHtml = "<label>" + f.label + "</label>" +
-                           "<select class='form-control readonly-field' data-field='" + f.key + "' disabled>";
+                           "<select class='form-control readonly-field' data-field='" + f.key + "' style='" + inputStyle + "' disabled>";
           Object.keys(casteData).forEach(function(cat) {
             var selected = (val.toString().trim() === cat) ? "selected" : "";
             selectHtml += "<option value='" + cat + "' " + selected + ">" + cat + "</option>";
@@ -2933,18 +2946,18 @@
           group.innerHTML = selectHtml;
         } else if (f.key === "Caste") {
           group.innerHTML = "<label>" + f.label + "</label>" +
-                            "<select class='form-control readonly-field' data-field='" + f.key + "' disabled></select>" +
-                            "<input type='text' class='form-control readonly-field' id='custom-caste-input' placeholder='Enter custom caste' style='display: none; margin-top: 5px;' readonly />";
+                            "<select class='form-control readonly-field' data-field='" + f.key + "' style='" + inputStyle + "' disabled></select>" +
+                            "<input type='text' class='form-control readonly-field' id='custom-caste-input' placeholder='Enter custom caste' style='display: none; margin-top: 5px; " + inputStyle + "' readonly />";
         } else {
           var isLink = val.toString().trim().indexOf("http") === 0;
           var linkHtml = isLink ? " <a href='" + val + "' target='_blank' class='btn btn-secondary btn-sm' style='margin-top: 5px; display: inline-block; padding: 2px 8px; font-size: 0.8rem;'>View File ↗</a>" : "";
           if (isDateField) {
             group.innerHTML = "<label>" + f.label + "</label>" +
-                              "<input type='date' class='form-control readonly-field' data-field='" + f.key + "' value='" + val + "' readonly disabled />" +
+                              "<input type='date' class='form-control readonly-field' data-field='" + f.key + "' value='" + val + "' style='" + inputStyle + "' readonly disabled />" +
                               linkHtml;
           } else {
             group.innerHTML = "<label>" + f.label + "</label>" +
-                              "<input type='text' class='form-control readonly-field' data-field='" + f.key + "' value='" + val + "' readonly />" +
+                              "<input type='text' class='form-control readonly-field' data-field='" + f.key + "' value='" + val + "' style='" + inputStyle + "' readonly />" +
                               linkHtml;
           }
         }
@@ -3032,8 +3045,12 @@
       
       if (student["Already_Admitted_Dept"] && !student["Admission_Number"]) {
         document.getElementById("wf-admission-number").value = student["Old_Admission_Number"] || "";
+        document.getElementById("wf-admission-number").readOnly = true;
+        document.getElementById("wf-admission-number").style.backgroundColor = "rgba(255,255,255,0.05)";
       } else {
         document.getElementById("wf-admission-number").value = student["Admission_Number"] || "";
+        document.getElementById("wf-admission-number").readOnly = false;
+        document.getElementById("wf-admission-number").style.backgroundColor = "";
       }
       
       document.getElementById("wf-tc-number").value = student["Token_Number"] || "";
@@ -3298,7 +3315,7 @@
       else if (userRole === "Principal") {
         if (status === "Pending_Principal") {
           // Step 1: Admit Student (enters admission number)
-          var btnText = student["Already_Admitted_Dept"] ? "&#10003; Transfer & Admit Student" : "&#10003; Admit Student";
+          var btnText = student["Already_Admitted_Dept"] ? "&#10003; Authenticate Transfer" : "&#10003; Admit Student";
           container.innerHTML = "<button class='btn btn-success' onclick='principalAdmitStudent()'>" + btnText + "</button>" +
                                 "<button class='btn btn-danger' onclick='triggerRevertFlow(\"Pending_Principal\")'>Revert Student</button>";
         } else {
@@ -3501,7 +3518,11 @@
       dataToUpdate["Current_Status"] = "Admitted";
       
       sendUpdate(dataToUpdate, function(res) {
-        showToast("Student Admitted successfully! (Adm No: " + admNo + ")");
+        if (activeStudent["Already_Admitted_Dept"]) {
+          showToast("Student Transfer Authenticated successfully! (Adm No: " + admNo + ")");
+        } else {
+          showToast("Student Admitted successfully! (Adm No: " + admNo + ")");
+        }
         activeStudent["Admission_Number"] = admNo;
         activeStudent["Principal_Remarks"] = remarks;
         activeStudent["Current_Status"] = "Admitted";
