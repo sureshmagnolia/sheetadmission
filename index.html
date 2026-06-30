@@ -490,12 +490,18 @@
       text-transform: uppercase;
       letter-spacing: 0.5px;
       border-bottom: 2px solid var(--card-border);
+      white-space: normal;
+      word-wrap: break-word;
+      word-break: break-word;
     }
 
     td {
       padding: 1rem;
       border-bottom: 1px solid var(--card-border);
       font-size: 0.95rem;
+      white-space: normal;
+      word-wrap: break-word;
+      word-break: break-word;
     }
 
     tr {
@@ -2910,10 +2916,11 @@
         photoBox.style.display = "block";
       }
 
-      // Render a transfer alert banner if the student's sheet department is different from their System_DB department
-      var systemDept = student["System_Department"];
-      var formDept = student["Admission to the Department"] || student["Department"];
-      if (systemDept && formDept && systemDept.trim().toLowerCase() !== formDept.trim().toLowerCase()) {
+      // Render a transfer alert banner if the student's sheet department is different from their Admitted department
+      var formDept = student["Admission to the Department"] || student["Department"] || "";
+      var oldDept = student["Already_Admitted_Dept"] || "";
+      
+      if (oldDept && formDept && oldDept.trim().toLowerCase() !== formDept.trim().toLowerCase()) {
         var transferAlert = document.createElement("div");
         transferAlert.className = "alert alert-warning";
         transferAlert.style.marginBottom = "15px";
@@ -2925,11 +2932,11 @@
         transferAlert.style.fontSize = "0.9rem";
         transferAlert.style.fontWeight = "500";
         transferAlert.style.gridColumn = "1 / -1";
-        transferAlert.innerHTML = "⚠️ <strong>Transfer Request:</strong> This student is requesting a department transfer from <strong>" + systemDept + "</strong> to <strong>" + formDept + "</strong>. Please verify their details for the new department. The transfer will be finalized in System_DB upon Principal approval.";
+        transferAlert.innerHTML = "⚠️ <strong>Department Change Detected:</strong> This student is requesting a department change from <strong>" + oldDept + "</strong> to <strong>" + formDept + "</strong>. Please verify their details for the new department.";
         container.appendChild(transferAlert);
       }
 
-      fieldsToDisplay.forEach(function(f) {
+      fieldsToDisplay.forEach(function(f, index) {
         var group = document.createElement("div");
         group.className = "form-group";
         
@@ -2940,6 +2947,7 @@
         }
         
         var lowerLabel = f.label.toLowerCase();
+        var numberedLabel = (index + 1) + ". " + f.label;
         var inputStyle = "";
         
         if (lowerLabel.includes("name") || lowerLabel.includes("email") || lowerLabel.includes("mobile") || lowerLabel.includes("dob") || lowerLabel.includes("gender") || lowerLabel.includes("address") || lowerLabel.includes("aadhaar") || lowerLabel.includes("religion") || lowerLabel.includes("caste") || lowerLabel.includes("family") || lowerLabel.includes("income") || lowerLabel.includes("parent") || lowerLabel.includes("pwd")) {
@@ -2953,7 +2961,7 @@
         }
         
         if (f.key === "Actual Category") {
-          var selectHtml = "<label>" + f.label + "</label>" +
+          var selectHtml = "<label>" + numberedLabel + "</label>" +
                            "<select class='form-control readonly-field' data-field='" + f.key + "' style='" + inputStyle + "' disabled>";
           Object.keys(casteData).forEach(function(cat) {
             var selected = (val.toString().trim() === cat) ? "selected" : "";
@@ -2962,18 +2970,18 @@
           selectHtml += "</select>";
           group.innerHTML = selectHtml;
         } else if (f.key === "Caste") {
-          group.innerHTML = "<label>" + f.label + "</label>" +
+          group.innerHTML = "<label>" + numberedLabel + "</label>" +
                             "<select class='form-control readonly-field' data-field='" + f.key + "' style='" + inputStyle + "' disabled></select>" +
                             "<input type='text' class='form-control readonly-field' id='custom-caste-input' placeholder='Enter custom caste' style='display: none; margin-top: 5px; " + inputStyle + "' readonly />";
         } else {
           var isLink = val.toString().trim().indexOf("http") === 0;
           var linkHtml = isLink ? " <a href='" + val + "' target='_blank' class='btn btn-secondary btn-sm' style='margin-top: 5px; display: inline-block; padding: 2px 8px; font-size: 0.8rem;'>View File ↗</a>" : "";
           if (isDateField) {
-            group.innerHTML = "<label>" + f.label + "</label>" +
+            group.innerHTML = "<label>" + numberedLabel + "</label>" +
                               "<input type='date' class='form-control readonly-field' data-field='" + f.key + "' value='" + val + "' style='" + inputStyle + "' readonly disabled />" +
                               linkHtml;
           } else {
-            group.innerHTML = "<label>" + f.label + "</label>" +
+            group.innerHTML = "<label>" + numberedLabel + "</label>" +
                               "<input type='text' class='form-control readonly-field' data-field='" + f.key + "' value='" + val + "' style='" + inputStyle + "' readonly />" +
                               linkHtml;
           }
