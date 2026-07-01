@@ -1076,6 +1076,7 @@
         <button class="tab-btn" id="tab-analytics-btn" onclick="switchTab('analytics')" style="background: none; border: none; color: var(--text-muted); font-weight: 500; padding: 10px 0; border-bottom: 2px solid transparent; cursor: pointer; font-size: 0.95rem; transition: var(--transition);">Analytics Dashboard</button>
         <button class="tab-btn" id="tab-waiting-btn" onclick="switchTab('waiting')" style="display: none; background: none; border: none; color: var(--text-muted); font-weight: 500; padding: 10px 0; border-bottom: 2px solid transparent; cursor: pointer; font-size: 0.95rem; transition: var(--transition);">Waiting Queue</button>
         <button class="tab-btn" id="tab-statistics-btn" onclick="switchTab('statistics')" style="display: none; background: none; border: none; color: var(--text-muted); font-weight: 500; padding: 10px 0; border-bottom: 2px solid transparent; cursor: pointer; font-size: 0.95rem; transition: var(--transition);">Statistics</button>
+        <button class="tab-btn" id="tab-reverted-btn" onclick="switchTab('reverted')" style="display: none; background: none; border: none; color: var(--text-muted); font-weight: 500; padding: 10px 0; border-bottom: 2px solid transparent; cursor: pointer; font-size: 0.95rem; transition: var(--transition);">Reverted to Dept</button>
       </div>
 
       <!-- PTA Summary Widget for PTA Desk -->
@@ -2145,6 +2146,8 @@
         if (waitingBtn) waitingBtn.style.display = "block";
         var statsBtn = document.getElementById("tab-statistics-btn");
         if (statsBtn) statsBtn.style.display = "block";
+        var revertedBtn = document.getElementById("tab-reverted-btn");
+        if (revertedBtn) revertedBtn.style.display = "block";
       } else if (userRole === "Principal") {
         if (dashboardTabs) dashboardTabs.style.display = "flex";
         if (idCardsBtn) idCardsBtn.style.display = "inline-block";
@@ -2453,6 +2456,8 @@
         } else if (userRole === "Nodal Officer") {
           if (currentTab === "pending") {
             return status === "Pending_Nodal";
+          } else if (currentTab === "reverted") {
+            return status === "Pending_Faculty (Reverted)";
           } else {
             return status === "Pending_PTA" || status === "Pending_Principal" || status === "Admitted" || status === "TC Issued";
           }
@@ -4704,9 +4709,10 @@
         var analyticsBtn = document.getElementById("tab-analytics-btn");
         var waitingBtn = document.getElementById("tab-waiting-btn");
         var statsBtn = document.getElementById("tab-statistics-btn");
+        var revertedBtn = document.getElementById("tab-reverted-btn");
         
         // Reset all buttons
-        [pendingBtn, completedUgBtn, completedPgBtn, admissionRegisterBtn, analyticsBtn, waitingBtn, statsBtn].forEach(function(btn) {
+        [pendingBtn, completedUgBtn, completedPgBtn, admissionRegisterBtn, analyticsBtn, waitingBtn, statsBtn, revertedBtn].forEach(function(btn) {
           if (btn) {
             btn.style.color = "var(--text-muted)";
             btn.style.fontWeight = "500";
@@ -4761,6 +4767,7 @@
           if (tab === 'completed-ug') activeBtn = completedUgBtn;
           else if (tab === 'completed-pg') activeBtn = completedPgBtn;
           else if (tab === 'admission-register') activeBtn = admissionRegisterBtn;
+          else if (tab === 'reverted') activeBtn = revertedBtn;
           
           if (activeBtn) {
             activeBtn.style.color = "var(--text-main)";
@@ -5277,6 +5284,8 @@
         } else if (userRole === "Nodal Officer") {
           if (currentTab === "pending") {
             return status === "Pending_Nodal";
+          } else if (currentTab === "reverted") {
+            return status === "Pending_Faculty (Reverted)";
           } else {
             return status === "Pending_PTA" || status === "Pending_Principal" || status === "Admitted" || status === "TC Issued";
           }
