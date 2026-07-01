@@ -948,6 +948,9 @@
         border-left: none !important;
         border-top: 1px solid var(--card-border);
       }
+      .hide-on-mobile {
+        display: none !important;
+      }
     }
   </style>
 </head>
@@ -1116,6 +1119,7 @@
                 <th>CAPID</th>
                 <th>Name</th>
                 <th id="col-dept" style="display:none;">Dept</th>
+                <th>Category</th>
                 <th>Email</th>
                 <th>Index Mark</th>
                 <th>Verified Index</th>
@@ -2349,18 +2353,23 @@
           waCell = "<td style='text-align: center; color: var(--text-muted);'>-</td>";
         }
 
+        var isPTAPrincipal = (userRole === "PTA" || userRole === "Principal");
+        var hideMobileClass = isPTAPrincipal ? " class='hide-on-mobile'" : "";
+        var category = s["Allotted_Category"] || s["Category"] || "-";
+
         tr.innerHTML = waCell +
                        "<td data-label='Adm No'><strong>" + admNo + "</strong></td>" +
                        "<td data-label='Token'><strong>" + token + "</strong></td>" +
                        "<td data-label='CAP ID'>" + capid + "</td>" +
                        "<td data-label='Name'>" + name + "</td>" +
                        (isCentral ? ("<td data-label='Department'>" + (s["Department"] || "-") + "</td>") : "") +
-                       "<td data-label='Email/Phone'>" + email + "</td>" +
-                       "<td data-label='Index Mark'>" + indexMark + "</td>" +
-                       "<td data-label='Verified Index'>" + verifiedIndex + "</td>" +
+                       "<td data-label='Category'>" + category + "</td>" +
+                       "<td data-label='Email/Phone'" + hideMobileClass + ">" + email + "</td>" +
+                       "<td data-label='Index Mark'" + hideMobileClass + ">" + indexMark + "</td>" +
+                       "<td data-label='Verified Index'" + hideMobileClass + ">" + verifiedIndex + "</td>" +
                        "<td data-label='Slot'>" + assignedSlot + "</td>" +
-                       "<td data-label='PTA Fee'><strong>" + ptaAmount + "</strong></td>" +
-                        "<td data-label='Status'><span class='status-badge status-" + status.replace(/\s+/g, '_') + "'>" + status.replace('_', ' ') + "</span>" +
+                       "<td data-label='PTA Fee'" + hideMobileClass + "><strong>" + ptaAmount + "</strong></td>" +
+                        "<td data-label='Status'" + hideMobileClass + "><span class='status-badge status-" + status.replace(/\s+/g, '_') + "'>" + status.replace('_', ' ') + "</span>" +
                         (function() {
                           if (s["Already_Admitted_Dept"]) {
                             return "<br/><span style='font-size: 0.7rem; background: rgba(59, 130, 246, 0.2); color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.4); border-radius: 4px; padding: 2px 4px; display: inline-block; margin-top: 4px; font-weight: 600;'>Admitted in " + s["Already_Admitted_Dept"] + "</span>";
@@ -2374,11 +2383,11 @@
                           return "";
                         })() + "</td>";
                         
-        var actionHtml = "<td data-label='Action'><button class='btn btn-secondary' style='padding: 4px 10px; font-size: 0.8rem;'>Verify</button></td>";
+        var actionHtml = "<td data-label='Action'" + hideMobileClass + "><button class='btn btn-secondary' style='padding: 4px 10px; font-size: 0.8rem;'>Verify</button></td>";
         if (status === "Admitted" && (userRole === "Principal" || userRole === "Faculty" || userRole === "Nodal Officer")) {
           var safeCap = capid.toString().replace(/'/g, "&apos;").replace(/"/g, "&quot;");
           var safeDept = (s["Department"] || "").toString().replace(/'/g, "&apos;").replace(/"/g, "&quot;");
-          actionHtml = "<td data-label='Action'><button class='btn btn-primary' style='padding: 4px 10px; font-size: 0.8rem;' data-cap='" + safeCap + "' data-dept='" + safeDept + "' onclick='openInlineChangeSlotUI(event, this)'>Change Slot</button></td>";
+          actionHtml = "<td data-label='Action'" + hideMobileClass + "><button class='btn btn-primary' style='padding: 4px 10px; font-size: 0.8rem;' data-cap='" + safeCap + "' data-dept='" + safeDept + "' onclick='openInlineChangeSlotUI(event, this)'>Change Slot</button></td>";
         }
         
         tr.innerHTML += actionHtml;
