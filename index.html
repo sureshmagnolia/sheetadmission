@@ -2895,7 +2895,7 @@
       // Apply PTA desk privacy controls - only show essential fields, hide photo container
       var fieldsToDisplay = [].concat(displayFields);
       
-      // Inject Admission Number for Principal so they can edit it in the admission register
+      // Inject Admission Number and Date of Admission for Principal so they can edit it in the admission register
       if (userRole === "Principal") {
         var deptIndex = -1;
         for (var i = 0; i < fieldsToDisplay.length; i++) {
@@ -2906,7 +2906,9 @@
         }
         if (deptIndex !== -1) {
           fieldsToDisplay.splice(deptIndex + 1, 0, { key: "Admission_Number", label: "College Admission Number" });
+          fieldsToDisplay.splice(deptIndex + 2, 0, { key: "Date_of_Admission", label: "Date of Admission (YYYY-MM-DD)", type: "date" });
         } else {
+          fieldsToDisplay.unshift({ key: "Date_of_Admission", label: "Date of Admission (YYYY-MM-DD)", type: "date" });
           fieldsToDisplay.unshift({ key: "Admission_Number", label: "College Admission Number" });
         }
       }
@@ -3802,7 +3804,10 @@
         dataToUpdate["PTA_ID_Card_Fee"] = document.getElementById("pta-id-card-fee").value;
         dataToUpdate["Program_Type"] = document.getElementById("pta-program-type").value;
       } else if (userRole === "Principal") {
-        dataToUpdate["Admission_Number"] = document.getElementById("wf-admission-number").value;
+        var wrapperAdmNo = document.getElementById("wrapper-admission-number");
+        if (wrapperAdmNo && wrapperAdmNo.style.display !== "none") {
+          dataToUpdate["Admission_Number"] = document.getElementById("wf-admission-number").value;
+        }
         dataToUpdate["Principal_Remarks"] = document.getElementById("wf-principal-remarks").value;
       }
 
