@@ -3,7 +3,7 @@
  */
 
 // Global constants for sheet names and critical headers
-var MASTER_SHEET_NAME = "Form Responses 1";
+var MASTER_SHEET_NAME = "Portal_Submissions";
 var MASTER_SHEET_FALLBACK = "Master Responses";
 var SYSTEM_DB_SHEET_NAME = "System_DB";
 var CREDENTIALS_SHEET_NAME = "Credentials";
@@ -72,13 +72,37 @@ function getTimestampColumnIndex(sheet, headers) {
 
 // Helper to get master sheet dynamically
 function getMasterSheet(sheet) {
-  return sheet.getSheetByName(MASTER_SHEET_NAME) || 
-         sheet.getSheetByName(MASTER_SHEET_FALLBACK) || 
-         sheet.getSheets()[0];
+  var s = sheet.getSheetByName(MASTER_SHEET_NAME);
+  if (!s) {
+    s = sheet.insertSheet(MASTER_SHEET_NAME);
+    var oldSheet = sheet.getSheetByName('Form Responses 1');
+    if (oldSheet) {
+       var oldData = oldSheet.getDataRange().getValues();
+       if (oldData.length > 0) {
+         s.getRange(1, 1, oldData.length, oldData[0].length).setValues(oldData);
+       }
+    }
+  }
+  return s;
 }
 
 // Serve the frontend web page
 function doGet(e) {
+  if (e && e.parameter && e.parameter.page === 'admission') {
+    var template = HtmlService.createTemplateFromFile('admission_form');
+    // Pass the active user's email into the template if needed
+    try {
+      template.userEmail = Session.getActiveUser().getEmail();
+    } catch(err) {
+      template.userEmail = "";
+    }
+    return template
+      .evaluate()
+      .setTitle('Student Admission Form')
+      .addMetaTag('viewport', 'width=device-width, initial-scale=1')
+      .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
+  }
+  
   return HtmlService.createTemplateFromFile('index')
     .evaluate()
     .setTitle('Government College ERP Portal')
@@ -127,7 +151,7 @@ function getOrCreateSystemDBSheet() {
     "PTA_Cooperative_Store", "PTA_ID_Card_Fee", "PTA_Payment_Date",
     "Program_Type", "Assigned_Slot", "Synced_Form_Department", "Verified_Index_Mark",
     "Date_of_Admission", "Date_of_TC", "Date_of_Transfer", "System_Last_Modified",
-    "Additional_Language", "Allotted_Category", "Parent_Mobile"
+    "Additional_Language", "Allotted_Category", "Parent_Mobile", "Allow_Edit", "Allow_Edit"
   ];
   
   if (!dbSheet) {
@@ -156,7 +180,7 @@ function getOrCreateSystemDBSheet() {
       "PTA_Voluntary_Contribution", "PTA_Cooperative_Store", "PTA_ID_Card_Fee", "PTA_Payment_Date",
       "Program_Type", "Assigned_Slot", "Principal_Remarks",
       "Date_of_Admission", "Date_of_TC", "Date_of_Transfer",
-      "Additional_Language", "Allotted_Category", "Parent_Mobile"
+      "Additional_Language", "Allotted_Category", "Parent_Mobile", "Allow_Edit", "Allow_Edit"
     ];
     colsToMigrate.forEach(function(col) {
       // Re-read headers each iteration so lengths stay accurate after additions

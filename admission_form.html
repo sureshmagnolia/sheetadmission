@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Student Admission Form</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <style>
+    /* Loader Overlay */
+    #loader {
+      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(255,255,255,0.9); z-index: 9999;
+      display: flex; flex-direction: column; justify-content: center; align-items: center;
+    }
+    .spinner {
+      border: 4px solid #f3f3f3; border-top: 4px solid #3498db;
+      border-radius: 50%; width: 50px; height: 50px; animation: spin 1s linear infinite;
+    }
+    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    .hidden { display: none !important; }
+  </style>
+</head>
+<body class="bg-gray-50 text-gray-800 font-sans">
+  
+  <div id="loader">
+    <div class="spinner mb-4"></div>
+    <h2 class="text-xl font-semibold text-gray-700" id="loaderText">Initializing Form...</h2>
+  </div>
+
+  <div class="max-w-4xl mx-auto py-10 px-4 sm:px-6 lg:px-8">
+    <div class="bg-white shadow-xl rounded-lg overflow-hidden border border-gray-100">
+      
+      <!-- Header -->
+      <div class="bg-blue-700 px-6 py-8 text-center">
+        <h1 class="text-2xl font-bold text-white uppercase tracking-wider">Victoria College Admission Form</h1>
+        <p class="text-blue-100 mt-2">Dynamic Student Verification & Submission</p>
+      </div>
+
+      <!-- Main Content -->
+      <div class="p-6 sm:p-10" id="appContent">
+        
+        <!-- Status Banner -->
+        <div id="statusBanner" class="hidden mb-6 p-4 rounded-md"></div>
+
+        <!-- Form Wrapper -->
+        <form id="admissionForm" onsubmit="submitForm(event)" class="hidden space-y-8">
+          
+          <input type="hidden" id="hiddenUserEmail" value="<?= userEmail ?>">
+          <input type="hidden" id="existingPhotoUrl" name="existingPhotoUrl" value="">
+          
+          <!-- Section 1: CAP ID Lookup -->
+          <div class="bg-gray-50 p-6 rounded-lg border border-gray-200">
+            <h2 class="text-lg font-medium text-gray-900 mb-4 border-b pb-2">1. Official Verification (CAP ID)</h2>
+            <div class="flex flex-col sm:flex-row gap-4">
+              <div class="flex-grow">
+                <label class="block text-sm font-medium text-gray-700">Enter your CAP ID <span class="text-red-500">*</span></label>
+                <input type="text" id="capId" name="CAP id (Enter the full cap id without any spaces)" 
+                       class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm p-2 border" 
+                       placeholder="e.g. CAP26PG121319" oninput="this.value = this.value.toUpperCase()">
+                <p class="text-xs text-gray-500 mt-1">13 chars for PG, 15 chars for UG. No spaces.</p>
+              </div>
+              <div class="flex-grow">
+                <label class="block text-sm font-medium text-gray-700">Enter your Email Address <span class="text-red-500">*</span></label>
+                <input type="email" id="userEmail" name="email" value="<?= userEmail ?>" 
+                       class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm p-2 border" 
+                       placeholder="e.g. you@gmail.com" required>
+                <p class="text-xs text-gray-500 mt-1">Provide an active email address.</p>
+              </div>
+              <div class="flex items-end pb-1">
+                <button type="button" onclick="fetchCapIdDetails()" id="btnFetch"
+                        class="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                  Fetch Details
+                </button>
+              </div>
+            </div>
+            
+            <!-- Auto-populated Read Only -->
+            <div class="grid grid-cols-1 gap-y-6 gap-x-4 sm:grid-cols-2 mt-6">
+              <div>
+                <label class="block text-sm font-medium text-gray-700">Name (As per your certificate)</label>
+                <input type="text" id="Name" name="Name (As per your certificate)" readonly class="mt-1 block w-full bg-gray-100 border-gray-300 rounded-md shadow-sm p-2 border">
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-700">Admission to the Programme</label>
+                <input type="text" id="Programme" name="Admission to the Programme" readonly class="mt-1 block w-full bg-gray-100 border-gray-300 rounded-md shadow-sm p-2 border">
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-700">Admission to the Department</label>
+                <input type="text" id="Department" name="Admission to the Department" readonly class="mt-1 block w-full bg-gray-100 border-gray-300 rounded-md shadow-sm p-2 border">
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-700">Admitted Category</label>
+                <input type="text" id="Category" name="Admitted Category (As per your admit/allotment card)" readonly class="mt-1 block w-full bg-gray-100 border-gray-300 rounded-md shadow-sm p-2 border">
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-700">Index Marks</label>
+                <input type="text" id="IndexMark" name="Index Marks (as per admit/allotment card)" readonly class="mt-1 block w-full bg-gray-100 border-gray-300 rounded-md shadow-sm p-2 border">
+              </div>
+            </div>
+          </div>
+
+          <!-- Section 2: Personal Details -->
+          <div id="sectionPersonal" class="hidden opacity-50 pointer-events-none transition-opacity duration-300">
+            <h2 class="text-lg font-medium text-gray-900 mb-4 border-b pb-2">2. Personal Details</h2>
+            <div class="grid grid-cols-1 gap-y-6 gap-x-4 sm:grid-cols-2">
+              <div>
+                <label class="block text-sm font-medium text-gray-700">Mobile No <span class="text-red-500">*</span></label>
+                <input type="tel" name="Mobile No" required class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm p-2 border">
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-700">Aadhaar id <span class="text-red-500">*</span></label>
+                <input type="text" name="Aadhaar id" required class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm p-2 border">
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-700">Gender <span class="text-red-500">*</span></label>
+                <select name="Gender" required class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm p-2 border bg-white">
+                  <option value="">Select</option>
+                  <option value="Male">Male</option>
+                  <option value="Female">Female</option>
+                  <option value="Other">Other</option>
+                </select>
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-700">Date of Birth (As per SSLC) <span class="text-red-500">*</span></label>
+                <input type="date" name="Date of Birth (As per SSLC)" required class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm p-2 border">
+              </div>
+              <div class="sm:col-span-2">
+                <label class="block text-sm font-medium text-gray-700">Address <span class="text-red-500">*</span></label>
+                <textarea name="Address" rows="3" required class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm p-2 border"></textarea>
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-700">Parent/Guardian Name</label>
+                <input type="text" name="Parent/Guardian Name" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm p-2 border">
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-700">Parent/Guardian Contact No.</label>
+                <input type="tel" name="Parent/Guardian contact number" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm p-2 border">
+              </div>
+            </div>
+          </div>
+
+          <!-- Section 3: Photo & Document Verification -->
+          <div id="sectionDocs" class="hidden opacity-50 pointer-events-none transition-opacity duration-300">
+            <h2 class="text-lg font-medium text-gray-900 mb-4 border-b pb-2">3. Documents & Verification</h2>
+            
+            <!-- Photo Upload -->
+            <div class="mb-6 bg-blue-50 p-4 rounded-md border border-blue-100">
+              <label class="block text-sm font-bold text-blue-900">Upload passport size photo <span class="text-red-500">*</span></label>
+              <input type="file" id="photoFile" accept="image/*" class="mt-2 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-600 file:text-white hover:file:bg-blue-700">
+              <p class="text-xs text-blue-700 mt-1">Max 5MB. Must be a clear image.</p>
+              <div id="existingPhotoMsg" class="text-sm text-green-700 mt-2 hidden font-medium">✓ Photo already uploaded. Select a new one to replace.</div>
+            </div>
+
+            <!-- Mandatory Docs -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div class="p-3 bg-gray-50 border rounded">
+                <label class="block text-sm font-medium">Allotment/Admit card submitted?</label>
+                <select name="Allotment/Admit card" class="mt-1 w-full p-2 border rounded"><option value="">Select</option><option value="Yes">Yes</option><option value="No">No</option></select>
+              </div>
+              <div class="p-3 bg-gray-50 border rounded">
+                <label class="block text-sm font-medium">Application form submitted?</label>
+                <select name="Application form (Downloaded from university login)" class="mt-1 w-full p-2 border rounded"><option value="">Select</option><option value="Yes">Yes</option><option value="No">No</option></select>
+              </div>
+              <div class="p-3 bg-gray-50 border rounded">
+                <label class="block text-sm font-medium">Fee payment receipt submitted?</label>
+                <select name="Mandatory fee payment receipt" class="mt-1 w-full p-2 border rounded"><option value="">Select</option><option value="Yes">Yes</option><option value="No">No</option></select>
+              </div>
+              <div class="p-3 bg-gray-50 border rounded">
+                <label class="block text-sm font-medium">TC submitted?</label>
+                <select name="TC" class="mt-1 w-full p-2 border rounded"><option value="">Select</option><option value="Yes">Yes</option><option value="No">No</option></select>
+              </div>
+            </div>
+
+            <!-- Conditional Docs -->
+            <div id="conditionalDocs" class="mt-6 space-y-4">
+               <!-- Inserted dynamically via JS based on category -->
+            </div>
+
+          </div>
+
+            <!-- Section 4: Submit & Captcha -->
+            <div id="sectionSubmit" class="hidden opacity-50 pointer-events-none pt-4 border-t border-gray-200 flex flex-col items-center">
+              
+              <div class="mb-4 bg-gray-100 p-4 rounded-md w-full sm:w-auto text-center border border-gray-200">
+                <p class="text-sm text-gray-700 mb-2 font-semibold">Security Verification</p>
+                <div class="flex items-center justify-center space-x-2">
+                  <span id="captchaQuestion" class="font-bold text-lg text-gray-800">? + ?</span>
+                  <span>=</span>
+                  <input type="number" id="captchaAnswer" name="captchaAnswer" class="w-20 p-2 border border-gray-300 rounded focus:ring-green-500 focus:border-green-500 text-center" required>
+                  <input type="hidden" id="captchaExpected" name="captchaExpected">
+                </div>
+              </div>
+
+              <button type="submit" id="btnSubmit" class="w-full sm:w-auto px-8 py-3 bg-green-600 text-white font-bold rounded-lg shadow hover:bg-green-700 focus:ring-4 focus:ring-green-300 text-lg transition-colors">
+                Submit Form
+              </button>
+            </div>
+
+        </form>
+      </div>
+    </div>
+  </div>
+
+    <script>
+      var isEditMode = false;
+      var hiddenEmail = document.getElementById('hiddenUserEmail').value;
+  
+      function generateCaptcha() {
+        var a = Math.floor(Math.random() * 10) + 1;
+        var b = Math.floor(Math.random() * 10) + 1;
+        document.getElementById('captchaQuestion').innerText = a + ' + ' + b;
+        document.getElementById('captchaExpected').value = (a + b);
+        document.getElementById('captchaAnswer').value = '';
+      }
+
+      window.onload = function() {
+        generateCaptcha();
+        // 1. Check if user already submitted via Google Auth (if available)
+        if (hiddenEmail) {
+          showLoader('Checking existing submissions...');
+          google.script.run
+            .withSuccessHandler(handleInitialCheck)
+            .withFailureHandler(showError)
+            .getUserSubmission(hiddenEmail);
+        } else {
+          hideLoader(); // Just show the form
+        }
+      };
+
+    function handleInitialCheck(res) {
+      document.getElementById('loader').classList.add('hidden');
+      
+      if (res.found) {
+        // User has already submitted
+        document.getElementById('appContent').classList.remove('hidden');
+        var banner = document.getElementById('statusBanner');
+        banner.classList.remove('hidden');
+        
+        if (res.isEditable) {
+          banner.classList.add('bg-yellow-100', 'text-yellow-800', 'border', 'border-yellow-200');
+          banner.innerHTML = '<strong class="font-bold">Edit Mode Active.</strong> An administrator has granted you permission to edit your submission.';
+          isEditMode = true;
+          setupFormForEditing(res.data);
+        } else {
+          banner.classList.add('bg-blue-100', 'text-blue-800', 'border', 'border-blue-200');
+          banner.innerHTML = '<strong class="font-bold">Already Submitted.</strong> You have successfully submitted your form. Your data is currently locked for review.';
+          setupFormForViewOnly(res.data);
+        }
+      } else {
+        // New submission
+        document.getElementById('admissionForm').classList.remove('hidden');
+        Swal.fire({
+          title: 'Welcome',
+          text: 'Please enter your CAP ID and Email to begin.',
+          icon: 'info',
+          toast: true,
+          position: 'top-end',
+          timer: 3000,
+          showConfirmButton: false
+        });
+      }
+    }
+
+    function fetchCapIdDetails() {
+      var capId = document.getElementById('capId').value.trim();
+      var visibleEmail = document.getElementById('userEmail').value.trim();
+      
+      if (!visibleEmail) {
+        Swal.fire('Email Required', 'Please enter your email address to fetch details.', 'warning');
+        return;
+      }
+
+      // Validate
+      if (!/^[A-Z0-9]{13,15}$/.test(capId) || capId.indexOf(' ') >= 0) {
+        Swal.fire('Invalid CAP ID', 'Must be 13 (PG) or 15 (UG) characters, all uppercase, no spaces.', 'warning');
+        return;
+      }
+
+      showLoader('Fetching Details...');
+      google.script.run
+        .withSuccessHandler(function(res) {
+          hideLoader();
+          if (res.success) {
+            if (res.isReturning) {
+              // If they already submitted, treat it as an initial check load
+              handleInitialCheck({ found: true, isEditable: res.isEditable, data: res.submissionData });
+            } else {
+              document.getElementById('Name').value = res.data.name;
+              document.getElementById('Programme').value = res.data.programme;
+              document.getElementById('Department').value = res.data.department;
+              document.getElementById('Category').value = res.data.category;
+              document.getElementById('IndexMark').value = res.data.indexMark;
+              
+              // Unlock rest of the form
+              unlockFormSections();
+              buildConditionalDocs(res.data.category);
+              Swal.fire('Success', 'Details fetched automatically!', 'success');
+            }
+          } else {
+            Swal.fire('Error', res.error || 'CAP ID not found in Master Data.', 'error');
+          }
+        })
+        .withFailureHandler(showError)
+        .getStudentData(capId, visibleEmail);
+    }
+
+    function buildConditionalDocs(category) {
+      var container = document.getElementById('conditionalDocs');
+      container.innerHTML = ''; // clear
+      
+      var cat = (category || "").toUpperCase();
+      var html = '<div class="grid grid-cols-1 sm:grid-cols-2 gap-4">';
+      
+      function addYesNo(name, label) {
+        html += `<div class="p-3 bg-gray-50 border border-yellow-200 rounded">
+                  <label class="block text-sm font-medium text-gray-800">${label} submitted?</label>
+                  <select name="${name}" class="mt-1 w-full p-2 border rounded border-gray-300">
+                    <option value="">Select</option><option value="Yes">Yes</option><option value="No">No</option>
+                  </select>
+                 </div>`;
+      }
+
+      if (cat.indexOf('OPEN') === -1) {
+        if (cat.indexOf('EWS') > -1) {
+          addYesNo('EWS Certificate', 'EWS Certificate');
+        } else if (cat.indexOf('OBC') > -1 || cat.indexOf('ETB') > -1 || cat.indexOf('MUSLIM') > -1 || cat.indexOf('LC') > -1 || cat.indexOf('OBH') > -1 || cat.indexOf('OBX') > -1) {
+          addYesNo('Non-Creamy Layer Certificate', 'Non-Creamy Layer Certificate');
+          addYesNo('Community Certificate', 'Community Certificate');
+        } else if (cat.indexOf('SC') > -1 || cat.indexOf('ST') > -1) {
+          addYesNo('Community Certificate', 'Community Certificate');
+        }
+      }
+      
+      if (cat.indexOf('SPORTS') > -1) addYesNo('Sports Certificate', 'Sports Certificate');
+      if (cat.indexOf('PWD') > -1) addYesNo('Person with Disabilities Certificate', 'PwD Certificate');
+      if (cat.indexOf('TLM') > -1) addYesNo('TLM certificate', 'TLM Certificate');
+      
+      html += '</div>';
+      container.innerHTML = html;
+    }
+
+    function unlockFormSections() {
+      var secPersonal = document.getElementById('sectionPersonal');
+      var secDocs = document.getElementById('sectionDocs');
+      var secSubmit = document.getElementById('sectionSubmit');
+      
+      secPersonal.classList.remove('opacity-50', 'pointer-events-none');
+      secDocs.classList.remove('opacity-50', 'pointer-events-none');
+      secSubmit.classList.remove('opacity-50', 'pointer-events-none');
+    }
+
+    function setupFormForViewOnly(data) {
+      document.getElementById('admissionForm').classList.remove('hidden');
+      populateFormFields(data);
+      buildConditionalDocs(data['Admitted Category (As per your admit/allotment card)']);
+      
+      // Delay slightly to let DOM update
+      setTimeout(function() {
+        populateFormFields(data); // repopulate dynamic docs
+        var form = document.getElementById('admissionForm');
+        var elements = form.elements;
+        for (var i = 0; i < elements.length; i++) {
+          elements[i].disabled = true;
+        }
+        document.getElementById('btnFetch').classList.add('hidden');
+        document.getElementById('sectionSubmit').classList.add('hidden');
+        unlockFormSections();
+      }, 100);
+    }
+
+    function setupFormForEditing(data) {
+      document.getElementById('admissionForm').classList.remove('hidden');
+      populateFormFields(data);
+      buildConditionalDocs(data['Admitted Category (As per your admit/allotment card)']);
+      
+      setTimeout(function() {
+        populateFormFields(data);
+        
+        // Show existing photo message
+        if (data['Upload passport size photo']) {
+          document.getElementById('existingPhotoMsg').classList.remove('hidden');
+          document.getElementById('existingPhotoUrl').value = data['Upload passport size photo'];
+        }
+        
+        // Disable CAP ID fetching
+        document.getElementById('capId').readOnly = true;
+        document.getElementById('btnFetch').classList.add('hidden');
+        unlockFormSections();
+      }, 100);
+    }
+
+    function populateFormFields(data) {
+      for (var key in data) {
+        var el = document.getElementsByName(key)[0];
+        if (el) {
+          // If date, format it
+          if (el.type === 'date' && data[key]) {
+            var d = new Date(data[key]);
+            if (!isNaN(d.getTime())) {
+              el.value = d.toISOString().split('T')[0];
+            }
+          } else {
+            el.value = data[key];
+          }
+        }
+      }
+      
+      // Handle CAP ID specific mapping if needed (usually matches the header)
+      var capEl = document.getElementById('capId');
+      if (capEl && data['CAP id (Enter the full cap id without any spaces)']) {
+        capEl.value = data['CAP id (Enter the full cap id without any spaces)'];
+      }
+    }
+
+      function submitForm(e) {
+        e.preventDefault();
+        
+        var expected = document.getElementById('captchaExpected').value;
+        var answer = document.getElementById('captchaAnswer').value;
+        
+        if (expected === "" || answer === "" || parseInt(expected) !== parseInt(answer)) {
+          Swal.fire('Verification Failed', 'Incorrect math answer. Please try again.', 'warning');
+          generateCaptcha();
+          return;
+        }
+        
+        var form = document.getElementById('admissionForm');
+        var formData = new FormData(form);
+        var dataObj = {};
+            formData.forEach((value, key) => { dataObj[key] = value; });
+        
+        // Handle file separately
+      var fileInput = document.getElementById('photoFile');
+      if (fileInput.files.length > 0) {
+        var file = fileInput.files[0];
+        if (file.size > 5 * 1024 * 1024) { // 5MB limit
+           Swal.fire('File too large', 'Passport photo must be under 5MB.', 'error');
+           return;
+        }
+        var reader = new FileReader();
+        reader.onload = function(evt) {
+          dataObj.photoData = evt.target.result.split(',')[1];
+          dataObj.photoMimeType = file.type;
+          dataObj.photoFileName = file.name;
+          sendToBackend(dataObj);
+        };
+        reader.onerror = function() {
+          Swal.fire('Error', 'Could not read the file.', 'error');
+        };
+        reader.readAsDataURL(file);
+      } else {
+        if (!isEditMode) {
+          Swal.fire('Required', 'Please upload a passport photo.', 'warning');
+          return;
+        }
+        // In edit mode without new photo, we use existingPhotoUrl from hidden field
+        sendToBackend(dataObj);
+      }
+    }
+
+    function sendToBackend(dataObj) {
+      showLoader('Saving your submission...');
+      google.script.run
+        .withSuccessHandler(function(res) {
+          hideLoader();
+          if (res.success) {
+            Swal.fire({
+              title: 'Success!',
+              text: res.message,
+              icon: 'success',
+              confirmButtonText: 'OK'
+            }).then(() => {
+              window.location.reload(); // Reload to view-only mode
+            });
+            } else {
+              Swal.fire('Error', res.error, 'error');
+              generateCaptcha();
+            }
+          })
+          .withFailureHandler(function(err) {
+            showError(err);
+            generateCaptcha();
+          })
+          .processFormSubmission(dataObj);
+      }
+
+    function showLoader(text) {
+      document.getElementById('loaderText').innerText = text || 'Loading...';
+      document.getElementById('loader').classList.remove('hidden');
+    }
+
+    function hideLoader() {
+      document.getElementById('loader').classList.add('hidden');
+    }
+
+    function showError(err) {
+      hideLoader();
+      Swal.fire('Server Error', err.message || err.toString(), 'error');
+    }
+  </script>
+</body>
+</html>

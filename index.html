@@ -3329,9 +3329,11 @@
       // Enable actions for correct roles
       if (userRole === "Faculty" || userRole === "HOD") {
         if (status === "Pending_Faculty" || status.includes("Reverted")) {
-          container.innerHTML = "<button class='btn btn-success' onclick='facultyVerify()'>Verify & Forward to Nodal</button>";
+          container.innerHTML = "<button class='btn btn-success' onclick='facultyVerify()'>Verify & Forward to Nodal</button>" +
+                                "<button class='btn btn-secondary' onclick='unlockStudentForm()' style='margin-left: 10px;'>Unlock Admission Form</button>";
         } else {
-          container.innerHTML = "<p style='color: var(--text-muted); font-size: 0.85rem; font-style: italic;'>Locked. Student in next validation step (" + status + ").</p>";
+          container.innerHTML = "<p style='color: var(--text-muted); font-size: 0.85rem; font-style: italic;'>Locked. Student in next validation step (" + status + ").</p>" +
+                                "<button class='btn btn-secondary' onclick='unlockStudentForm()' style='margin-top: 10px;'>Unlock Admission Form</button>";
         }
       }
       else if (userRole === "Nodal Officer") {
@@ -3378,6 +3380,36 @@
       container.appendChild(closeBtn);
       
     }
+
+      // Unlock Admission form for student
+      function unlockStudentForm() {
+        if (!activeStudent) return;
+        var email = activeStudent["Email address"] || activeStudent["Email id"];
+        if (!email) {
+          showToast("No email associated with this student to unlock form.", true);
+          return;
+        }
+        if (!confirm("Are you sure you want to unlock the admission form for this student? This will allow them to edit and resubmit their details.")) {
+          return;
+        }
+        
+        showLoader("Unlocking admission form...");
+        google.script.run
+          .withSuccessHandler(function(resJson) {
+            hideLoader();
+            var res = JSON.parse(resJson);
+            if (res.success) {
+              showToast(res.message);
+            } else {
+              showToast("Error: " + res.error, true);
+            }
+          })
+          .withFailureHandler(function(err) {
+            hideLoader();
+            showToast("Server Error: " + err, true);
+          })
+          .unlockStudentAdmissionForm(email);
+      }
 
     // Action handlers for Faculty
     function facultyVerify() {
