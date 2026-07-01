@@ -52,6 +52,24 @@ function findHeaderIndex(headers, targetHeader) {
   return -1;
 }
 
+// Helper to dynamically find the Timestamp column, resilient to translation or column insertions
+function getTimestampColumnIndex(sheet, headers) {
+  var idx = findHeaderIndex(headers, "Timestamp");
+  if (idx !== -1) return idx;
+  
+  // Fallback: Scan row 2 for the first Date object
+  var lastRow = sheet.getLastRow();
+  if (lastRow > 1) {
+    var secondRow = sheet.getRange(2, 1, 1, sheet.getLastColumn()).getValues()[0];
+    for (var i = 0; i < secondRow.length; i++) {
+      if (secondRow[i] && secondRow[i] instanceof Date) {
+        return i;
+      }
+    }
+  }
+  return 0; // Ultimate fallback to column A
+}
+
 // Helper to get master sheet dynamically
 function getMasterSheet(sheet) {
   return sheet.getSheetByName(MASTER_SHEET_NAME) || 
@@ -236,6 +254,7 @@ function getDepartmentData(department, lastSyncTime) {
     }
     
     var masterHeaders = masterSheet.getRange(1, 1, 1, masterSheet.getLastColumn()).getValues()[0];
+    var masterTimeIdx = getTimestampColumnIndex(masterSheet, masterHeaders);
     
     // Pre-fetch DB headers and last row to allow early bailout checks
     var dbLastRow = dbSheet.getLastRow();
@@ -246,8 +265,7 @@ function getDepartmentData(department, lastSyncTime) {
       var hasChanges = false;
       
       // 1. Column Scan for Form Responses
-      var mTimeIdx = findHeaderIndex(masterHeaders, "Timestamp");
-      if (mTimeIdx === -1) mTimeIdx = 0;
+      var mTimeIdx = masterTimeIdx;
       var masterTimestamps = masterSheet.getRange(2, mTimeIdx + 1, masterLastRow - 1, 1).getValues();
       for (var i = masterTimestamps.length - 1; i >= 0; i--) {
         if (masterTimestamps[i][0] && masterTimestamps[i][0] instanceof Date && masterTimestamps[i][0].getTime() > syncTimeMs) {
@@ -294,9 +312,6 @@ function getDepartmentData(department, lastSyncTime) {
     if (lastSyncTime) {
       deltaCapids = {};
       var syncTimeMs = parseInt(lastSyncTime, 10);
-      var masterTimeIdx = findHeaderIndex(masterHeaders, "Timestamp");
-      if (masterTimeIdx === -1) masterTimeIdx = 0;
-      
       if (masterTimeIdx !== -1) {
         masterValues.forEach(function(row) {
           var ts = row[masterTimeIdx];
@@ -376,7 +391,7 @@ function getDepartmentData(department, lastSyncTime) {
         // 1. Copy raw submission details with trimmed keys
         for (var c = 0; c < masterHeaders.length; c++) {
           var cleanKey = masterHeaders[c] ? masterHeaders[c].toString().trim() : "";
-          if (c === 0) cleanKey = "Timestamp"; // Google Forms puts Timestamp in A, regardless of language
+          if (c === masterTimeIdx) cleanKey = "Timestamp"; // Dynamically assigned
           if (cleanKey) {
             profile[cleanKey] = row[c];
           }
@@ -448,7 +463,7 @@ function getDepartmentData(department, lastSyncTime) {
           var profile = {};
           for (var c = 0; c < masterHeaders.length; c++) {
             var cleanKey = masterHeaders[c] ? masterHeaders[c].toString().trim() : "";
-            if (c === 0) cleanKey = "Timestamp"; // Google Forms puts Timestamp in A, regardless of language
+            if (c === masterTimeIdx) cleanKey = "Timestamp"; // Dynamically assigned
             if (cleanKey) {
               profile[cleanKey] = masterRow[c];
             }
@@ -532,6 +547,7 @@ function getAllDepartmentsData(lastSyncTime) {
     }
     
     var masterHeaders = masterSheet.getRange(1, 1, 1, masterSheet.getLastColumn()).getValues()[0];
+    var masterTimeIdx = getTimestampColumnIndex(masterSheet, masterHeaders);
     
     // Pre-fetch DB headers and last row to allow early bailout checks
     var dbLastRow = dbSheet.getLastRow();
@@ -542,8 +558,7 @@ function getAllDepartmentsData(lastSyncTime) {
       var hasChanges = false;
       
       // 1. Column Scan for Form Responses
-      var mTimeIdx = findHeaderIndex(masterHeaders, "Timestamp");
-      if (mTimeIdx === -1) mTimeIdx = 0;
+      var mTimeIdx = masterTimeIdx;
       var masterTimestamps = masterSheet.getRange(2, mTimeIdx + 1, masterLastRow - 1, 1).getValues();
       for (var i = masterTimestamps.length - 1; i >= 0; i--) {
         if (masterTimestamps[i][0] && masterTimestamps[i][0] instanceof Date && masterTimestamps[i][0].getTime() > syncTimeMs) {
@@ -590,9 +605,6 @@ function getAllDepartmentsData(lastSyncTime) {
     if (lastSyncTime) {
       deltaCapids = {};
       var syncTimeMs = parseInt(lastSyncTime, 10);
-      var masterTimeIdx = findHeaderIndex(masterHeaders, "Timestamp");
-      if (masterTimeIdx === -1) masterTimeIdx = 0; // Google Forms always puts timestamp in column A
-      
       if (masterTimeIdx !== -1) {
         masterValues.forEach(function(row) {
           var ts = row[masterTimeIdx];
@@ -670,7 +682,7 @@ function getAllDepartmentsData(lastSyncTime) {
       // 1. Copy raw submission details with trimmed keys
       for (var c = 0; c < masterHeaders.length; c++) {
         var cleanKey = masterHeaders[c] ? masterHeaders[c].toString().trim() : "";
-        if (c === 0) cleanKey = "Timestamp"; // Google Forms puts Timestamp in A, regardless of language
+        if (c === masterTimeIdx) cleanKey = "Timestamp"; // Dynamically assigned
         if (cleanKey) {
           profile[cleanKey] = row[c];
         }
@@ -738,7 +750,7 @@ function getAllDepartmentsData(lastSyncTime) {
           var profile = {};
           for (var c = 0; c < masterHeaders.length; c++) {
             var cleanKey = masterHeaders[c] ? masterHeaders[c].toString().trim() : "";
-            if (c === 0) cleanKey = "Timestamp"; // Google Forms puts Timestamp in A, regardless of language
+            if (c === masterTimeIdx) cleanKey = "Timestamp"; // Dynamically assigned
             if (cleanKey) {
               profile[cleanKey] = masterRow[c];
             }
@@ -1754,8 +1766,7 @@ function backfillMissingTimestamps() {
   if (masterLastRow >= 2) {
     var masterValues = masterSheet.getRange(2, 1, masterLastRow - 1, masterSheet.getLastColumn()).getValues();
     var masterHeaders = masterSheet.getRange(1, 1, 1, masterSheet.getLastColumn()).getValues()[0];
-    var masterTsCol = findHeaderIndex(masterHeaders, "Timestamp");
-    if (masterTsCol === -1) masterTsCol = 0; // Google Forms always puts timestamp in column A
+    var masterTsCol = getTimestampColumnIndex(masterSheet, masterHeaders);
     var masterCapidCol = findHeaderIndex(masterHeaders, KEY_HEADER);
     
     if (masterTsCol !== -1 && masterCapidCol !== -1) {
