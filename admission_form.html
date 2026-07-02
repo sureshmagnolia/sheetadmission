@@ -687,7 +687,22 @@
               icon: 'success',
               confirmButtonText: 'OK'
             }).then(() => {
-              window.location.reload(); // Reload to view-only mode
+              // DOM reset avoids iframe blank screen issues
+              document.getElementById('admissionForm').reset();
+              document.getElementById('sectionPersonal').classList.add('hidden', 'opacity-50', 'pointer-events-none');
+              document.getElementById('sectionDocs').classList.add('hidden', 'opacity-50', 'pointer-events-none');
+              document.getElementById('sectionSubmit').classList.add('hidden', 'opacity-50', 'pointer-events-none');
+              
+              document.getElementById('capId').readOnly = false;
+              document.getElementById('capId').classList.remove('bg-gray-100');
+              document.getElementById('programSelect').style.pointerEvents = 'auto';
+              document.getElementById('programSelect').classList.remove('bg-gray-100');
+              
+              document.getElementById('btnFetch').classList.remove('hidden');
+              document.getElementById('existingPhotoMsg').classList.add('hidden');
+              document.getElementById('conditionalDocs').innerHTML = '';
+              
+              window.scrollTo(0, 0);
             });
             } else {
               Swal.fire('Error', res.error, 'error');
