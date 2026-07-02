@@ -193,6 +193,14 @@ function getOrCreateSystemDBSheet() {
       }
     });
   }
+  
+  // Ensure System_Last_Modified is formatted as plain number to prevent scientific notation
+  var finalHeaders = dbSheet.getRange(1, 1, 1, dbSheet.getLastColumn()).getValues()[0];
+  var modIdx = findHeaderIndex(finalHeaders, "System_Last_Modified");
+  if (modIdx !== -1) {
+    dbSheet.getRange(2, modIdx + 1, Math.max(1, dbSheet.getMaxRows() - 1), 1).setNumberFormat("0");
+  }
+  
   return dbSheet;
 }
 
@@ -936,22 +944,30 @@ function updateStudentData(department, capid, email, updatedData, operatorRole, 
     if (nextStatus === "Pending_Nodal" && !existingToken && tokenIndex !== -1) {
       var prefix = "T";
       
-      // Compute sequential token number centrally (across all departments in System_DB)
-      var allTokens = dbSheet.getRange(2, tokenIndex + 1, lastRow - 1, 1).getValues().map(function(r) {
-        return r[0] ? r[0].toString().trim() : "";
-      });
-      
+      // Compute sequential token number optimally using PropertiesService
+      var scriptProps = PropertiesService.getScriptProperties();
+      var cachedMax = scriptProps.getProperty("maxTokenNum");
       var maxNum = 0;
-      allTokens.forEach(function(tok) {
-        if (tok && tok.indexOf(prefix + "-") === 0) {
-          var numPart = parseInt(tok.split("-")[1], 10);
-          if (!isNaN(numPart) && numPart > maxNum) {
-            maxNum = numPart;
+      
+      if (cachedMax) {
+        maxNum = parseInt(cachedMax, 10);
+      } else {
+        // Fallback to reading the sheet once if property doesn't exist
+        var allTokens = dbSheet.getRange(2, tokenIndex + 1, lastRow - 1, 1).getValues();
+        allTokens.forEach(function(r) {
+          var tok = r[0] ? r[0].toString().trim() : "";
+          if (tok && tok.indexOf(prefix + "-") === 0) {
+            var numPart = parseInt(tok.split("-")[1], 10);
+            if (!isNaN(numPart) && numPart > maxNum) {
+              maxNum = numPart;
+            }
           }
-        }
-      });
+        });
+      }
       
       var nextNum = maxNum + 1;
+      scriptProps.setProperty("maxTokenNum", nextNum.toString());
+      
       var paddedNum = nextNum.toString();
       while (paddedNum.length < 3) {
         paddedNum = "0" + paddedNum;
@@ -1720,6 +1736,11 @@ function sanitizeStudentProfile(profile, tz) {
       var val = profile[key];
       if (val instanceof Date) {
         profile[key] = Utilities.formatDate(val, tz, "yyyy-MM-dd");
+      } else if (typeof val === 'string' && val.match(/^\d{4}-\d{2}-\d{2}T/)) {
+        var d = new Date(val);
+        if (!isNaN(d.getTime())) {
+          profile[key] = Utilities.formatDate(d, tz, "yyyy-MM-dd");
+        }
       }
     }
   }

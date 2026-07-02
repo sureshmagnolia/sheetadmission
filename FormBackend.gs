@@ -158,7 +158,7 @@ function processFormSubmission(formData) {
         var folder = DriveApp.getFolderById(FOLDER_ID);
         file = folder.createFile(blob);
       } catch (err) {
-        file = DriveApp.createFile(blob); 
+        return { success: false, error: 'Photo upload failed. Administrator must check Google Drive folder permissions. ' + err.toString() };
       }
       photoUrl = file.getUrl();
     }
@@ -286,7 +286,7 @@ function unlockStudentAdmissionForm(email) {
             var capIdx = headers.indexOf('CAP id (Enter the full cap id without any spaces)');
             var deptIdx = headers.indexOf('Admission to the Department');
             if (emailIdx !== -1) {
-               for (var j = 1; j < data.length; j++) {
+               for (var j = data.length - 1; j >= 1; j--) {
                   if (data[j][emailIdx] && data[j][emailIdx].toString().toLowerCase() === email.toLowerCase()) {
                      if (capIdx !== -1) capid = data[j][capIdx];
                      if (deptIdx !== -1) dept = data[j][deptIdx];
