@@ -2379,7 +2379,7 @@
                        "<td data-label='Verified Index'" + hideMobileClass + ">" + escapeHTML(verifiedIndex) + "</td>" +
                        "<td data-label='Slot'>" + escapeHTML(assignedSlot) + "</td>" +
                        "<td data-label='PTA Fee'" + hideMobileClass + "><strong>" + escapeHTML(ptaAmount) + "</strong></td>" +
-                        "<td data-label='Status'" + hideMobileClass + "><span class='status-badge status-" + escapeHTML(status).replace(/\s+/g, \'_\') + "'>" + escapeHTML(status).replace(\'_\', \' \') + "</span>" +
+                        "<td data-label='Status'" + hideMobileClass + "><span class='status-badge status-" + escapeHTML(status).replace(/\s+/g, '_') + "'>" + escapeHTML(status).replace('_', ' ') + "</span>" +
                         (function() {
                           if (s["Already_Admitted_Dept"]) {
                             return "<br/><span style='font-size: 0.7rem; background: rgba(59, 130, 246, 0.2); color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.4); border-radius: 4px; padding: 2px 4px; display: inline-block; margin-top: 4px; font-weight: 600;'>Admitted in " + escapeHTML(s["Already_Admitted_Dept"]) + "</span>";
@@ -5459,7 +5459,7 @@
           "<td data-label='Verified Index'>" + escapeHTML(verifiedIndex) + "</td>" +
           "<td data-label='Slot'>" + escapeHTML(assignedSlot) + "</td>" +
           "<td data-label='PTA Fee'><strong>" + escapeHTML(ptaAmount) + "</strong></td>" +
-          "<td data-label='Status'>" + escapeHTML(status).replace(\'_\', \' \') + "</td>" +
+          "<td data-label='Status'>" + escapeHTML(status).replace('_', ' ') + "</td>" +
           "<td data-label='Adm No'>" + escapeHTML(admNo) + "</td>" +
         "</tr>";
       });
