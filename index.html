@@ -1075,6 +1075,8 @@
         <button class="tab-btn" id="tab-pending-btn" onclick="switchTab('pending')" style="background: none; border: none; color: var(--text-main); font-weight: 600; padding: 10px 0; border-bottom: 2px solid var(--primary); cursor: pointer; font-size: 0.95rem; transition: var(--transition);">To Be Verified</button>
         <button class="tab-btn" id="tab-completed-ug-btn" onclick="switchTab('completed-ug')" style="background: none; border: none; color: var(--text-muted); font-weight: 500; padding: 10px 0; border-bottom: 2px solid transparent; cursor: pointer; font-size: 0.95rem; transition: var(--transition);">UG Completed</button>
         <button class="tab-btn" id="tab-completed-pg-btn" onclick="switchTab('completed-pg')" style="background: none; border: none; color: var(--text-muted); font-weight: 500; padding: 10px 0; border-bottom: 2px solid transparent; cursor: pointer; font-size: 0.95rem; transition: var(--transition);">PG Completed</button>
+        <button class="tab-btn" id="tab-live-matrix-ug-btn" onclick="switchTab('live-matrix-ug')" style="background: none; border: none; color: var(--text-muted); font-weight: 500; padding: 10px 0; border-bottom: 2px solid transparent; cursor: pointer; font-size: 0.95rem; transition: var(--transition);">Live Matrix (UG)</button>
+        <button class="tab-btn" id="tab-live-matrix-pg-btn" onclick="switchTab('live-matrix-pg')" style="background: none; border: none; color: var(--text-muted); font-weight: 500; padding: 10px 0; border-bottom: 2px solid transparent; cursor: pointer; font-size: 0.95rem; transition: var(--transition);">Live Matrix (PG)</button>
         <button class="tab-btn" id="tab-admission-register-btn" onclick="switchTab('admission-register')" style="display: none; background: none; border: none; color: var(--text-muted); font-weight: 500; padding: 10px 0; border-bottom: 2px solid transparent; cursor: pointer; font-size: 0.95rem; transition: var(--transition);">Admission Register</button>
         <button class="tab-btn" id="tab-analytics-btn" onclick="switchTab('analytics')" style="background: none; border: none; color: var(--text-muted); font-weight: 500; padding: 10px 0; border-bottom: 2px solid transparent; cursor: pointer; font-size: 0.95rem; transition: var(--transition);">Analytics Dashboard</button>
         <button class="tab-btn" id="tab-waiting-btn" onclick="switchTab('waiting')" style="display: none; background: none; border: none; color: var(--text-muted); font-weight: 500; padding: 10px 0; border-bottom: 2px solid transparent; cursor: pointer; font-size: 0.95rem; transition: var(--transition);">Waiting Queue</button>
@@ -1186,8 +1188,11 @@
         </div>
       </div>
       
-      <!-- Statistics Container -->
-      <div id="statistics-container" style="display: none; margin-top: 1rem;">
+        <!-- Live Matrix Container -->
+        <div id="live-matrix-container" style="display: none; padding: 10px 0;"></div>
+
+        <!-- Statistics Container -->
+        <div id="statistics-container" style="display: none; margin-top: 1rem;">
         <div class="card" style="padding: 20px; background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 12px; box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);">
           <h2 style="font-size: 1.5rem; font-weight: 600; color: var(--text-main); margin-bottom: 1.5rem; text-align: center;">Application Processing Statistics</h2>
           <div id="statistics-table-wrapper" class="table-responsive mobile-card-table">
@@ -2010,6 +2015,7 @@
     var userDept = "";
     var currentSelectedDept = "";
     var allStudents = [];
+    var pendingMatrixChanges = {};
     var activeStudent = null;
     var editMode = false;
     var captchaAnswer = null;
@@ -4791,6 +4797,8 @@
         var pendingBtn = document.getElementById("tab-pending-btn");
         var completedUgBtn = document.getElementById("tab-completed-ug-btn");
         var completedPgBtn = document.getElementById("tab-completed-pg-btn");
+        var liveMatrixUgBtn = document.getElementById("tab-live-matrix-ug-btn");
+        var liveMatrixPgBtn = document.getElementById("tab-live-matrix-pg-btn");
         var admissionRegisterBtn = document.getElementById("tab-admission-register-btn");
         var analyticsBtn = document.getElementById("tab-analytics-btn");
         var waitingBtn = document.getElementById("tab-waiting-btn");
@@ -4798,7 +4806,7 @@
         var revertedBtn = document.getElementById("tab-reverted-btn");
         
         // Reset all buttons
-        [pendingBtn, completedUgBtn, completedPgBtn, admissionRegisterBtn, analyticsBtn, waitingBtn, statsBtn, revertedBtn].forEach(function(btn) {
+        [pendingBtn, completedUgBtn, completedPgBtn, liveMatrixUgBtn, liveMatrixPgBtn, admissionRegisterBtn, analyticsBtn, waitingBtn, statsBtn, revertedBtn].forEach(function(btn) {
           if (btn) {
             btn.style.color = "var(--text-muted)";
             btn.style.fontWeight = "500";
@@ -4810,6 +4818,9 @@
         var analyticsContainer = document.getElementById("analytics-container");
         var waitingContainer = document.getElementById("waiting-queue-container");
         var statsContainer = document.getElementById("statistics-container");
+        var liveMatrixContainer = document.getElementById("live-matrix-container");
+        
+        if (liveMatrixContainer) liveMatrixContainer.style.display = "none";
         
         if (tab === 'analytics') {
           if (tableCard) tableCard.style.display = "none";
@@ -4844,11 +4855,28 @@
             statsBtn.style.borderBottomColor = "var(--primary)";
           }
           renderStatistics();
+        } else if (tab === 'live-matrix-ug' || tab === 'live-matrix-pg') {
+          if (tableCard) tableCard.style.display = "none";
+          if (analyticsContainer) analyticsContainer.style.display = "none";
+          if (waitingContainer) waitingContainer.style.display = "none";
+          if (statsContainer) statsContainer.style.display = "none";
+          if (liveMatrixContainer) liveMatrixContainer.style.display = "block";
+          
+          var targetBtn = (tab === 'live-matrix-ug') ? liveMatrixUgBtn : liveMatrixPgBtn;
+          if (targetBtn) {
+            targetBtn.style.color = "var(--text-main)";
+            targetBtn.style.fontWeight = "600";
+            targetBtn.style.borderBottomColor = "var(--primary)";
+          }
+          if (typeof renderLiveMatrix === "function") {
+            renderLiveMatrix();
+          }
         } else {
           if (tableCard) tableCard.style.display = "block";
           if (analyticsContainer) analyticsContainer.style.display = "none";
           if (waitingContainer) waitingContainer.style.display = "none";
           if (statsContainer) statsContainer.style.display = "none";
+          if (liveMatrixContainer) liveMatrixContainer.style.display = "none";
           var activeBtn = pendingBtn;
           if (tab === 'completed-ug') activeBtn = completedUgBtn;
           else if (tab === 'completed-pg') activeBtn = completedPgBtn;
@@ -6119,6 +6147,449 @@
       if(isNaN(finalScore)) finalScore = 0;
       document.getElementById('calc-final-score').innerText = finalScore.toFixed(3);
     }
+function renderLiveMatrix() {
+      var container = document.getElementById("live-matrix-container");
+      if (!container) return;
+      container.innerHTML = "";
+      
+      if (Object.keys(pendingMatrixChanges).length > 0) {
+         var saveDiv = document.createElement("div");
+         saveDiv.style.position = "fixed";
+         saveDiv.style.bottom = "30px";
+         saveDiv.style.right = "30px";
+         saveDiv.style.zIndex = "9999";
+         saveDiv.innerHTML = "<button class='btn btn-success' style='box-shadow: 0 4px 15px rgba(16, 185, 129, 0.6); font-weight: bold; padding: 12px 24px; font-size: 1.1rem; border-radius: 8px; border: 2px solid #fff;' onclick='saveMatrixChanges()'>Save Matrix Changes (" + Object.keys(pendingMatrixChanges).length + " pending)</button>";
+         container.appendChild(saveDiv);
+      }
+      
+      if (currentTab !== 'live-matrix-ug' && currentTab !== 'live-matrix-pg') return;
+
+      var matrix = (currentTab === 'live-matrix-pg') ? seatMatrixPG : seatMatrixUG;
+      if (!matrix || matrix.length === 0) {
+        container.innerHTML = "<div style='padding: 20px; text-align: center; color: var(--text-muted);'>Seat matrix data not available. Please sync.</div>";
+        return;
+      }
+
+      var nodalDeptVal = "";
+      if (userRole === "Faculty" || userRole === "HOD") {
+        nodalDeptVal = document.getElementById("login-dept") ? document.getElementById("login-dept").value : "";
+      } else {
+        nodalDeptVal = document.getElementById("nodal-dept-filter") ? document.getElementById("nodal-dept-filter").value : "";
+      }
+      
+      var deptsToProcess = [];
+      matrix.forEach(function(row) {
+        if (!row || !row.Department) return;
+        var deptName = row.Department.toString();
+        if (deptName.toLowerCase() === "total") return;
+        if (nodalDeptVal && deptName !== nodalDeptVal) return;
+        deptsToProcess.push(row);
+      });
+
+      if (deptsToProcess.length === 0) {
+        container.innerHTML = "<div style='padding: 20px; text-align: center; color: var(--text-muted);'>No matrix data found for the selected department.</div>";
+        return;
+      }
+
+      var slots = getDynamicQuotaLabels();
+      slots = slots.filter(function(s) { return s !== "OPEN"; }).sort();
+      slots.unshift("OPEN");
+
+      var slNoGlobal = 1;
+
+      deptsToProcess.forEach(function(deptMatrix) {
+        var deptName = deptMatrix.Department.toString();
+        
+        var deptStudents = allStudents.filter(function(s) {
+          var sDept = (s["Department"] || "").toString().trim().toLowerCase();
+          var dName = deptName.trim().toLowerCase();
+          if (sDept !== dName) return false;
+          
+          var progType = (s["Program_Type"] || s["Admission to the Programme"] || "").toString().trim().toUpperCase();
+          var isUG = (progType.indexOf("B") === 0 || progType === "UG");
+          if (currentTab === "live-matrix-ug" && !isUG) return false;
+          if (currentTab === "live-matrix-pg" && isUG) return false;
+          
+          var status = s["Current_Status"] || "";
+          return (status === "Admitted" || status === "TC Issued");
+        });
+        
+        var deptWrapper = document.createElement("div");
+        deptWrapper.style.marginBottom = "30px";
+        
+        var title = document.createElement("div");
+        title.innerHTML = "<h3 style='color: var(--accent-purple); font-weight: 700; font-size: 1.2rem; border-bottom: 2px solid var(--accent-purple); display: inline-block; padding-bottom: 4px; margin-bottom: 10px;'>" + deptName + "</h3>";
+        deptWrapper.appendChild(title);
+        
+        var tableWrapper = document.createElement("div");
+        tableWrapper.className = "table-responsive mobile-card-table";
+        
+        var table = document.createElement("table");
+        var thead = document.createElement("thead");
+        thead.innerHTML = "<tr>" +
+          "<th>Sl</th>" +
+          "<th>Slot</th>" +
+          "<th>Admission No</th>" +
+          "<th>Student Name</th>" +
+          "<th>CAPID</th>" +
+          "<th>Index Mark</th>" +
+          "<th>Status</th>" +
+          "</tr>";
+        table.appendChild(thead);
+        
+        var tbody = document.createElement("tbody");
+        var activeStudents = [];
+        var tcBasket = [];
+        deptStudents.forEach(function(s) {
+          if ((s["Current_Status"] || "") === "TC Issued") {
+            tcBasket.push(s);
+          } else {
+            activeStudents.push(s);
+          }
+        });
+        
+        var unallocatedStudents = [].concat(activeStudents);
+        var slotData = {};
+        
+        // Pass 1: Extract and sort students per slot
+        slots.forEach(function(slot) {
+          var quota = 0;
+          for (var key in deptMatrix) {
+            if (key.toString().trim().toUpperCase() === slot) {
+              quota = parseInt(deptMatrix[key]) || 0;
+              break;
+            }
+          }
+          if (quota <= 0) return;
+
+          var matchedStudents = [];
+          for (var i = unallocatedStudents.length - 1; i >= 0; i--) {
+            var st = unallocatedStudents[i];
+            var capId = st["CAP id (Enter the full cap id without any spaces)"] || st["CAPID"] || "-";
+            var rawSlot = st["Assigned_Slot"] || st["Allotted_Category"] || "";
+            if (pendingMatrixChanges[capId]) {
+              rawSlot = pendingMatrixChanges[capId];
+            }
+            var sCat = rawSlot.toString().trim().toUpperCase();
+            var targetSlot = slot.toString().trim().toUpperCase();
+            if (sCat === targetSlot) {
+              matchedStudents.push(unallocatedStudents[i]);
+              unallocatedStudents.splice(i, 1);
+            }
+          }
+
+          matchedStudents.sort(function(a, b) {
+            var mA = parseFloat(a["Verified_Index_Mark"] || a["Index Marks (as per admit/allotment card)"] || a["Index Mark"] || 0);
+            var mB = parseFloat(b["Verified_Index_Mark"] || b["Index Marks (as per admit/allotment card)"] || b["Index Mark"] || 0);
+            return mB - mA;
+          });
+          
+          slotData[slot] = { quota: quota, students: matchedStudents };
+        });
+
+        var maxResIndex = -1;
+        var maxResCategory = "";
+        var maxResCap = "";
+        for (var sl in slotData) {
+          if (sl !== "OPEN") {
+            var q = slotData[sl].quota;
+            var stds = slotData[sl].students;
+            for (var i = 0; i < q && i < stds.length; i++) {
+               var cap = stds[i]["CAP id (Enter the full cap id without any spaces)"] || stds[i]["CAPID"] || "-";
+               var mark = parseFloat(stds[i]["Verified_Index_Mark"] || stds[i]["Index Marks (as per admit/allotment card)"] || stds[i]["Index Mark"] || 0);
+               if (mark > maxResIndex) {
+                 maxResIndex = mark;
+                 maxResCategory = sl;
+                 maxResCap = cap;
+               }
+            }
+          }
+        }
+        
+        var openVacancies = 0;
+        if (slotData["OPEN"]) {
+           openVacancies = slotData["OPEN"].quota - slotData["OPEN"].students.length;
+        }
+
+        var slotPalette = [
+          "rgba(59, 130, 246, 0.15)",  // blue
+          "rgba(16, 185, 129, 0.15)",  // green
+          "rgba(245, 158, 11, 0.15)",  // yellow
+          "rgba(139, 92, 246, 0.15)",  // purple
+          "rgba(236, 72, 153, 0.15)",  // pink
+          "rgba(14, 165, 233, 0.15)",  // cyan
+          "rgba(249, 115, 22, 0.15)",  // orange
+          "rgba(99, 102, 241, 0.15)",  // indigo
+          "rgba(20, 184, 166, 0.15)"   // teal
+        ];
+
+        // Pass 2: Render DOM
+        slots.forEach(function(slot, slotIdx) {
+          if (!slotData[slot]) return;
+          var quota = slotData[slot].quota;
+          var matchedStudents = slotData[slot].students;
+          var slotColor = slotPalette[slotIdx % slotPalette.length];
+
+          for (var q = 0; q < quota; q++) {
+            if (q < matchedStudents.length) {
+              var st = matchedStudents[q];
+              var tr = document.createElement("tr");
+              tr.style.cursor = "pointer";
+              tr.style.backgroundColor = slotColor;
+              (function(studentObj) {
+                tr.onclick = function() { openStudentDetails(studentObj); };
+              })(st);
+              
+              var name = st["Name (As per your certificate)"] || st["Name"] || "-";
+              var admNo = st["Admission_Number"] || "-";
+              var cap = st["CAP id (Enter the full cap id without any spaces)"] || st["CAPID"] || "-";
+              var markStr = st["Verified_Index_Mark"] || st["Index Marks (as per admit/allotment card)"] || st["Index Mark"] || "-";
+              var markNum = parseFloat(markStr) || 0;
+              var stat = st["Current_Status"] || "-";
+              
+              var nameHtml = "<strong>" + name + "</strong>";
+              
+              if (slot === "OPEN" && maxResIndex > -1 && markNum < maxResIndex) {
+                tr.style.backgroundColor = "rgba(239, 68, 68, 0.1)"; // Red tint
+                nameHtml += "<br><span style='font-size: 0.8rem; color: #b91c1c; font-style: italic;'>Warning: Student in " + maxResCategory + " has a higher index mark (" + maxResIndex + ")</span>";
+              }
+              
+              if (slot !== "OPEN" && cap === maxResCap && openVacancies > 0) {
+                 tr.style.borderLeft = "4px solid var(--accent-green)";
+                 nameHtml += "<br><span style='font-size: 0.8rem; background-color: var(--accent-green); color: white; padding: 2px 6px; border-radius: 4px; font-weight: bold;'>Next Eligible for OPEN</span>";
+              }
+              
+              if (pendingMatrixChanges[cap]) {
+                 nameHtml += "<br><button class='btn btn-warning' style='padding: 2px 8px; font-size: 0.7rem; margin-top: 5px; color: #000; font-weight: bold;' onclick='undoMatrixChange(event, \"" + cap + "\")'>Undo Move</button>";
+              } else if (slot !== "OPEN" && (userRole === "Principal" || userRole === "Faculty" || userRole === "Nodal Officer")) {
+                 nameHtml += "<br><button class='btn btn-primary' style='padding: 2px 8px; font-size: 0.7rem; margin-top: 5px;' onclick='moveToOpen(event, \"" + cap + "\", " + markNum + ", " + maxResIndex + ")'>Move to OPEN</button>";
+              }
+              
+              tr.innerHTML = "<td data-label='Sl'>" + slNoGlobal++ + "</td>" +
+                "<td data-label='Slot'><strong>" + slot + "</strong></td>" +
+                "<td data-label='Adm No'>" + admNo + "</td>" +
+                "<td data-label='Name'>" + nameHtml + "</td>" +
+                "<td data-label='CAPID'>" + cap + "</td>" +
+                "<td data-label='Index Mark'>" + markStr + "</td>" +
+                "<td data-label='Status'>" + stat + "</td>";
+              tbody.appendChild(tr);
+            } else {
+              var trBlank = document.createElement("tr");
+              trBlank.style.backgroundColor = slotColor;
+              trBlank.innerHTML = "<td data-label='Sl' style='color: var(--text-muted);'>" + slNoGlobal++ + "</td>" +
+                "<td data-label='Slot' style='color: var(--text-muted);'><strong>" + slot + "</strong></td>" +
+                "<td data-label='Info' colspan='5' style='text-align: center; color: var(--text-muted); font-style: italic;'>--- Vacant / Not Filled ---</td>";
+              tbody.appendChild(trBlank);
+            }
+          }
+          
+          if (matchedStudents.length > quota) {
+            for (var ext = quota; ext < matchedStudents.length; ext++) {
+              var stEx = matchedStudents[ext];
+              var trEx = document.createElement("tr");
+              trEx.style.cursor = "pointer";
+              trEx.style.backgroundColor = "rgba(239, 68, 68, 0.1)";
+              (function(studentObj) {
+                trEx.onclick = function() { openStudentDetails(studentObj); };
+              })(stEx);
+              
+              var nameEx = stEx["Name (As per your certificate)"] || stEx["Name"] || "-";
+              var admNoEx = stEx["Admission_Number"] || "-";
+              var capEx = stEx["CAP id (Enter the full cap id without any spaces)"] || stEx["CAPID"] || "-";
+              var markEx = stEx["Verified_Index_Mark"] || stEx["Index Marks (as per admit/allotment card)"] || stEx["Index Mark"] || "-";
+              var statEx = stEx["Current_Status"] || "-";
+              
+              trEx.innerHTML = "<td data-label='Sl'>" + slNoGlobal++ + "</td>" +
+                "<td data-label='Slot'><strong style='color: #b91c1c;'>" + slot + " (Excess)</strong></td>" +
+                "<td data-label='Adm No'>" + admNoEx + "</td>" +
+                "<td data-label='Name'><strong>" + nameEx + "</strong></td>" +
+                "<td data-label='CAPID'>" + capEx + "</td>" +
+                "<td data-label='Index Mark'>" + markEx + "</td>" +
+                "<td data-label='Status'>" + statEx + "</td>";
+              tbody.appendChild(trEx);
+            }
+          }
+        });
+
+        if (unallocatedStudents.length > 0) {
+          unallocatedStudents.forEach(function(uSt) {
+             var trUn = document.createElement("tr");
+             trUn.style.cursor = "pointer";
+             trUn.style.backgroundColor = "rgba(245, 158, 11, 0.15)";
+             (function(studentObj) {
+               trUn.onclick = function() { openStudentDetails(studentObj); };
+             })(uSt);
+             
+             var uName = uSt["Name (As per your certificate)"] || uSt["Name"] || "-";
+             var uAdm = uSt["Admission_Number"] || "-";
+             var uCap = uSt["CAP id (Enter the full cap id without any spaces)"] || uSt["CAPID"] || "-";
+             var uMark = uSt["Verified_Index_Mark"] || uSt["Index Marks (as per admit/allotment card)"] || uSt["Index Mark"] || "-";
+             var uStat = uSt["Current_Status"] || "-";
+             var rawCat = uSt["Allotted_Category"] || "None";
+             
+             trUn.innerHTML = "<td data-label='Sl'>" + slNoGlobal++ + "</td>" +
+                "<td data-label='Slot'><strong style='color: #b45309;'>Unallocated (" + rawCat + ")</strong></td>" +
+                "<td data-label='Adm No'>" + uAdm + "</td>" +
+                "<td data-label='Name'><strong>" + uName + "</strong></td>" +
+                "<td data-label='CAPID'>" + uCap + "</td>" +
+                "<td data-label='Index Mark'>" + uMark + "</td>" +
+                "<td data-label='Status'>" + uStat + "</td>";
+             tbody.appendChild(trUn);
+          });
+        }
+
+        table.appendChild(tbody);
+        tableWrapper.appendChild(table);
+        deptWrapper.appendChild(tableWrapper);
+        
+        if (tcBasket.length > 0) {
+           var tcTitle = document.createElement("div");
+           tcTitle.innerHTML = "<h4 style='color: var(--accent-red); margin-top: 20px; border-bottom: 1px solid var(--accent-red); display: inline-block; padding-bottom: 2px;'>TC Issued Basket</h4>";
+           deptWrapper.appendChild(tcTitle);
+           
+           var tcTableWrap = document.createElement("div");
+           tcTableWrap.className = "table-responsive mobile-card-table";
+           var tcTable = document.createElement("table");
+           tcTable.innerHTML = "<thead><tr><th>Sl</th><th>Admission No</th><th>Student Name</th><th>CAPID</th><th>Index Mark</th><th>Status</th></tr></thead>";
+           var tcTbody = document.createElement("tbody");
+           var tcSl = 1;
+           tcBasket.forEach(function(tSt) {
+              var tTr = document.createElement("tr");
+              tTr.style.cursor = "pointer";
+              (function(studentObj) {
+                 tTr.onclick = function() { openStudentDetails(studentObj); };
+              })(tSt);
+              
+              var tName = tSt["Name (As per your certificate)"] || tSt["Name"] || "-";
+              var tAdm = tSt["Admission_Number"] || "-";
+              var tCap = tSt["CAP id (Enter the full cap id without any spaces)"] || tSt["CAPID"] || "-";
+              var tMark = tSt["Verified_Index_Mark"] || tSt["Index Marks (as per admit/allotment card)"] || tSt["Index Mark"] || "-";
+              var tStat = tSt["Current_Status"] || "-";
+              
+              tTr.innerHTML = "<td data-label='Sl'>" + tcSl++ + "</td>" +
+                 "<td data-label='Adm No'>" + tAdm + "</td>" +
+                 "<td data-label='Name'><strong>" + tName + "</strong></td>" +
+                 "<td data-label='CAPID'>" + tCap + "</td>" +
+                 "<td data-label='Index Mark'>" + tMark + "</td>" +
+                 "<td data-label='Status'>" + tStat + "</td>";
+              tcTbody.appendChild(tTr);
+           });
+           tcTable.appendChild(tcTbody);
+           tcTableWrap.appendChild(tcTable);
+           deptWrapper.appendChild(tcTableWrap);
+        }
+        
+        container.appendChild(deptWrapper);
+      });
+    }
+
+    function moveToOpen(event, cap, mark, maxMark) {
+      if (event) event.stopPropagation();
+      if (mark < maxMark) {
+         if (!confirm("Wait! Another student in a reservation category has a higher index mark (" + maxMark + "). Are you sure you want to move this student to OPEN?")) {
+            return;
+         }
+      }
+      pendingMatrixChanges[cap] = "OPEN";
+      renderLiveMatrix();
+      showToast("Student moved to OPEN locally.", false);
+    }
+    
+    function undoMatrixChange(event, cap) {
+      if (event) event.stopPropagation();
+      if (pendingMatrixChanges[cap]) {
+         delete pendingMatrixChanges[cap];
+         renderLiveMatrix();
+         showToast("Slot change undone.", false);
+      }
+    }
+    
+    function saveMatrixChanges() {
+       var caps = Object.keys(pendingMatrixChanges);
+       if (caps.length === 0) return;
+       
+       var confirmMsg = "Are you sure you want to save " + caps.length + " slot changes to the server?";
+       if (!confirm(confirmMsg)) return;
+       
+       var btn = document.querySelector("#live-matrix-container button.btn-success");
+       if (btn) {
+          btn.innerText = "Saving " + caps.length + " changes...";
+          btn.disabled = true;
+       }
+       
+       var currentIndex = 0;
+       
+       function processNext() {
+          if (currentIndex >= caps.length) {
+             pendingMatrixChanges = {};
+             activeStudent = null; // Reset active student
+             renderLiveMatrix();
+             showToast("All matrix changes saved successfully!");
+             // Refresh data to ensure all UI components are perfectly in sync
+             setTimeout(function() { loadDepartmentData(); }, 1000);
+             return;
+          }
+          
+          var cap = caps[currentIndex];
+          var newSlot = pendingMatrixChanges[cap];
+          var student = allStudents.find(function(s) {
+             return (s["CAP id (Enter the full cap id without any spaces)"] || s["CAPID"] || "") === cap;
+          });
+          
+          if (!student) {
+             currentIndex++;
+             processNext();
+             return;
+          }
+          
+          // Set activeStudent so sendUpdate can extract required CAPID, Dept, etc.
+          activeStudent = student;
+          
+          var dataToUpdate = {
+             "Admission_Number": student["Admission_Number"] || "",
+             "CAPID": cap,
+             "Assigned_Slot": newSlot
+          };
+          
+          var studentDept = student["Department"] || student["Admission to the Department"] || currentSelectedDept;
+          var email = student["Email Address"] || student["Email id"] || "";
+          var mobile = student["Mobile No"] || student["Mobile number"] || student["Mobile_Number"] || "";
+          
+          google.script.run
+            .withSuccessHandler(function(resStr) {
+               var res = JSON.parse(resStr);
+               if (res.success) {
+                 student["Assigned_Slot"] = newSlot;
+               } else {
+                 console.error("Failed to update " + cap + ": " + res.message);
+               }
+               currentIndex++;
+               processNext();
+            })
+            .withFailureHandler(function(err) {
+               console.error("Failed to update " + cap + ": " + err.toString());
+               currentIndex++;
+               processNext();
+            })
+            .updateStudentData(
+               studentDept, 
+               mobile, 
+               email, 
+               dataToUpdate, 
+               typeof userRole !== 'undefined' ? userRole : "System", 
+               typeof userDept !== 'undefined' ? userDept : "System",
+               student["Name (As per your certificate)"] || student["Name"] || "",
+               student["Admission to the Programme"] || student["Program_Type"] || "",
+               student["Verified_Index_Mark"] || student["Index Marks (as per admit/allotment card)"] || student["Index Mark"] || 0,
+               student["Program_Type"] || ""
+            );
+       }
+       
+       processNext();
+    }
+
+    // Modal control and generator logic for ID Cards
+    
   </script>
 </body>
 </html>
