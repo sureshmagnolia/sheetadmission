@@ -1043,6 +1043,7 @@
 
           
           <button class="btn btn-primary" id="btn-nodal-matrix" style="display: none;" onclick="openSeatMatrixModal()">Manage Seat Split Up</button>
+          <button class="btn btn-info" id="btn-live-matrix-view" style="display: none; background-color: var(--accent-purple); color: white;" onclick="toggleLiveMatrixButton()">Live Seat Matrix</button>
           <button class="btn btn-primary" id="btn-pta-config-fee" style="display: none;" onclick="openPTAConfigModal()">Configure Fees</button>
           <button class="btn btn-success" id="btn-pta-balance" style="display: none;" onclick="generateDailyBalanceSheet()">Balance Sheet</button>
           <button class="btn btn-primary" id="btn-principal-idcards" style="display: none;" onclick="openIDCardsModal()">Generate ID Cards</button>
@@ -1127,8 +1128,16 @@
             <option value="TC Issued">TC Issued</option>
           </select>
           <span id="nodal-filter-count" style="color: var(--accent-yellow); font-weight: 600; font-size: 0.95rem; margin-left: 5px;"></span>
+          <div style="flex-grow: 1;"></div>
+          <select id="nodal-view-toggle" class="form-control" onchange="toggleMatrixView()" style="width: auto; min-width: 140px; font-weight: 500; background-color: var(--accent-purple); color: white; border: none; display: none;">
+            <option value="list">Standard List</option>
+            <option value="matrix">Seat Matrix</option>
+          </select>
         </div>
-        <div class="table-responsive mobile-card-table">
+        
+        <div id="live-matrix-container" style="display: none; padding: 10px 0;"></div>
+        
+        <div class="table-responsive mobile-card-table" id="standard-table-container">
           <table>
             <thead>
               <tr>
@@ -2140,6 +2149,7 @@
       var balanceBtn = document.getElementById("btn-pta-balance");
       var configFeeBtn = document.getElementById("btn-pta-config-fee");
       var matrixBtn = document.getElementById("btn-nodal-matrix");
+      var liveMatrixBtn = document.getElementById("btn-live-matrix-view");
       var dashboardTabs = document.getElementById("dashboard-tabs");
       var vacancyContainer = document.getElementById("vacancy-summary-container");
       var waitingBtn = document.getElementById("tab-waiting-btn");
@@ -2152,6 +2162,7 @@
       if (balanceBtn) balanceBtn.style.display = "none";
       if (configFeeBtn) configFeeBtn.style.display = "none";
       if (matrixBtn) matrixBtn.style.display = "none";
+      if (liveMatrixBtn) liveMatrixBtn.style.display = "none";
       if (idCardsBtn) idCardsBtn.style.display = "none";
       if (ptaSummaryContainer) ptaSummaryContainer.style.display = "none";
       if (admissionRegisterBtn) admissionRegisterBtn.style.display = "none";
@@ -2165,6 +2176,7 @@
         loadPTAConfig();
       } else if (userRole === "Nodal Officer") {
         if (matrixBtn) matrixBtn.style.display = "inline-block";
+        if (liveMatrixBtn) liveMatrixBtn.style.display = "inline-block";
         if (dashboardTabs) dashboardTabs.style.display = "flex";
         if (waitingBtn) waitingBtn.style.display = "block";
         var statsBtn = document.getElementById("tab-statistics-btn");
@@ -2194,6 +2206,7 @@
         if (admissionRegisterBtn) admissionRegisterBtn.style.display = "inline-block";
       } else if (userRole === "Faculty" || userRole === "HOD") {
         if (dashboardTabs) dashboardTabs.style.display = "flex";
+        if (liveMatrixBtn) liveMatrixBtn.style.display = "inline-block";
       } else {
         if (dashboardTabs) dashboardTabs.style.display = "none";
       }
@@ -2625,6 +2638,8 @@
           countEl.innerText = "Total: " + filteredStudents.length;
         }
       }
+      
+      toggleMatrixView();
       
       if (userRole === "PTA") {
         updatePTASummary(allStudents);
@@ -4895,6 +4910,20 @@
             }
           }
           
+          if (tab !== 'completed-ug' && tab !== 'completed-pg') {
+            var vToggle = document.getElementById("nodal-view-toggle");
+            var btnLive = document.getElementById("btn-live-matrix-view");
+            if (vToggle) {
+              vToggle.value = "list";
+            }
+            if (btnLive) {
+              btnLive.innerText = "Live Seat Matrix";
+              btnLive.classList.remove("btn-danger");
+              btnLive.classList.add("btn-info");
+              btnLive.style.backgroundColor = "var(--accent-purple)";
+            }
+          }
+          
           filterTable();
         }
       }
@@ -5479,6 +5508,293 @@
         printWindow.print();
         printWindow.close();
       }, 500);
+    }
+    
+    // End of print functions
+    
+    function toggleMatrixView() {
+      var vToggle = document.getElementById("nodal-view-toggle");
+      var standardTable = document.getElementById("standard-table-container");
+      var paginationControls = document.getElementById("pagination-controls");
+      var matrixContainer = document.getElementById("live-matrix-container");
+      
+      if (!vToggle || !standardTable || !matrixContainer) return;
+      
+      var sFilter = document.getElementById("nodal-status-filter");
+      var sBar = document.getElementById("search-bar");
+      var fCount = document.getElementById("nodal-filter-count");
+      
+      if (vToggle.value === "matrix") {
+        standardTable.style.display = "none";
+        if (paginationControls) paginationControls.style.display = "none";
+        matrixContainer.style.display = "block";
+        
+        if (sFilter) {
+          sFilter.disabled = true;
+          sFilter.title = "Status filtering is disabled (Matrix only counts Admitted/TC students)";
+        }
+        if (sBar) {
+          sBar.disabled = true;
+          sBar.title = "Search is disabled in Matrix view";
+        }
+        if (fCount) fCount.style.display = "none";
+        
+        renderLiveMatrix();
+      } else {
+        standardTable.style.display = "block";
+        if (paginationControls) paginationControls.style.display = "flex";
+        matrixContainer.style.display = "none";
+        matrixContainer.innerHTML = "";
+        
+        if (sFilter) {
+          sFilter.disabled = false;
+          sFilter.title = "";
+        }
+        if (sBar) {
+          sBar.disabled = false;
+          sBar.title = "";
+        }
+        if (fCount) fCount.style.display = "inline";
+      }
+    }
+    
+    function renderLiveMatrix() {
+      var container = document.getElementById("live-matrix-container");
+      if (!container) return;
+      container.innerHTML = "";
+      
+      if (currentTab !== 'completed-ug' && currentTab !== 'completed-pg') return;
+
+      var matrix = (currentTab === 'completed-pg') ? seatMatrixPG : seatMatrixUG;
+      if (!matrix || matrix.length === 0) {
+        container.innerHTML = "<div style='padding: 20px; text-align: center; color: var(--text-muted);'>Seat matrix data not available. Please sync.</div>";
+        return;
+      }
+
+      var nodalDeptVal = "";
+      if (userRole === "Faculty" || userRole === "HOD") {
+        nodalDeptVal = document.getElementById("login-dept") ? document.getElementById("login-dept").value : "";
+      } else {
+        nodalDeptVal = document.getElementById("nodal-dept-filter") ? document.getElementById("nodal-dept-filter").value : "";
+      }
+      
+      var deptsToProcess = [];
+      matrix.forEach(function(row) {
+        if (!row || !row.Department) return;
+        var deptName = row.Department.toString();
+        if (deptName.toLowerCase() === "total") return;
+        if (nodalDeptVal && deptName !== nodalDeptVal) return;
+        deptsToProcess.push(row);
+      });
+
+      if (deptsToProcess.length === 0) {
+        container.innerHTML = "<div style='padding: 20px; text-align: center; color: var(--text-muted);'>No matrix data found for the selected department.</div>";
+        return;
+      }
+
+      var slots = getDynamicQuotaLabels();
+      slots = slots.filter(function(s) { return s !== "OPEN"; }).sort();
+      slots.unshift("OPEN");
+
+      var slNoGlobal = 1;
+
+      deptsToProcess.forEach(function(deptMatrix) {
+        var deptName = deptMatrix.Department.toString();
+        
+        var deptStudents = allStudents.filter(function(s) {
+          var sDept = (s["Department"] || "").toString();
+          if (sDept !== deptName) return false;
+          
+          var progType = (s["Program_Type"] || s["Admission to the Programme"] || "").toString().trim().toUpperCase();
+          var isUG = (progType.indexOf("B") === 0 || progType === "UG");
+          if (currentTab === "completed-ug" && !isUG) return false;
+          if (currentTab === "completed-pg" && isUG) return false;
+          
+          var status = s["Current_Status"] || "";
+          return (status === "Admitted" || status === "TC Issued");
+        });
+        
+        var deptWrapper = document.createElement("div");
+        deptWrapper.style.marginBottom = "30px";
+        
+        var title = document.createElement("div");
+        title.innerHTML = "<h3 style='color: var(--accent-purple); font-weight: 700; font-size: 1.2rem; border-bottom: 2px solid var(--accent-purple); display: inline-block; padding-bottom: 4px; margin-bottom: 10px;'>" + deptName + "</h3>";
+        deptWrapper.appendChild(title);
+        
+        var tableWrapper = document.createElement("div");
+        tableWrapper.className = "table-responsive mobile-card-table";
+        
+        var table = document.createElement("table");
+        var thead = document.createElement("thead");
+        thead.innerHTML = "<tr>" +
+          "<th>Sl</th>" +
+          "<th>Slot</th>" +
+          "<th>Admission No</th>" +
+          "<th>Student Name</th>" +
+          "<th>CAPID</th>" +
+          "<th>Index Mark</th>" +
+          "<th>Status</th>" +
+          "</tr>";
+        table.appendChild(thead);
+        
+        var tbody = document.createElement("tbody");
+        var unallocatedStudents = [].concat(deptStudents);
+        var slotData = {};
+        
+        // Pass 1: Extract and sort students per slot
+        slots.forEach(function(slot) {
+          var quota = 0;
+          for (var key in deptMatrix) {
+            if (key.toString().trim().toUpperCase() === slot) {
+              quota = parseInt(deptMatrix[key]) || 0;
+              break;
+            }
+          }
+          if (quota <= 0) return;
+
+          var matchedStudents = [];
+          for (var i = unallocatedStudents.length - 1; i >= 0; i--) {
+            var sCat = (unallocatedStudents[i]["Assigned_Slot"] || unallocatedStudents[i]["Allotted_Category"] || "").toString().trim().toUpperCase();
+            if (sCat === slot) {
+              matchedStudents.push(unallocatedStudents[i]);
+              unallocatedStudents.splice(i, 1);
+            }
+          }
+
+          matchedStudents.sort(function(a, b) {
+            var mA = parseFloat(a["Verified_Index_Mark"] || a["Index Marks (as per admit/allotment card)"] || a["Index Mark"] || 0);
+            var mB = parseFloat(b["Verified_Index_Mark"] || b["Index Marks (as per admit/allotment card)"] || b["Index Mark"] || 0);
+            return mB - mA;
+          });
+          
+          slotData[slot] = { quota: quota, students: matchedStudents };
+        });
+
+        // Find max index mark among all reservation (non-OPEN) admitted candidates
+        var maxResIndex = -1;
+        var maxResCategory = "";
+        for (var sl in slotData) {
+          if (sl !== "OPEN") {
+            var q = slotData[sl].quota;
+            var stds = slotData[sl].students;
+            for (var i = 0; i < q && i < stds.length; i++) {
+               var mark = parseFloat(stds[i]["Verified_Index_Mark"] || stds[i]["Index Marks (as per admit/allotment card)"] || stds[i]["Index Mark"] || 0);
+               if (mark > maxResIndex) {
+                 maxResIndex = mark;
+                 maxResCategory = sl;
+               }
+            }
+          }
+        }
+
+        // Pass 2: Render DOM
+        slots.forEach(function(slot) {
+          if (!slotData[slot]) return;
+          var quota = slotData[slot].quota;
+          var matchedStudents = slotData[slot].students;
+
+          for (var q = 0; q < quota; q++) {
+            if (q < matchedStudents.length) {
+              var st = matchedStudents[q];
+              var tr = document.createElement("tr");
+              tr.style.cursor = "pointer";
+              (function(studentObj) {
+                tr.onclick = function() { openStudentDetails(studentObj); };
+              })(st);
+              
+              var name = st["Name (As per your certificate)"] || st["Name"] || "-";
+              var admNo = st["Admission_Number"] || "-";
+              var cap = st["CAP id (Enter the full cap id without any spaces)"] || st["CAPID"] || "-";
+              var markStr = st["Verified_Index_Mark"] || st["Index Marks (as per admit/allotment card)"] || st["Index Mark"] || "-";
+              var markNum = parseFloat(markStr) || 0;
+              var stat = st["Current_Status"] || "-";
+              
+              var nameHtml = "<strong>" + name + "</strong>";
+              
+              // Check anomaly for OPEN slot
+              if (slot === "OPEN" && maxResIndex > -1 && markNum < maxResIndex) {
+                tr.style.backgroundColor = "rgba(239, 68, 68, 0.1)"; // Red tint
+                nameHtml += "<br><span style='font-size: 0.8rem; color: #b91c1c; font-style: italic;'>Warning: Student in " + maxResCategory + " has a higher index mark (" + maxResIndex + ")</span>";
+              }
+              
+              tr.innerHTML = "<td data-label='Sl'>" + slNoGlobal++ + "</td>" +
+                "<td data-label='Slot'><strong>" + slot + "</strong></td>" +
+                "<td data-label='Adm No'>" + admNo + "</td>" +
+                "<td data-label='Name'>" + nameHtml + "</td>" +
+                "<td data-label='CAPID'>" + cap + "</td>" +
+                "<td data-label='Index Mark'>" + markStr + "</td>" +
+                "<td data-label='Status'>" + stat + "</td>";
+              tbody.appendChild(tr);
+            } else {
+              var trBlank = document.createElement("tr");
+              trBlank.style.backgroundColor = "rgba(0,0,0,0.02)";
+              trBlank.innerHTML = "<td data-label='Sl' style='color: var(--text-muted);'>" + slNoGlobal++ + "</td>" +
+                "<td data-label='Slot' style='color: var(--text-muted);'><strong>" + slot + "</strong></td>" +
+                "<td data-label='Info' colspan='5' style='text-align: center; color: var(--text-muted); font-style: italic;'>--- Vacant / Not Filled ---</td>";
+              tbody.appendChild(trBlank);
+            }
+          }
+          
+          if (matchedStudents.length > quota) {
+            for (var ext = quota; ext < matchedStudents.length; ext++) {
+              var stEx = matchedStudents[ext];
+              var trEx = document.createElement("tr");
+              trEx.style.cursor = "pointer";
+              trEx.style.backgroundColor = "rgba(239, 68, 68, 0.1)";
+              (function(studentObj) {
+                trEx.onclick = function() { openStudentDetails(studentObj); };
+              })(stEx);
+              
+              var nameEx = stEx["Name (As per your certificate)"] || stEx["Name"] || "-";
+              var admNoEx = stEx["Admission_Number"] || "-";
+              var capEx = stEx["CAP id (Enter the full cap id without any spaces)"] || stEx["CAPID"] || "-";
+              var markEx = stEx["Verified_Index_Mark"] || stEx["Index Marks (as per admit/allotment card)"] || stEx["Index Mark"] || "-";
+              var statEx = stEx["Current_Status"] || "-";
+              
+              trEx.innerHTML = "<td data-label='Sl'>" + slNoGlobal++ + "</td>" +
+                "<td data-label='Slot'><strong style='color: #b91c1c;'>" + slot + " (Excess)</strong></td>" +
+                "<td data-label='Adm No'>" + admNoEx + "</td>" +
+                "<td data-label='Name'><strong>" + nameEx + "</strong></td>" +
+                "<td data-label='CAPID'>" + capEx + "</td>" +
+                "<td data-label='Index Mark'>" + markEx + "</td>" +
+                "<td data-label='Status'>" + statEx + "</td>";
+              tbody.appendChild(trEx);
+            }
+          }
+        });
+
+        if (unallocatedStudents.length > 0) {
+          unallocatedStudents.forEach(function(uSt) {
+             var trUn = document.createElement("tr");
+             trUn.style.cursor = "pointer";
+             trUn.style.backgroundColor = "rgba(245, 158, 11, 0.15)";
+             (function(studentObj) {
+               trUn.onclick = function() { openStudentDetails(studentObj); };
+             })(uSt);
+             
+             var uName = uSt["Name (As per your certificate)"] || uSt["Name"] || "-";
+             var uAdm = uSt["Admission_Number"] || "-";
+             var uCap = uSt["CAP id (Enter the full cap id without any spaces)"] || uSt["CAPID"] || "-";
+             var uMark = uSt["Verified_Index_Mark"] || uSt["Index Marks (as per admit/allotment card)"] || uSt["Index Mark"] || "-";
+             var uStat = uSt["Current_Status"] || "-";
+             var rawCat = uSt["Allotted_Category"] || "None";
+             
+             trUn.innerHTML = "<td data-label='Sl'>" + slNoGlobal++ + "</td>" +
+                "<td data-label='Slot'><strong style='color: #b45309;'>Unallocated (" + rawCat + ")</strong></td>" +
+                "<td data-label='Adm No'>" + uAdm + "</td>" +
+                "<td data-label='Name'><strong>" + uName + "</strong></td>" +
+                "<td data-label='CAPID'>" + uCap + "</td>" +
+                "<td data-label='Index Mark'>" + uMark + "</td>" +
+                "<td data-label='Status'>" + uStat + "</td>";
+             tbody.appendChild(trUn);
+          });
+        }
+
+        table.appendChild(tbody);
+        tableWrapper.appendChild(table);
+        deptWrapper.appendChild(tableWrapper);
+        container.appendChild(deptWrapper);
+      });
     }
 
     // Modal control and generator logic for ID Cards
@@ -6086,6 +6402,35 @@
       var finalScore = index + bonusWeightage + nss + ncc;
       if(isNaN(finalScore)) finalScore = 0;
       document.getElementById('calc-final-score').innerText = finalScore.toFixed(3);
+    }
+    
+    function toggleLiveMatrixButton() {
+      var vToggle = document.getElementById("nodal-view-toggle");
+      var btnLive = document.getElementById("btn-live-matrix-view");
+      if (!vToggle) return;
+      
+      if (vToggle.value === "list") {
+        if (currentTab !== 'completed-ug' && currentTab !== 'completed-pg') {
+          switchTab('completed-ug');
+        }
+        vToggle.value = "matrix";
+        if (btnLive) {
+          btnLive.innerText = "Close Seat Matrix";
+          btnLive.classList.remove("btn-info");
+          btnLive.classList.add("btn-danger");
+          btnLive.style.backgroundColor = ""; // Reset inline
+        }
+        toggleMatrixView();
+      } else {
+        vToggle.value = "list";
+        if (btnLive) {
+          btnLive.innerText = "Live Seat Matrix";
+          btnLive.classList.remove("btn-danger");
+          btnLive.classList.add("btn-info");
+          btnLive.style.backgroundColor = "var(--accent-purple)";
+        }
+        toggleMatrixView();
+      }
     }
   </script>
 </body>
