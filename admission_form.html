@@ -411,6 +411,12 @@
                 el.required = true;
               });
               
+              // Lock the CAP ID and Program so they can't be tampered with after verification
+              document.getElementById('capId').readOnly = true;
+              document.getElementById('capId').classList.add('bg-gray-100');
+              document.getElementById('programSelect').style.pointerEvents = 'none';
+              document.getElementById('programSelect').classList.add('bg-gray-100');
+              
               unlockFormSections();
               buildConditionalDocs(''); // Start with basic docs
             }

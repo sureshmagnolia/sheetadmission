@@ -638,7 +638,7 @@ function getAllDepartmentsData(lastSyncTime) {
     var deptIndex = findHeaderIndex(masterHeaders, DEPT_HEADER);
     
     if (capidIndex === -1 || deptIndex === -1) {
-      return JSON.stringify({ success: false, message: "Master sheet missing CAPID or Department columns." });
+      return JSON.stringify({ success: false, message: "Master sheet missing Mobile Number or Department columns." });
     }
     
     var dbData = {};
@@ -661,7 +661,7 @@ function getAllDepartmentsData(lastSyncTime) {
     
     if (dbLastRow > 1) {
       var dbValues = dbSheet.getRange(2, 1, dbLastRow - 1, dbSheet.getLastColumn()).getValues();
-      var capidColIndex = findHeaderIndex(dbHeaders, "CAPID");
+      var capidColIndex = findHeaderIndex(dbHeaders, "Mobile_Number");
       var deptColIndex = findHeaderIndex(dbHeaders, "Department");
       var statusColIndex = findHeaderIndex(dbHeaders, "Current_Status");
       var sysLastModIdx = findHeaderIndex(dbHeaders, "System_Last_Modified");
