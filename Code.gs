@@ -151,7 +151,7 @@ function getOrCreateSystemDBSheet() {
     "PTA_Cooperative_Store", "PTA_ID_Card_Fee", "PTA_Payment_Date",
     "Program_Type", "Assigned_Slot", "Synced_Form_Department", "Verified_Index_Mark",
     "Date_of_Admission", "Date_of_TC", "Date_of_Transfer", "System_Last_Modified",
-    "Additional_Language", "Allotted_Category", "Parent_Mobile", "Allow_Edit", "Allow_Edit"
+    "Additional_Language", "Allotted_Category", "Parent_Mobile", "Allow_Edit"
   ];
   
   if (!dbSheet) {
@@ -180,7 +180,7 @@ function getOrCreateSystemDBSheet() {
       "PTA_Voluntary_Contribution", "PTA_Cooperative_Store", "PTA_ID_Card_Fee", "PTA_Payment_Date",
       "Program_Type", "Assigned_Slot", "Principal_Remarks",
       "Date_of_Admission", "Date_of_TC", "Date_of_Transfer",
-      "Additional_Language", "Allotted_Category", "Parent_Mobile", "Allow_Edit", "Allow_Edit"
+      "Additional_Language", "Allotted_Category", "Parent_Mobile", "Allow_Edit"
     ];
     colsToMigrate.forEach(function(col) {
       // Re-read headers each iteration so lengths stay accurate after additions
