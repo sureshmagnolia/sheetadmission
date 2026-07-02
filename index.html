@@ -3328,12 +3328,23 @@
 
       // Enable actions for correct roles
       if (userRole === "Faculty" || userRole === "HOD") {
+        var isUnlocked = (activeStudent["Allow_Edit"] === true || String(activeStudent["Allow_Edit"]).toUpperCase() === "TRUE");
         if (status === "Pending_Faculty" || status.includes("Reverted")) {
-          container.innerHTML = "<button class='btn btn-success' onclick='facultyVerify()'>Verify & Forward to Nodal</button>" +
-                                "<button class='btn btn-secondary' onclick='unlockStudentForm()' style='margin-left: 10px;'>Unlock Admission Form</button>";
+          var actionHtml = "<button class='btn btn-success' onclick='facultyVerify()'>Verify & Forward to Nodal</button>";
+          if (isUnlocked) {
+             actionHtml += "<span class='badge' style='background: #f1c40f; color: #333; margin-left: 10px; padding: 6px 12px; border-radius: 4px; font-size: 0.85rem; display: inline-block; font-weight: 500;'>Unlocked & Awaiting Student Resubmission</span>";
+          } else {
+             actionHtml += "<button class='btn btn-secondary' onclick='unlockStudentForm()' style='margin-left: 10px;'>Unlock Admission Form</button>";
+          }
+          container.innerHTML = actionHtml;
         } else {
-          container.innerHTML = "<p style='color: var(--text-muted); font-size: 0.85rem; font-style: italic;'>Locked. Student in next validation step (" + status + ").</p>" +
-                                "<button class='btn btn-secondary' onclick='unlockStudentForm()' style='margin-top: 10px;'>Unlock Admission Form</button>";
+          var actionHtml = "<p style='color: var(--text-muted); font-size: 0.85rem; font-style: italic;'>Locked. Student in next validation step (" + status + ").</p>";
+          if (isUnlocked) {
+             actionHtml += "<span class='badge' style='background: #f1c40f; color: #333; margin-top: 10px; padding: 6px 12px; border-radius: 4px; font-size: 0.85rem; display: inline-block; font-weight: 500;'>Unlocked & Awaiting Student Resubmission</span>";
+          } else {
+             actionHtml += "<button class='btn btn-secondary' onclick='unlockStudentForm()' style='margin-top: 10px;'>Unlock Admission Form</button>";
+          }
+          container.innerHTML = actionHtml;
         }
       }
       else if (userRole === "Nodal Officer") {

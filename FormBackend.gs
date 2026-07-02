@@ -134,6 +134,15 @@ function processFormSubmission(formData) {
     var sheet = getMasterSheet(SpreadsheetApp.getActiveSpreadsheet());
     if (!sheet) return { success: false, error: 'Responses sheet not found.' };
     
+    if (sheet.getLastColumn() === 0) {
+      var baseHeaders = ["Timestamp", "Email address", "CAP id (Enter the full cap id without any spaces)", "Name (As per your certificate)", "Admission to the Programme", "Admission to the Department", "Admitted Category (As per your admit/allotment card)", "Index Marks (as per admit/allotment card)", "Upload passport size photo"];
+      var otherKeys = Object.keys(formData).filter(function(k) { 
+        return baseHeaders.indexOf(k) === -1 && k !== 'captchaAnswer' && k !== 'captchaExpected' && k !== 'existingPhotoUrl' && k.indexOf('photo') === -1; 
+      });
+      var defaultHeaders = baseHeaders.concat(otherKeys);
+      sheet.getRange(1, 1, 1, defaultHeaders.length).setValues([defaultHeaders]);
+    }
+    
     var headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
     var emailColIdx = headers.indexOf('Email address');
     if (emailColIdx === -1) emailColIdx = headers.indexOf('Email id');
@@ -291,7 +300,8 @@ function unlockStudentAdmissionForm(email) {
       var dbDeptIdx = dbHeaders.indexOf('Department');
       
       for (var k = 0; k < dbHeaders.length; k++) {
-         if (k === dbEmailIdx) newRow.push(email);
+         if (dbHeaders[k] === "Timestamp") newRow.push(new Date());
+         else if (k === dbEmailIdx) newRow.push(email);
          else if (k === dbAllowEditIdx) newRow.push(true);
          else if (k === dbCapIdx && capid) newRow.push(capid);
          else if (k === dbDeptIdx && dept) newRow.push(dept);
