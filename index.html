@@ -5566,9 +5566,11 @@
       
       if (Object.keys(pendingMatrixChanges).length > 0) {
          var saveDiv = document.createElement("div");
-         saveDiv.style.textAlign = "right";
-         saveDiv.style.marginBottom = "15px";
-         saveDiv.innerHTML = "<button class='btn btn-success' style='box-shadow: 0 0 10px var(--accent-green); font-weight: bold;' onclick='saveMatrixChanges()'>Save Matrix Changes (" + Object.keys(pendingMatrixChanges).length + " pending)</button>";
+         saveDiv.style.position = "fixed";
+         saveDiv.style.bottom = "30px";
+         saveDiv.style.right = "30px";
+         saveDiv.style.zIndex = "9999";
+         saveDiv.innerHTML = "<button class='btn btn-success' style='box-shadow: 0 4px 15px rgba(16, 185, 129, 0.6); font-weight: bold; padding: 12px 24px; font-size: 1.1rem; border-radius: 8px; border: 2px solid #fff;' onclick='saveMatrixChanges()'>Save Matrix Changes (" + Object.keys(pendingMatrixChanges).length + " pending)</button>";
          container.appendChild(saveDiv);
       }
       
