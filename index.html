@@ -5768,7 +5768,9 @@
                  nameHtml += "<br><span style='font-size: 0.8rem; background-color: var(--accent-green); color: white; padding: 2px 6px; border-radius: 4px; font-weight: bold;'>Next Eligible for OPEN</span>";
               }
               
-              if (slot !== "OPEN" && (userRole === "Principal" || userRole === "Faculty" || userRole === "Nodal Officer")) {
+              if (pendingMatrixChanges[cap]) {
+                 nameHtml += "<br><button class='btn btn-warning' style='padding: 2px 8px; font-size: 0.7rem; margin-top: 5px; color: #000; font-weight: bold;' onclick='undoMatrixChange(event, \"" + cap + "\")'>Undo Move</button>";
+              } else if (slot !== "OPEN" && (userRole === "Principal" || userRole === "Faculty" || userRole === "Nodal Officer")) {
                  nameHtml += "<br><button class='btn btn-primary' style='padding: 2px 8px; font-size: 0.7rem; margin-top: 5px;' onclick='moveToOpen(event, \"" + cap + "\", " + markNum + ", " + maxResIndex + ")'>Move to OPEN</button>";
               }
               
@@ -5899,10 +5901,11 @@
       }
       pendingMatrixChanges[cap] = "OPEN";
       renderLiveMatrix();
-      showToast("Student moved to OPEN locally. <a href='#' style='color: #fbbf24; text-decoration: underline;' onclick='undoMatrixChange(\"" + cap + "\"); return false;'>Undo</a>", false);
+      showToast("Student moved to OPEN locally.", false);
     }
     
-    function undoMatrixChange(cap) {
+    function undoMatrixChange(event, cap) {
+      if (event) event.stopPropagation();
       if (pendingMatrixChanges[cap]) {
          delete pendingMatrixChanges[cap];
          renderLiveMatrix();
