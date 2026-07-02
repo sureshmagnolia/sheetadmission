@@ -75,15 +75,15 @@
                 </select>
               </div>
               <div class="flex-grow">
-                <label class="block text-sm font-medium text-gray-700">Enter your CAP ID <span class="text-red-500">*</span></label>
-                <input type="text" id="capId" name="CAP id (Enter the full cap id without any spaces)" 
+                <label class="block text-sm font-medium text-gray-700">Enter your 10-Digit Mobile No <span class="text-red-500">*</span></label>
+                <input type="tel" id="mobileNo" name="Mobile No" required
                        class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm p-2 border" 
-                       placeholder="e.g. CAP26PG121319" oninput="this.value = this.value.toUpperCase()">
-                <p class="text-xs text-gray-500 mt-1">13 chars for PG, 15 chars for UG. No spaces.</p>
+                       placeholder="e.g. 9876543210" pattern="^[0-9]{10}$" maxlength="10">
+                <p class="text-xs text-gray-500 mt-1">10 digits, no country code.</p>
               </div>
               <div class="flex-grow">
                 <label class="block text-sm font-medium text-gray-700">Enter your Email Address <span class="text-red-500">*</span></label>
-                <input type="email" id="userEmail" name="email" value="<?= userEmail ?>" 
+                <input type="email" id="userEmail" name="email" value="<?= userEmail ?>" autocomplete="email"
                        class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm p-2 border" 
                        placeholder="e.g. you@gmail.com" required>
                 <p class="text-xs text-gray-500 mt-1">Provide an active email address.</p>
@@ -168,8 +168,8 @@
             <h2 class="text-lg font-medium text-gray-900 mb-4 border-b pb-2">2. Personal Details</h2>
             <div class="grid grid-cols-1 gap-y-6 gap-x-4 sm:grid-cols-2">
               <div>
-                <label class="block text-sm font-medium text-gray-700">Mobile No <span class="text-red-500">*</span></label>
-                <input type="tel" name="Mobile No" required pattern="^[0-9]{10}$" maxlength="10" title="Please enter exactly 10 digits" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm p-2 border">
+                <label class="block text-sm font-medium text-gray-700">CAP ID <span class="text-red-500">*</span></label>
+                <input type="text" id="capIdField" name="CAP id (Enter the full cap id without any spaces)" required class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm p-2 border" oninput="this.value = this.value.toUpperCase()">
               </div>
               <div>
                 <label class="block text-sm font-medium text-gray-700">Aadhaar id <span class="text-red-500">*</span></label>
@@ -409,7 +409,7 @@
     }
 
     function fetchCapIdDetails() {
-      var capId = document.getElementById('capId').value.trim();
+      var mobileNo = document.getElementById('mobileNo').value.trim();
       var visibleEmail = document.getElementById('userEmail').value.trim();
       var admissionType = document.querySelector('input[name="admissionType"]:checked').value;
       var progSelect = document.getElementById('programSelect').value;
@@ -423,10 +423,9 @@
         return;
       }
 
-      // Validate CAP ID Length based on Program
-      var expectedLength = (progSelect === 'UG') ? 15 : 13;
-      if (!new RegExp("^[A-Z0-9]{" + expectedLength + "}$").test(capId) || capId.indexOf(' ') >= 0) {
-        Swal.fire('Invalid CAP ID', 'For ' + progSelect + ', CAP ID must be ' + expectedLength + ' characters long, all uppercase, with no spaces.', 'warning');
+      // Validate Mobile Number Length
+      if (!new RegExp("^[0-9]{10}$").test(mobileNo)) {
+        Swal.fire('Invalid Mobile No', 'Mobile Number must be exactly 10 digits.', 'warning');
         return;
       }
 
@@ -506,7 +505,7 @@
           }
         })
         .withFailureHandler(showError)
-        .getStudentData(capId, visibleEmail);
+        .getStudentData(mobileNo, visibleEmail);
     }
 
     function buildConditionalDocs(category) {
@@ -590,8 +589,8 @@
           document.getElementById('existingPhotoUrl').value = data['Upload passport size photo'];
         }
         
-        // Disable CAP ID fetching
-        document.getElementById('capId').readOnly = true;
+        // Disable mobile number fetching
+        document.getElementById('mobileNo').readOnly = true;
         document.getElementById('btnFetch').classList.add('hidden');
         unlockFormSections();
       }, 100);
@@ -614,7 +613,7 @@
       }
       
       // Handle CAP ID specific mapping if needed (usually matches the header)
-      var capEl = document.getElementById('capId');
+      var capEl = document.getElementById('capIdField');
       if (capEl && data['CAP id (Enter the full cap id without any spaces)']) {
         capEl.value = data['CAP id (Enter the full cap id without any spaces)'];
       }
@@ -639,6 +638,14 @@
             
         if (dataObj['Mobile No'] && !/^\d{10}$/.test(dataObj['Mobile No'].trim())) {
            Swal.fire('Error', 'Mobile Number must be exactly 10 digits.', 'error');
+           return;
+        }
+        
+        var capIdVal = document.getElementById('capIdField').value;
+        var progSelect = document.getElementById('programSelect').value;
+        var expectedLength = (progSelect === 'UG') ? 15 : 13;
+        if (!new RegExp("^[A-Z0-9]{" + expectedLength + "}$").test(capIdVal) || capIdVal.indexOf(' ') >= 0) {
+           Swal.fire('Invalid CAP ID', 'For ' + progSelect + ', CAP ID must be ' + expectedLength + ' characters long, all uppercase, with no spaces.', 'warning');
            return;
         }
         

@@ -497,11 +497,11 @@ function getDepartmentData(department, lastSyncTime) {
       var parts = key.split("|");
       var cid = parts[0];
       var dept = parts[1];
-      if (dept.toLowerCase() === department.toLowerCase() && !processedCapids[cid]) {
-        if (deltaCapids && !deltaCapids[cid]) {
+      if (dept.toLowerCase() === department.toLowerCase() && !processedKeys[cid]) {
+        if (deltaKeys && !deltaKeys[cid]) {
           continue; // Skip unmodified profile
         }
-        var masterRow = masterMapByCapid[cid];
+        var masterRow = masterMapByKey[cid];
         if (masterRow) {
           var profile = {};
           for (var c = 0; c < masterHeaders.length; c++) {
@@ -524,7 +524,7 @@ function getDepartmentData(department, lastSyncTime) {
             }
           });
           
-          var otherDbRows = dbDataListByCid[cid] || [];
+          var otherDbRows = dbDataListByKey[cid] || [];
           otherDbRows.forEach(function(otherRow) {
             var otherDept = otherRow["Department"] ? otherRow["Department"].toString().trim() : "";
             if (otherDept.toLowerCase() !== dept.toLowerCase()) {

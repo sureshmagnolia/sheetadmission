@@ -1,63 +1,22 @@
 var MASTER_DATA_SHEET_NAME = 'MasterData';
 
-function getStudentData(capId, email) {
-  if (capId) {
-    var sub = getUserSubmissionByCapId(capId);
-    if (sub.found) {
-      return { success: true, isReturning: true, submissionData: sub.data, isEditable: sub.isEditable };
-    }
+function getStudentData(mobileNo, email) {
+  if (!mobileNo) return { success: false, error: 'Mobile No is required' };
+  
+  var sub = getUserSubmissionByMobile(mobileNo);
+  if (sub.found) {
+    return { success: true, isReturning: true, submissionData: sub.data, isEditable: sub.isEditable };
   }
 
-  if (!capId) return { success: false, error: 'CAP ID is required' };
-  
-  var cache = CacheService.getScriptCache();
-  var cacheKey = 'student_' + capId;
-  var cached = cache.get(cacheKey);
-  if (cached) {
-    return JSON.parse(cached);
-  }
-  
-  var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(MASTER_DATA_SHEET_NAME);
-  if (!sheet) return { success: false, error: 'MasterData sheet not found' };
-  
-  var data = sheet.getDataRange().getValues();
-  if (data.length < 2) return { success: false, error: 'MasterData is empty' };
-  
-  var headers = data[0];
-  var capIdIdx = headers.indexOf('CapID');
-  var nameIdx = headers.indexOf('Name');
-  var levelIdx = headers.indexOf('Level');
-  var deptIdx = headers.indexOf('Dept');
-  var catIdx = headers.indexOf('Cat');
-  var indexMarkIdx = headers.indexOf('Index Mark');
-  
-  if (capIdIdx === -1) return { success: false, error: 'CapID column not found in MasterData' };
-  
-  for (var i = 1; i < data.length; i++) {
-    var cellCapId = data[i][capIdIdx] ? data[i][capIdIdx].toString().trim().toUpperCase() : '';
-    if (cellCapId === capId) {
-      var result = {
-        success: true,
-        data: {
-          name: nameIdx !== -1 ? data[i][nameIdx] : '',
-          programme: levelIdx !== -1 ? data[i][levelIdx] : '',
-          department: deptIdx !== -1 ? data[i][deptIdx] : '',
-          category: catIdx !== -1 ? data[i][catIdx] : '',
-          indexMark: indexMarkIdx !== -1 ? data[i][indexMarkIdx] : ''
-        }
-      };
-      cache.put(cacheKey, JSON.stringify(result), 1800);
-      return result;
-    }
-  }
-  return { success: false, error: 'CAP ID not found in MasterData' };
+  // If not found in responses, allow them to proceed as a new admission
+  return { success: false, error: 'Mobile No not found in Responses' };
 }
 
-function getUserSubmissionByCapId(capId) {
-    if (!capId) return { found: false };
+function getUserSubmissionByMobile(mobileNo) {
+    if (!mobileNo) return { found: false };
     
     var cache = CacheService.getScriptCache();
-    var cacheKey = 'submission_' + capId;
+    var cacheKey = 'submission_' + mobileNo;
     var cached = cache.get(cacheKey);
     if (cached) {
       return JSON.parse(cached);
@@ -70,8 +29,9 @@ function getUserSubmissionByCapId(capId) {
     if (data.length < 2) return { found: false };
     
     var headers = data[0];
-    var capIdColIdx = headers.indexOf('CAP id (Enter the full cap id without any spaces)'); 
-    if (capIdColIdx === -1) return { found: false, error: 'CAP ID column not found in Responses' };
+    var mobIdx = headers.indexOf('Mobile No');
+    if (mobIdx === -1) mobIdx = headers.indexOf('Mobile number');
+    if (mobIdx === -1) return { found: false, error: 'Mobile No column not found in Responses' };
     
     var isEditable = false;
     var dbSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("System_DB");
@@ -79,11 +39,12 @@ function getUserSubmissionByCapId(capId) {
        var dbData = dbSheet.getDataRange().getValues();
        if (dbData.length > 1) {
           var dbHeaders = dbData[0];
-          var dbCapIdx = dbHeaders.indexOf('CAPID');
+          var dbMobIdx = dbHeaders.indexOf('Mobile_Number');
+          if (dbMobIdx === -1) dbMobIdx = dbHeaders.indexOf('Parent_Mobile');
           var dbAllowEditIdx = dbHeaders.indexOf('Allow_Edit');
-          if (dbCapIdx !== -1 && dbAllowEditIdx !== -1) {
+          if (dbMobIdx !== -1 && dbAllowEditIdx !== -1) {
              for (var k = 1; k < dbData.length; k++) {
-                if (dbData[k][dbCapIdx] && dbData[k][dbCapIdx].toString().trim().toUpperCase() === capId.trim().toUpperCase()) {
+                if (dbData[k][dbMobIdx] && dbData[k][dbMobIdx].toString().trim() === mobileNo.trim()) {
                    var permVal = dbData[k][dbAllowEditIdx];
                    if (permVal === true || String(permVal).toUpperCase() === 'TRUE') {
                       isEditable = true;
@@ -95,8 +56,9 @@ function getUserSubmissionByCapId(capId) {
        }
     }
     
-    for (var i = 1; i < data.length; i++) {
-      if (data[i][capIdColIdx] && data[i][capIdColIdx].toString().trim().toUpperCase() === capId.trim().toUpperCase()) {
+    // Scan backward to find the latest submission for this mobile number
+    for (var i = data.length - 1; i >= 1; i--) {
+      if (data[i][mobIdx] && data[i][mobIdx].toString().trim() === mobileNo.trim()) {
         var rowObj = {};
         for (var j = 0; j < headers.length; j++) {
           rowObj[headers[j]] = data[i][j];
@@ -129,7 +91,10 @@ function processFormSubmission(formData) {
     
     var capIdKey = 'CAP id (Enter the full cap id without any spaces)';
     var capId = formData[capIdKey] ? formData[capIdKey].toString().trim().toUpperCase() : null;
-    if (!capId) return { success: false, error: 'CAP ID is missing from submission.' };
+    
+    var mobileNoKey = 'Mobile No';
+    var mobileNo = formData[mobileNoKey] ? formData[mobileNoKey].toString().trim() : null;
+    if (!mobileNo) return { success: false, error: 'Mobile No is missing from submission.' };
     
     var email = formData['Email address'] || formData.email || Session.getActiveUser().getEmail();
     
@@ -146,8 +111,9 @@ function processFormSubmission(formData) {
     }
     
     var headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
-    var capIdColIdx = headers.indexOf(capIdKey);
-    if (capIdColIdx === -1) return { success: false, error: 'CAP ID column not found in Responses.' };
+    var mobColIdx = headers.indexOf('Mobile No');
+    if (mobColIdx === -1) mobColIdx = headers.indexOf('Mobile number');
+    if (mobColIdx === -1) return { success: false, error: 'Mobile No column not found in Responses.' };
     var emailColIdx = headers.indexOf('Email address');
     if (emailColIdx === -1) emailColIdx = headers.indexOf('Email id');
     
@@ -183,9 +149,9 @@ function processFormSubmission(formData) {
           if (dbMobIdx === -1) dbMobIdx = dbHeaders.indexOf('Parent_Mobile');
           var dbDeptIdx = dbHeaders.indexOf('Department');
           
-          if (dbCapIdx !== -1 && dbAllowEditIdx !== -1) {
+          if (dbMobIdx !== -1 && dbAllowEditIdx !== -1) {
              for (var k = 1; k < dbData.length; k++) {
-                if (dbData[k][dbCapIdx] && dbData[k][dbCapIdx].toString().trim().toUpperCase() === capId) {
+                if (dbData[k][dbMobIdx] && dbData[k][dbMobIdx].toString().trim() === mobileNo) {
                    dbRowToUpdate = k + 1;
                    var permVal = dbData[k][dbAllowEditIdx];
                    if (permVal === true || String(permVal).toUpperCase() === 'TRUE') {
@@ -198,8 +164,9 @@ function processFormSubmission(formData) {
        }
     }
     
-    for (var i = 1; i < data.length; i++) {
-      if (data[i][capIdColIdx] && data[i][capIdColIdx].toString().trim().toUpperCase() === capId) {
+    // Scan backwards to find the latest submission
+    for (var i = data.length - 1; i >= 1; i--) {
+      if (data[i][mobColIdx] && data[i][mobColIdx].toString().trim() === mobileNo) {
         rowIndexToUpdate = i + 1; 
         if (!isEditable) {
            return { success: false, error: 'You do not have permission to edit this submission.' };
@@ -241,7 +208,7 @@ function processFormSubmission(formData) {
          }
       }
       var cache = CacheService.getScriptCache();
-      cache.remove('submission_' + capId);
+      cache.remove('submission_' + mobileNo);
       return { success: true, message: 'Submission updated successfully!' };
     } else {
       sheet.appendRow(rowData);
@@ -255,55 +222,63 @@ function processFormSubmission(formData) {
   }
 }
 
-function unlockStudentAdmissionForm(email) {
-  var lock = LockService.getScriptLock();
-  try {
-    lock.waitLock(10000);
-  } catch (e) {
-    return JSON.stringify({ success: false, error: 'System is busy. Please try again.' });
-  }
-  try {
-    var dbSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("System_DB");
-    if (!dbSheet) return JSON.stringify({ success: false, error: 'System_DB sheet not found.' });
-    
-    var dbData = dbSheet.getDataRange().getValues();
-    if (dbData.length < 2) return JSON.stringify({ success: false, error: 'System_DB is empty.' });
-    
-    var dbHeaders = dbData[0];
-    var dbEmailIdx = dbHeaders.indexOf('Email');
-    if (dbEmailIdx === -1) return JSON.stringify({ success: false, error: 'Email column not found in System_DB.' });
-    
-    var dbAllowEditIdx = dbHeaders.indexOf('Allow_Edit');
-    if (dbAllowEditIdx === -1) return JSON.stringify({ success: false, error: 'Allow_Edit column not found in System_DB.' });
-    
-    var dbRowToUpdate = -1;
-    for (var i = 1; i < dbData.length; i++) {
-      if (dbData[i][dbEmailIdx] && dbData[i][dbEmailIdx].toString().toLowerCase() === email.toLowerCase()) {
-        dbRowToUpdate = i + 1;
-        break;
-      }
+function unlockStudentAdmissionForm(mobileNo) {
+    var lock = LockService.getScriptLock();
+    try {
+      lock.waitLock(10000);
+    } catch (e) {
+      return JSON.stringify({ success: false, error: 'System is busy. Please try again.' });
     }
+    try {
+      var dbSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("System_DB");
+      if (!dbSheet) return JSON.stringify({ success: false, error: 'System_DB sheet not found.' });
+      
+      var dbData = dbSheet.getDataRange().getValues();
+      if (dbData.length < 2) return JSON.stringify({ success: false, error: 'System_DB is empty.' });
+      
+      var dbHeaders = dbData[0];
+      var dbMobIdx = dbHeaders.indexOf('Mobile_Number');
+      if (dbMobIdx === -1) dbMobIdx = dbHeaders.indexOf('Parent_Mobile');
+      if (dbMobIdx === -1) return JSON.stringify({ success: false, error: 'Mobile_Number column not found in System_DB.' });
+      
+      var dbAllowEditIdx = dbHeaders.indexOf('Allow_Edit');
+      if (dbAllowEditIdx === -1) return JSON.stringify({ success: false, error: 'Allow_Edit column not found in System_DB.' });
+      
+      var dbCapIdx = dbHeaders.indexOf('CAPID');
+      var dbEmailIdx = dbHeaders.indexOf('Email');
+      
+      var foundCapId = "";
+      var foundEmail = "";
+      var dbRowToUpdate = -1;
+      for (var i = 1; i < dbData.length; i++) {
+        if (dbData[i][dbMobIdx] && dbData[i][dbMobIdx].toString().trim() === mobileNo.toString().trim()) {
+          dbRowToUpdate = i + 1;
+          if (dbCapIdx !== -1) foundCapId = dbData[i][dbCapIdx];
+          if (dbEmailIdx !== -1) foundEmail = dbData[i][dbEmailIdx];
+          break;
+        }
+      }
     
     if (dbRowToUpdate > -1) {
       dbSheet.getRange(dbRowToUpdate, dbAllowEditIdx + 1).setValue(true);
     } else {
       var newRow = [];
-      var mobile = "";
+      var email = "";
       var dept = "";
       var sheet = getMasterSheet(SpreadsheetApp.getActiveSpreadsheet());
       if (sheet) {
          var data = sheet.getDataRange().getValues();
          if (data.length > 0) {
             var headers = data[0];
-            var emailIdx = headers.indexOf('Email address');
-            if (emailIdx === -1) emailIdx = headers.indexOf('Email id');
             var mobIdx = headers.indexOf('Mobile No');
             if (mobIdx === -1) mobIdx = headers.indexOf('Mobile number');
+            var emailIdx = headers.indexOf('Email address');
+            if (emailIdx === -1) emailIdx = headers.indexOf('Email id');
             var deptIdx = headers.indexOf('Admission to the Department');
-            if (emailIdx !== -1) {
+            if (mobIdx !== -1) {
                for (var j = data.length - 1; j >= 1; j--) {
-                  if (data[j][emailIdx] && data[j][emailIdx].toString().toLowerCase() === email.toLowerCase()) {
-                     if (mobIdx !== -1) mobile = data[j][mobIdx];
+                  if (data[j][mobIdx] && data[j][mobIdx].toString().trim() === mobileNo.toString().trim()) {
+                     if (emailIdx !== -1) email = data[j][emailIdx];
                      if (deptIdx !== -1) dept = data[j][deptIdx];
                      break;
                   }
@@ -311,15 +286,13 @@ function unlockStudentAdmissionForm(email) {
             }
          }
       }
-      var dbMobIdx = dbHeaders.indexOf('Mobile_Number');
-      if (dbMobIdx === -1) dbMobIdx = dbHeaders.indexOf('Parent_Mobile');
       var dbDeptIdx = dbHeaders.indexOf('Department');
       
       for (var k = 0; k < dbHeaders.length; k++) {
          if (dbHeaders[k] === "Timestamp") newRow.push(new Date());
-         else if (k === dbEmailIdx) newRow.push(email);
+         else if (k === dbMobIdx) newRow.push(mobileNo);
          else if (k === dbAllowEditIdx) newRow.push(true);
-         else if (k === dbMobIdx && mobile) newRow.push(mobile);
+         else if (k === dbEmailIdx && email) newRow.push(email);
          else if (k === dbDeptIdx && dept) newRow.push(dept);
          else newRow.push("");
       }
@@ -327,8 +300,12 @@ function unlockStudentAdmissionForm(email) {
     }
     
     var cache = CacheService.getScriptCache();
-    cache.remove('submission_' + email);
-    return JSON.stringify({ success: true, message: 'Admission form successfully unlocked for ' + email });
+    cache.remove('submission_' + mobileNo);
+    if (foundCapId) cache.remove('submission_' + foundCapId);
+    if (foundEmail) cache.remove('submission_' + foundEmail);
+    if (typeof email !== 'undefined' && email) cache.remove('submission_' + email);
+
+    return JSON.stringify({ success: true, message: 'Admission form successfully unlocked for mobile ' + mobileNo });
   } catch (err) {
     return JSON.stringify({ success: false, error: err.toString() });
   } finally {

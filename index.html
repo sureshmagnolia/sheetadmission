@@ -3412,9 +3412,9 @@
       // Unlock Admission form for student
       function unlockStudentForm() {
         if (!activeStudent) return;
-        var email = activeStudent["Email address"] || activeStudent["Email id"];
-        if (!email) {
-          showToast("No email associated with this student to unlock form.", true);
+        var mobileNo = activeStudent["Mobile_Number"] || activeStudent["Parent_Mobile"] || activeStudent["Student_Key"];
+        if (!mobileNo) {
+          showToast("No mobile number associated with this student to unlock form.", true);
           return;
         }
         if (!confirm("Are you sure you want to unlock the admission form for this student? This will allow them to edit and resubmit their details.")) {
@@ -3436,7 +3436,7 @@
             hideLoader();
             showToast("Server Error: " + err, true);
           })
-          .unlockStudentAdmissionForm(email);
+          .unlockStudentAdmissionForm(mobileNo);
       }
 
     // Action handlers for Faculty
