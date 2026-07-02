@@ -5602,8 +5602,9 @@
         var deptName = deptMatrix.Department.toString();
         
         var deptStudents = allStudents.filter(function(s) {
-          var sDept = (s["Department"] || "").toString();
-          if (sDept !== deptName) return false;
+          var sDept = (s["Department"] || "").toString().trim().toLowerCase();
+          var dName = deptName.trim().toLowerCase();
+          if (sDept !== dName) return false;
           
           var progType = (s["Program_Type"] || s["Admission to the Programme"] || "").toString().trim().toUpperCase();
           var isUG = (progType.indexOf("B") === 0 || progType === "UG");
@@ -5655,7 +5656,8 @@
           var matchedStudents = [];
           for (var i = unallocatedStudents.length - 1; i >= 0; i--) {
             var sCat = (unallocatedStudents[i]["Assigned_Slot"] || unallocatedStudents[i]["Allotted_Category"] || "").toString().trim().toUpperCase();
-            if (sCat === slot) {
+            var targetSlot = slot.toString().trim().toUpperCase();
+            if (sCat === targetSlot) {
               matchedStudents.push(unallocatedStudents[i]);
               unallocatedStudents.splice(i, 1);
             }
