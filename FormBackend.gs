@@ -135,7 +135,7 @@ function processFormSubmission(formData) {
     if (!sheet) return { success: false, error: 'Responses sheet not found.' };
     
     if (sheet.getLastColumn() === 0) {
-      var baseHeaders = ["Timestamp", "Email address", "CAP id (Enter the full cap id without any spaces)", "Name (As per your certificate)", "Admission to the Programme", "Admission to the Department", "Admitted Category (As per your admit/allotment card)", "Index Marks (as per admit/allotment card)", "Upload passport size photo"];
+      var baseHeaders = ["Timestamp", "Email address", "Mobile No", "CAP id (Enter the full cap id without any spaces)", "Name (As per your certificate)", "Admission to the Programme", "Admission to the Department", "Admitted Category (As per your admit/allotment card)", "Index Marks (as per admit/allotment card)", "Upload passport size photo"];
       var otherKeys = Object.keys(formData).filter(function(k) { 
         return baseHeaders.indexOf(k) === -1 && k !== 'captchaAnswer' && k !== 'captchaExpected' && k !== 'existingPhotoUrl' && k.indexOf('photo') === -1; 
       });
@@ -176,6 +176,10 @@ function processFormSubmission(formData) {
           var dbHeaders = dbData[0];
           var dbEmailIdx = dbHeaders.indexOf('Email');
           dbAllowEditIdx = dbHeaders.indexOf('Allow_Edit');
+          var dbMobIdx = dbHeaders.indexOf('Mobile_Number');
+          if (dbMobIdx === -1) dbMobIdx = dbHeaders.indexOf('Parent_Mobile');
+          var dbDeptIdx = dbHeaders.indexOf('Department');
+          
           if (dbEmailIdx !== -1 && dbAllowEditIdx !== -1) {
              for (var k = 1; k < dbData.length; k++) {
                 if (dbData[k][dbEmailIdx] && dbData[k][dbEmailIdx].toString().toLowerCase() === email.toLowerCase()) {
@@ -225,6 +229,13 @@ function processFormSubmission(formData) {
       sheet.getRange(rowIndexToUpdate, 1, 1, rowData.length).setValues([rowData]);
       if (dbRowToUpdate > -1 && dbAllowEditIdx !== -1) {
          dbSheet.getRange(dbRowToUpdate, dbAllowEditIdx + 1).setValue(false);
+         // Also update Mobile_Number and Department in System_DB so the backend can link them
+         if (typeof dbMobIdx !== 'undefined' && dbMobIdx !== -1 && formData['Mobile No']) {
+             dbSheet.getRange(dbRowToUpdate, dbMobIdx + 1).setValue(formData['Mobile No'].toString().trim());
+         }
+         if (typeof dbDeptIdx !== 'undefined' && dbDeptIdx !== -1 && formData['Admission to the Department']) {
+             dbSheet.getRange(dbRowToUpdate, dbDeptIdx + 1).setValue(formData['Admission to the Department'].toString().trim());
+         }
       }
       var cache = CacheService.getScriptCache();
       cache.remove('submission_' + email);
@@ -274,7 +285,7 @@ function unlockStudentAdmissionForm(email) {
       dbSheet.getRange(dbRowToUpdate, dbAllowEditIdx + 1).setValue(true);
     } else {
       var newRow = [];
-      var capid = "";
+      var mobile = "";
       var dept = "";
       var sheet = getMasterSheet(SpreadsheetApp.getActiveSpreadsheet());
       if (sheet) {
@@ -283,12 +294,13 @@ function unlockStudentAdmissionForm(email) {
             var headers = data[0];
             var emailIdx = headers.indexOf('Email address');
             if (emailIdx === -1) emailIdx = headers.indexOf('Email id');
-            var capIdx = headers.indexOf('CAP id (Enter the full cap id without any spaces)');
+            var mobIdx = headers.indexOf('Mobile No');
+            if (mobIdx === -1) mobIdx = headers.indexOf('Mobile number');
             var deptIdx = headers.indexOf('Admission to the Department');
             if (emailIdx !== -1) {
                for (var j = data.length - 1; j >= 1; j--) {
                   if (data[j][emailIdx] && data[j][emailIdx].toString().toLowerCase() === email.toLowerCase()) {
-                     if (capIdx !== -1) capid = data[j][capIdx];
+                     if (mobIdx !== -1) mobile = data[j][mobIdx];
                      if (deptIdx !== -1) dept = data[j][deptIdx];
                      break;
                   }
@@ -296,14 +308,15 @@ function unlockStudentAdmissionForm(email) {
             }
          }
       }
-      var dbCapIdx = dbHeaders.indexOf('CAPID');
+      var dbMobIdx = dbHeaders.indexOf('Mobile_Number');
+      if (dbMobIdx === -1) dbMobIdx = dbHeaders.indexOf('Parent_Mobile');
       var dbDeptIdx = dbHeaders.indexOf('Department');
       
       for (var k = 0; k < dbHeaders.length; k++) {
          if (dbHeaders[k] === "Timestamp") newRow.push(new Date());
          else if (k === dbEmailIdx) newRow.push(email);
          else if (k === dbAllowEditIdx) newRow.push(true);
-         else if (k === dbCapIdx && capid) newRow.push(capid);
+         else if (k === dbMobIdx && mobile) newRow.push(mobile);
          else if (k === dbDeptIdx && dept) newRow.push(dept);
          else newRow.push("");
       }

@@ -1063,7 +1063,7 @@
       <!-- Search Container -->
       <div id="search-container" style="margin-bottom: 1.25rem;">
         <div class="search-wrapper" style="position: relative; max-width: 450px;">
-          <input type="text" class="form-control search-box" id="search-bar" placeholder="Search by CAPID, Email, or Name..." onkeyup="filterTable()" style="padding-left: 40px; width: 100%;">
+          <input type="text" class="form-control search-box" id="search-bar" placeholder="Search by Mobile, CAPID, Email, or Name..." onkeyup="filterTable()" style="padding-left: 40px; width: 100%;">
           <span style="position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: var(--text-muted); pointer-events: none; display: flex; align-items: center;">
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" style="width: 14px; height: 14px; fill: currentColor;"><path d="M416 208c0 45.9-14.9 88.3-40 122.7L502.6 457.4c12.5 12.5 12.5 32.8 0 45.3s-32.8 12.5-45.3 0L330.7 376c-34.4 25.2-76.8 40-122.7 40C93.1 416 0 322.9 0 208S93.1 0 208 0S416 93.1 416 208zM208 352a144 144 0 1 0 0-288 144 144 0 1 0 0 288z"/></svg>
           </span>
@@ -1767,6 +1767,16 @@
 
   <!-- Client-side logic -->
   <script>
+    function escapeHTML(str) {
+      if (str === null || str === undefined) return "";
+      return String(str)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+    }
+
     // --- IndexedDB Cache Utility ---
     var idbName = "CollegeERP_DB";
     var idbStoreName = "CacheStore";
@@ -1969,8 +1979,8 @@
             updateStudentData: function(dept, capid, email, data) {
               this._dispatch("updateStudentData", { department: dept, capid: capid, email: email, updatedData: data, operatorRole: typeof userRole !== 'undefined' ? userRole : "System", operatorDept: typeof userDept !== 'undefined' ? userDept : "System" });
             },
-            emailPTAReceipt: function(capid, email) {
-              this._dispatch("emailPTAReceipt", { capid: capid, email: email });
+            emailPTAReceipt: function(mobile, email) {
+              this._dispatch("emailPTAReceipt", { mobile: mobile, email: email });
             },
             getPTAConfig: function() {
               this._dispatch("getPTAConfig", {});
@@ -2323,8 +2333,8 @@
         var token = s["Token_Number"] || "-";
         var capid = s["CAP id (Enter the full cap id without any spaces)"] || s["CAPID"] || "-";
         
-        var name = s["Name (As per your certificate)"] || s["Name"] || "-";
-        var progLabel = (s["Program_Type"] || s["Admission to the Programme"] || "").toString().trim();
+        var name = s["Name (As per your certificate)"] || s["Name"] || "-"; name = escapeHTML(name);
+        var progLabel = (s["Program_Type"] || s["Admission to the Programme"] || "").toString().trim(); progLabel = escapeHTML(progLabel);
         if (progLabel) {
             name += " <br><span style='font-size: 0.75rem; color: var(--text-muted);'>" + progLabel + "</span>";
         }
@@ -2355,39 +2365,39 @@
 
         var isPTAPrincipal = (userRole === "PTA" || userRole === "Principal");
         var hideMobileClass = isPTAPrincipal ? " class='hide-on-mobile'" : "";
-        var category = s["Allotted_Category"] || s["Category"] || "-";
+        var category = escapeHTML(s["Allotted_Category"] || s["Category"] || "-");
 
         tr.innerHTML = waCell +
-                       "<td data-label='Adm No'><strong>" + admNo + "</strong></td>" +
-                       "<td data-label='Token'><strong>" + token + "</strong></td>" +
+                       "<td data-label='Adm No'><strong>" + escapeHTML(admNo) + "</strong></td>" +
+                       "<td data-label='Token'><strong>" + escapeHTML(token) + "</strong></td>" +
                        "<td data-label='CAP ID'>" + capid + "</td>" +
                        "<td data-label='Name'>" + name + "</td>" +
-                       (isCentral ? ("<td data-label='Department'>" + (s["Department"] || "-") + "</td>") : "") +
+                       (isCentral ? ("<td data-label='Department'>" + (escapeHTML(s["Department"] || "-")) + "</td>") : "") +
                        "<td data-label='Category'>" + category + "</td>" +
-                       "<td data-label='Email/Phone'" + hideMobileClass + ">" + email + "</td>" +
-                       "<td data-label='Index Mark'" + hideMobileClass + ">" + indexMark + "</td>" +
-                       "<td data-label='Verified Index'" + hideMobileClass + ">" + verifiedIndex + "</td>" +
-                       "<td data-label='Slot'>" + assignedSlot + "</td>" +
-                       "<td data-label='PTA Fee'" + hideMobileClass + "><strong>" + ptaAmount + "</strong></td>" +
-                        "<td data-label='Status'" + hideMobileClass + "><span class='status-badge status-" + status.replace(/\s+/g, '_') + "'>" + status.replace('_', ' ') + "</span>" +
+                       "<td data-label='Email/Phone'" + hideMobileClass + ">" + escapeHTML(email) + "</td>" +
+                       "<td data-label='Index Mark'" + hideMobileClass + ">" + escapeHTML(indexMark) + "</td>" +
+                       "<td data-label='Verified Index'" + hideMobileClass + ">" + escapeHTML(verifiedIndex) + "</td>" +
+                       "<td data-label='Slot'>" + escapeHTML(assignedSlot) + "</td>" +
+                       "<td data-label='PTA Fee'" + hideMobileClass + "><strong>" + escapeHTML(ptaAmount) + "</strong></td>" +
+                        "<td data-label='Status'" + hideMobileClass + "><span class='status-badge status-" + escapeHTML(status).replace(/\s+/g, \'_\') + "'>" + escapeHTML(status).replace(\'_\', \' \') + "</span>" +
                         (function() {
                           if (s["Already_Admitted_Dept"]) {
-                            return "<br/><span style='font-size: 0.7rem; background: rgba(59, 130, 246, 0.2); color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.4); border-radius: 4px; padding: 2px 4px; display: inline-block; margin-top: 4px; font-weight: 600;'>Admitted in " + s["Already_Admitted_Dept"] + "</span>";
+                            return "<br/><span style='font-size: 0.7rem; background: rgba(59, 130, 246, 0.2); color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.4); border-radius: 4px; padding: 2px 4px; display: inline-block; margin-top: 4px; font-weight: 600;'>Admitted in " + escapeHTML(s["Already_Admitted_Dept"]) + "</span>";
                           } else if (s["Transfer_Pending_Dept"]) {
-                            return "<br/><span style='font-size: 0.7rem; background: rgba(245, 158, 11, 0.2); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.4); border-radius: 4px; padding: 2px 4px; display: inline-block; margin-top: 4px; font-weight: 600;'>Transfer Pending: " + s["Transfer_Pending_Dept"] + "</span>";
+                            return "<br/><span style='font-size: 0.7rem; background: rgba(245, 158, 11, 0.2); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.4); border-radius: 4px; padding: 2px 4px; display: inline-block; margin-top: 4px; font-weight: 600;'>Transfer Pending: " + escapeHTML(s["Transfer_Pending_Dept"]) + "</span>";
                           } else if (s["Transferred_To_Dept"]) {
-                            return "<br/><span style='font-size: 0.7rem; background: rgba(239, 68, 68, 0.2); color: #fca5a5; border: 1px solid rgba(239, 68, 68, 0.4); border-radius: 4px; padding: 2px 4px; display: inline-block; margin-top: 4px; font-weight: 600;'>Transferred to " + s["Transferred_To_Dept"] + "</span>";
+                            return "<br/><span style='font-size: 0.7rem; background: rgba(239, 68, 68, 0.2); color: #fca5a5; border: 1px solid rgba(239, 68, 68, 0.4); border-radius: 4px; padding: 2px 4px; display: inline-block; margin-top: 4px; font-weight: 600;'>Transferred to " + escapeHTML(s["Transferred_To_Dept"]) + "</span>";
                           } else if (s["Transferred_From_Dept"]) {
-                            return "<br/><span style='font-size: 0.7rem; background: rgba(16, 185, 129, 0.2); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.4); border-radius: 4px; padding: 2px 4px; display: inline-block; margin-top: 4px; font-weight: 600;'>Transferred from " + s["Transferred_From_Dept"] + "</span>";
+                            return "<br/><span style='font-size: 0.7rem; background: rgba(16, 185, 129, 0.2); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.4); border-radius: 4px; padding: 2px 4px; display: inline-block; margin-top: 4px; font-weight: 600;'>Transferred from " + escapeHTML(s["Transferred_From_Dept"]) + "</span>";
                           }
                           return "";
                         })() + "</td>";
                         
         var actionHtml = "<td data-label='Action'" + hideMobileClass + "><button class='btn btn-secondary' style='padding: 4px 10px; font-size: 0.8rem;'>Verify</button></td>";
         if (status === "Admitted" && (userRole === "Principal" || userRole === "Faculty" || userRole === "Nodal Officer")) {
-          var safeCap = capid.toString().replace(/'/g, "&apos;").replace(/"/g, "&quot;");
+          var safeMobile = phone.toString().replace(/'/g, "&apos;").replace(/"/g, "&quot;");
           var safeDept = (s["Department"] || "").toString().replace(/'/g, "&apos;").replace(/"/g, "&quot;");
-          actionHtml = "<td data-label='Action'" + hideMobileClass + "><button class='btn btn-primary' style='padding: 4px 10px; font-size: 0.8rem;' data-cap='" + safeCap + "' data-dept='" + safeDept + "' onclick='openInlineChangeSlotUI(event, this)'>Change Slot</button></td>";
+          actionHtml = "<td data-label='Action'" + hideMobileClass + "><button class='btn btn-primary' style='padding: 4px 10px; font-size: 0.8rem;' data-mobile='" + safeMobile + "' data-dept='" + safeDept + "' onclick='openInlineChangeSlotUI(event, this)'>Change Slot</button></td>";
         }
         
         tr.innerHTML += actionHtml;
@@ -2545,7 +2555,8 @@
           var cap = (s["CAP id (Enter the full cap id without any spaces)"] || s["CAPID"] || "").toString().toLowerCase();
           var email = (s["Email Address"] || s["Email id"] || s["Email"] || "").toString().toLowerCase();
           var name = (s["Name (As per your certificate)"] || s["Name"] || "").toString().toLowerCase();
-          return cap.includes(query) || email.includes(query) || name.includes(query);
+          var mobile = (s["Mobile No"] || s["Mobile_Number"] || "").toString().toLowerCase();
+          return cap.includes(query) || email.includes(query) || name.includes(query) || mobile.includes(query);
         });
       }
       
@@ -2948,7 +2959,7 @@
         transferAlert.style.fontSize = "0.9rem";
         transferAlert.style.fontWeight = "500";
         transferAlert.style.gridColumn = "1 / -1";
-        transferAlert.innerHTML = "⚠️ <strong>Department Change Detected:</strong> This student is requesting a department change from <strong>" + oldDept + "</strong> to <strong>" + formDept + "</strong>. Please verify their details for the new department.";
+        transferAlert.innerHTML = "⚠️ <strong>Department Change Detected:</strong> This student is requesting a department change from <strong>" + escapeHTML(oldDept) + "</strong> to <strong>" + escapeHTML(formDept) + "</strong>. Please verify their details for the new department.";
         container.appendChild(transferAlert);
       }
 
@@ -3113,7 +3124,7 @@
       }
       
       if (student["Already_Admitted_Dept"]) {
-        transferBanner.innerHTML = "<strong>TRANSFER NOTICE:</strong> This student is already admitted to the <strong>" + student["Already_Admitted_Dept"] + "</strong> department (Admission No: <strong>" + (student["Old_Admission_Number"] || "N/A") + "</strong>). Admitting them here will automatically trigger a department transfer.";
+        transferBanner.innerHTML = "<strong>TRANSFER NOTICE:</strong> This student is already admitted to the <strong>" + escapeHTML(student["Already_Admitted_Dept"]) + "</strong> department (Admission No: <strong>" + escapeHTML(student["Old_Admission_Number"] || "N/A") + "</strong>). Admitting them here will automatically trigger a department transfer.";
         transferBanner.style.display = "block";
       } else {
         transferBanner.style.display = "none";
@@ -3476,7 +3487,7 @@
       });
       
       if (filledSeats >= totalQuota) {
-        if (!confirm("Warning: The " + assignedSlot + " slot appears to be fully occupied (" + filledSeats + "/" + totalQuota + " filled in Seat Matrix). Are you sure you want to allot this student to this slot?")) {
+        if (!confirm("Warning: The " + escapeHTML(assignedSlot) + " slot appears to be fully occupied (" + filledSeats + "/" + totalQuota + " filled in Seat Matrix). Are you sure you want to allot this student to this slot?")) {
           return;
         }
       }
@@ -3603,9 +3614,9 @@
       
       sendUpdate(dataToUpdate, function(res) {
         if (activeStudent["Already_Admitted_Dept"]) {
-          showToast("Student Transfer Authenticated successfully! (Adm No: " + admNo + ")");
+          showToast("Student Transfer Authenticated successfully! (Adm No: " + escapeHTML(admNo) + ")");
         } else {
-          showToast("Student Admitted successfully! (Adm No: " + admNo + ")");
+          showToast("Student Admitted successfully! (Adm No: " + escapeHTML(admNo) + ")");
         }
         activeStudent["Admission_Number"] = admNo;
         activeStudent["Principal_Remarks"] = remarks;
@@ -3713,13 +3724,13 @@
 
     function openInlineChangeSlotUI(event, element) {
       if (event) event.stopPropagation();
-      var capid = element.getAttribute("data-cap");
+      var mobileNum = element.getAttribute("data-mobile");
       var dept = element.getAttribute("data-dept");
       
       var student = allStudents.find(function(s) { 
-        var sc = s["CAP id (Enter the full cap id without any spaces)"] || s["CAPID"];
+        var sc = s["Mobile No"] || s["Mobile_Number"] || s["Mobile number"];
         var sd = s["Department"] || s["Admission to the Department"];
-        return sc && sc.toString().trim() === capid.toString().trim() && 
+        return sc && sc.toString().trim() === mobileNum.toString().trim() && 
                sd && sd.toString().trim() === dept.toString().trim();
       });
       if (!student) {
@@ -3914,13 +3925,13 @@
             // so that loadDepartmentData() immediately re-renders the new status
             // without waiting for the slow background server fetch to complete.
             if (typeof activeStudent !== "undefined" && activeStudent && typeof allStudents !== "undefined" && allStudents) {
-              var capid = activeStudent["CAP id (Enter the full cap id without any spaces)"] || activeStudent["CAPID"];
+              var mobile = activeStudent["Mobile No"] || activeStudent["Mobile number"];
               var dept = activeStudent["System_Department"] || activeStudent["Department"] || "";
-              if (capid) {
+              if (mobile) {
                 for (var i = 0; i < allStudents.length; i++) {
-                  var sCapid = allStudents[i]["CAP id (Enter the full cap id without any spaces)"] || allStudents[i]["CAPID"];
+                  var sMobile = allStudents[i]["Mobile No"] || allStudents[i]["Mobile number"];
                   var sDept = allStudents[i]["System_Department"] || allStudents[i]["Department"] || "";
-                  if (sCapid && sCapid.toString().trim() === capid.toString().trim() && sDept.toString().trim() === dept.toString().trim()) {
+                  if (sMobile && sMobile.toString().trim() === mobile.toString().trim() && sDept.toString().trim() === dept.toString().trim()) {
                     Object.assign(allStudents[i], updatedData);
                     if (res.token) {
                       allStudents[i]["Token_Number"] = res.token;
@@ -3952,8 +3963,8 @@
         })
         .updateStudentData(
           studentDept, 
-          (activeStudent && (activeStudent["CAP id (Enter the full cap id without any spaces)"] || activeStudent["CAPID"])) || "", 
-          (activeStudent && (activeStudent["Email Address"] || activeStudent["Email id"])) || "",
+          (activeStudent && (activeStudent["Mobile No"] || activeStudent["Mobile number"])) || "", 
+          (activeStudent && (activeStudent["Email address"] || activeStudent["Email Address"] || activeStudent["Email id"])) || "",
           updatedData,
           userRole,
           userDept,
@@ -4010,7 +4021,7 @@
           "<div class='pta-receipt-meta'>" +
             "<div><strong>Receipt No / Token:</strong> " + (activeStudent["Token_Number"] || "N/A") + "</div>" +
             "<div><strong>CAPID:</strong> " + (activeStudent["CAP id (Enter the full cap id without any spaces)"] || activeStudent["CAPID"] || "N/A") + "</div>" +
-            "<div><strong>Student Name:</strong> " + (activeStudent["Name (As per your certificate)"] || activeStudent["Name"] || "N/A").toUpperCase() + "</div>" +
+            "<div><strong>Student Name:</strong> " + escapeHTML(activeStudent["Name (As per your certificate)"] || activeStudent["Name"] || "N/A").toUpperCase() + "</div>" +
             "<div><strong>Department / Programme:</strong> " + (activeStudent["Department"] || currentSelectedDept) + " (" + (activeStudent["Program_Type"] || "N/A") + ")</div>" +
           "</div>" +
           "<table class='pta-receipt-table'>" +
@@ -4058,7 +4069,7 @@
       var subjects = leavingSem ? (leavingSem + " " + deptName) : ("B.Sc. " + deptName);
       var promotion = activeStudent["Promotion_Status"] || "Course Completed";
       var dues = activeStudent["Dues_Status"] || "yes";
-      var religionCaste = (activeStudent["Religion"] || "N/A") + " " + (activeStudent["Caste"] || "N/A");
+      var religionCaste = escapeHTML(activeStudent["Religion"] || "N/A") + " " + escapeHTML(activeStudent["Caste"] || "N/A");
       var leavingDate = formatDateToDDMMYYYY(activeStudent["Leaving_Date"]) || formatDateToDDMMYYYY(new Date());
       var appDate = formatDateToDDMMYYYY(activeStudent["Application_Date"]) || formatDateToDDMMYYYY(new Date());
       var issueDate = formatDateToDDMMYYYY(activeStudent["Issue_Date"]) || formatDateToDDMMYYYY(new Date());
@@ -4075,7 +4086,7 @@
             "<h3>TRANSFER CERTIFICATE</h3>" +
           "</div>" +
           "<div class='tc-meta-row'>" +
-            "<span>TC Number: " + token + "</span>" +
+            "<span>TC Number: " + escapeHTML(token) + "</span>" +
             "<span>Date: " + issueDate + "</span>" +
           "</div>" +
           "<div class='tc-grid'>" +
@@ -4086,7 +4097,7 @@
             "<div class='tc-grid-item tc-grid-label'>Date of Birth in Word</div>" +
             "<div class='tc-grid-item tc-grid-val'>: " + dobWord + "</div>" +
             "<div class='tc-grid-item tc-grid-label'>Admission No</div>" +
-            "<div class='tc-grid-item tc-grid-val'>: " + admNo + "</div>" +
+            "<div class='tc-grid-item tc-grid-val'>: " + escapeHTML(admNo) + "</div>" +
             "<div class='tc-grid-item tc-grid-label'>Date of Admission</div>" +
             "<div class='tc-grid-item tc-grid-val'>: " + admDate + "</div>" +
             "<div class='tc-grid-item tc-grid-label'>Joined Semester</div>" +
@@ -4258,7 +4269,7 @@
       var tableRowsHtml = "";
       
       ptaList.forEach(function(s, index) {
-        var name = s["Name (As per your certificate)"] || s["Name"] || "N/A";
+        var name = s["Name (As per your certificate)"] || s["Name"] || "N/A"; name = escapeHTML(name);
         var capid = s["CAP id (Enter the full cap id without any spaces)"] || s["CAPID"] || "N/A";
         var category = s["Actual Category"] || s["Reservation Category"] || "N/A";
         var amount = parseFloat(s["PTA_Amount"]) || 0;
@@ -4269,7 +4280,7 @@
         var idCard = parseFloat(s["PTA_ID_Card_Fee"]) || 0;
         
         var deptName = s["Department"] || currentSelectedDept || "N/A";
-        var progLabel = (s["Program_Type"] || s["Admission to the Programme"] || "").toString().trim();
+        var progLabel = (s["Program_Type"] || s["Admission to the Programme"] || "").toString().trim(); progLabel = escapeHTML(progLabel);
         if (progLabel) deptName += " (" + progLabel + ")";
         
         totalSum += amount;
@@ -5322,7 +5333,7 @@
     // Email PTA Receipt student copy
     function emailPTAReceipt() {
       if (!activeStudent) return;
-      var capid = activeStudent["CAP id (Enter the full cap id without any spaces)"] || activeStudent["CAPID"];
+      var mobile = activeStudent["Mobile No"] || activeStudent["Mobile_Number"];
       var email = activeStudent["Email Address"] || activeStudent["Email id"] || "";
       
       showLoader("Emailing receipt to student...");
@@ -5340,7 +5351,7 @@
           hideLoader();
           showToast(err.toString(), true);
         })
-        .emailPTAReceipt(capid, email);
+        .emailPTAReceipt(mobile, email);
     }
 
     // Print Stylized Student List reports
@@ -5425,10 +5436,10 @@
       filtered.forEach(function(s, index) {
         var token = s["Token_Number"] || "-";
         var capid = s["CAP id (Enter the full cap id without any spaces)"] || s["CAPID"] || "-";
-        var name = s["Name (As per your certificate)"] || s["Name"] || "-";
+        var name = s["Name (As per your certificate)"] || s["Name"] || "-"; name = escapeHTML(name);
         
         var dept = s["Department"] || currentSelectedDept || "-";
-        var progLabel = (s["Program_Type"] || s["Admission to the Programme"] || "").toString().trim();
+        var progLabel = (s["Program_Type"] || s["Admission to the Programme"] || "").toString().trim(); progLabel = escapeHTML(progLabel);
         if (progLabel) dept += " (" + progLabel + ")";
         
         var indexMark = s["Index Marks (as per admit/allotment card)"] || s["Index Mark"] || "-";
@@ -5440,16 +5451,16 @@
         
         tableRows += "<tr>" +
           "<td data-label='#'>" + (index + 1) + "</td>" +
-          "<td data-label='Token'>" + token + "</td>" +
+          "<td data-label='Token'>" + escapeHTML(token) + "</td>" +
           "<td data-label='CAP ID'>" + capid + "</td>" +
           "<td data-label='Name'>" + name.toUpperCase() + "</td>" +
           "<td data-label='Department'>" + dept + "</td>" +
-          "<td data-label='Index Mark'>" + indexMark + "</td>" +
-          "<td data-label='Verified Index'>" + verifiedIndex + "</td>" +
-          "<td data-label='Slot'>" + assignedSlot + "</td>" +
-          "<td data-label='PTA Fee'><strong>" + ptaAmount + "</strong></td>" +
-          "<td data-label='Status'>" + status.replace('_', ' ') + "</td>" +
-          "<td data-label='Adm No'>" + admNo + "</td>" +
+          "<td data-label='Index Mark'>" + escapeHTML(indexMark) + "</td>" +
+          "<td data-label='Verified Index'>" + escapeHTML(verifiedIndex) + "</td>" +
+          "<td data-label='Slot'>" + escapeHTML(assignedSlot) + "</td>" +
+          "<td data-label='PTA Fee'><strong>" + escapeHTML(ptaAmount) + "</strong></td>" +
+          "<td data-label='Status'>" + escapeHTML(status).replace(\'_\', \' \') + "</td>" +
+          "<td data-label='Adm No'>" + escapeHTML(admNo) + "</td>" +
         "</tr>";
       });
       
@@ -5530,7 +5541,7 @@
           
           admittedStudents.forEach(function(s) {
             var capid = s["CAP id (Enter the full cap id without any spaces)"] || s["CAPID"] || "";
-            var name = s["Name (As per your certificate)"] || s["Name"] || "";
+            var name = s["Name (As per your certificate)"] || s["Name"] || ""; name = escapeHTML(name);
             var admNo = s["Admission_Number"] || "";
             var opt = document.createElement("option");
             opt.value = name.toUpperCase() + " (" + capid + ") - Adm: " + admNo;
@@ -5720,7 +5731,7 @@
               "</div>" +
               "<div class='id-name-box'>" + name + "</div>" +
               "<div class='id-details-grid'>" +
-                "<div class='id-detail-row'><span class='id-label'>Admn No</span><span class='id-colon'>:</span><span class='id-value'>" + admNo + "</span></div>" +
+                "<div class='id-detail-row'><span class='id-label'>Admn No</span><span class='id-colon'>:</span><span class='id-value'>" + escapeHTML(admNo) + "</span></div>" +
                 "<div class='id-detail-row'><span class='id-label'>Course</span><span class='id-colon'>:</span><span class='id-value'>" + course + "</span></div>" +
                 "<div class='id-detail-row'><span class='id-label'>Batch</span><span class='id-colon'>:</span><span class='id-value'>" + batch + "</span></div>" +
                 "<div class='id-detail-row'><span class='id-label'>Valid Till</span><span class='id-colon'>:</span><span class='id-value'>" + validityDate + "</span></div>" +
@@ -5754,8 +5765,8 @@
                 "<div class='back-row'><span class='back-label'>Parent Name</span><span class='back-colon'>:</span><span class='back-val'>" + parent + "</span></div>" +
               "</div>" +
               "<div class='back-codes'>" +
-                "<canvas class='student-barcode' data-text='" + admNo + "'></canvas>" +
-                "<div class='student-qrcode' data-text='" + admNo + "'></div>" +
+                "<canvas class='student-barcode' data-text='" + escapeHTML(admNo) + "'></canvas>" +
+                "<div class='student-qrcode' data-text='" + escapeHTML(admNo) + "'></div>" +
               "</div>" +
             "</div>" +
           "</div>";

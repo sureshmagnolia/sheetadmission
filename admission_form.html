@@ -107,7 +107,7 @@
             <div class="grid grid-cols-1 gap-y-6 gap-x-4 sm:grid-cols-2">
               <div>
                 <label class="block text-sm font-medium text-gray-700">Mobile No <span class="text-red-500">*</span></label>
-                <input type="tel" name="Mobile No" required class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm p-2 border">
+                <input type="tel" name="Mobile No" required pattern="^[0-9]{10}$" maxlength="10" title="Please enter exactly 10 digits" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm p-2 border">
               </div>
               <div>
                 <label class="block text-sm font-medium text-gray-700">Aadhaar id <span class="text-red-500">*</span></label>
@@ -136,7 +136,7 @@
               </div>
               <div>
                 <label class="block text-sm font-medium text-gray-700">Parent/Guardian Contact No.</label>
-                <input type="tel" name="Parent/Guardian contact number" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm p-2 border">
+                <input type="tel" name="Parent/Guardian contact number" pattern="^[0-9]{10}$" maxlength="10" title="Please enter exactly 10 digits" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm p-2 border">
               </div>
             </div>
           </div>
@@ -430,6 +430,11 @@
         var formData = new FormData(form);
         var dataObj = {};
             formData.forEach((value, key) => { dataObj[key] = value; });
+            
+        if (dataObj['Mobile No'] && !/^\d{10}$/.test(dataObj['Mobile No'].trim())) {
+           Swal.fire('Error', 'Mobile Number must be exactly 10 digits.', 'error');
+           return;
+        }
         
         // Handle file separately
       var fileInput = document.getElementById('photoFile');

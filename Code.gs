@@ -3,15 +3,18 @@
  */
 
 // Global constants for sheet names and critical headers
-var MASTER_SHEET_NAME = "Portal_Submissions";
-var MASTER_SHEET_FALLBACK = "Master Responses";
+var MASTER_SHEET_NAME = "Master Responses";
+var MASTER_SHEET_FALLBACK = "Portal_Submissions";
 var SYSTEM_DB_SHEET_NAME = "System_DB";
+var AUDIT_LOG_SHEET_NAME = "Audit_Logs";
 var CREDENTIALS_SHEET_NAME = "Credentials";
 var PTA_CONFIG_SHEET_NAME = "PTA_Config";
 var SEAT_SPLIT_SHEET_NAME = "SeatSplitUp";
 
-var KEY_HEADER = "CAP id (Enter the full cap id without any spaces)";
-var EMAIL_HEADER = "Email Address";
+var KEY_HEADER = "Mobile No";
+var KEY_HEADER_FALLBACK = "Mobile number";
+var CAPID_HEADER = "CAP id (Enter the full cap id without any spaces)";
+var EMAIL_HEADER = "Email address";
 var EMAIL_FALLBACK_HEADER = "Email id";
 var DEPT_HEADER = "Admission to the Department";
 var PROG_HEADER = "Admission to the Programme";
@@ -143,7 +146,7 @@ function getOrCreateSystemDBSheet() {
   var sheet = SpreadsheetApp.getActiveSpreadsheet();
   var dbSheet = sheet.getSheetByName(SYSTEM_DB_SHEET_NAME);
   var dbHeaders = [
-    "Student_Key", "CAPID", "Email", "Department", "Program",
+    "Student_Key", "Mobile_Number", "CAPID", "Email", "Department", "Program",
     "Current_Status", "Faculty_Remarks", "Nodal_Remarks", "PTA_Amount", "Principal_Remarks", 
     "Admission_Number", "Token_Number", "Joined_Semester", "Leaving_Semester", 
     "Promotion_Status", "Dues_Status", "Leaving_Date", "Application_Date", 
@@ -151,7 +154,7 @@ function getOrCreateSystemDBSheet() {
     "PTA_Cooperative_Store", "PTA_ID_Card_Fee", "PTA_Payment_Date",
     "Program_Type", "Assigned_Slot", "Synced_Form_Department", "Verified_Index_Mark",
     "Date_of_Admission", "Date_of_TC", "Date_of_Transfer", "System_Last_Modified",
-    "Additional_Language", "Allotted_Category", "Parent_Mobile", "Allow_Edit"
+    "Additional_Language", "Allotted_Category", "Allow_Edit"
   ];
   
   if (!dbSheet) {
@@ -172,6 +175,13 @@ function getOrCreateSystemDBSheet() {
       existingHeaders[donationIdx] = "PTA_Voluntary_Contribution";
     }
 
+    // Rename Parent_Mobile to Mobile_Number if present
+    var pMobileIdx = findHeaderIndex(existingHeaders, "Parent_Mobile");
+    if (pMobileIdx !== -1) {
+      dbSheet.getRange(1, pMobileIdx + 1).setValue("Mobile_Number");
+      existingHeaders[pMobileIdx] = "Mobile_Number";
+    }
+
     var colsToMigrate = [
       "Synced_Form_Department", "Verified_Index_Mark",
       "Admission_Number", "Token_Number", "Joined_Semester", "Leaving_Semester",
@@ -180,7 +190,7 @@ function getOrCreateSystemDBSheet() {
       "PTA_Voluntary_Contribution", "PTA_Cooperative_Store", "PTA_ID_Card_Fee", "PTA_Payment_Date",
       "Program_Type", "Assigned_Slot", "Principal_Remarks",
       "Date_of_Admission", "Date_of_TC", "Date_of_Transfer",
-      "Additional_Language", "Allotted_Category", "Parent_Mobile", "Allow_Edit"
+      "Additional_Language", "Allotted_Category", "Mobile_Number", "Allow_Edit"
     ];
     colsToMigrate.forEach(function(col) {
       // Re-read headers each iteration so lengths stay accurate after additions
@@ -328,28 +338,29 @@ function getDepartmentData(department, lastSyncTime) {
     
     var masterValues = masterSheet.getRange(2, 1, masterLastRow - 1, masterSheet.getLastColumn()).getValues();
     
-    var capidIndex = findHeaderIndex(masterHeaders, KEY_HEADER);
+    var keyIndex = findHeaderIndex(masterHeaders, KEY_HEADER);
+    if (keyIndex === -1) keyIndex = findHeaderIndex(masterHeaders, KEY_HEADER_FALLBACK);
     var emailIndex = findHeaderIndex(masterHeaders, EMAIL_HEADER);
     var emailFallbackIndex = findHeaderIndex(masterHeaders, EMAIL_FALLBACK_HEADER);
     var deptIndex = findHeaderIndex(masterHeaders, DEPT_HEADER);
     
-    if (capidIndex === -1 || deptIndex === -1) {
-      return JSON.stringify({ success: false, message: "Master sheet missing CAPID or Department columns." });
+    if (keyIndex === -1 || deptIndex === -1) {
+      return JSON.stringify({ success: false, message: "Master sheet missing Mobile Number or Department columns." });
     }
     
     var dbData = {};
-    var dbDataListByCid = {};
+    var dbDataListByKey = {};
     
-    var deltaCapids = null;
+    var deltaKeys = null;
     if (lastSyncTime) {
-      deltaCapids = {};
+      deltaKeys = {};
       var syncTimeMs = parseInt(lastSyncTime, 10);
       if (masterTimeIdx !== -1) {
         masterValues.forEach(function(row) {
           var ts = row[masterTimeIdx];
           if (ts && ts instanceof Date && ts.getTime() > syncTimeMs) {
-            var cid = capidIndex !== -1 && row[capidIndex] ? row[capidIndex].toString().trim().toLowerCase() : "";
-            if (cid) deltaCapids[cid] = true;
+            var k = keyIndex !== -1 && row[keyIndex] ? row[keyIndex].toString().trim().toLowerCase() : "";
+            if (k) deltaKeys[k] = true;
           }
         });
       }
@@ -357,57 +368,57 @@ function getDepartmentData(department, lastSyncTime) {
     
     if (dbLastRow > 1) {
       var dbValues = dbSheet.getRange(2, 1, dbLastRow - 1, dbSheet.getLastColumn()).getValues();
-      var capidColIndex = findHeaderIndex(dbHeaders, "CAPID");
+      var keyColIndex = findHeaderIndex(dbHeaders, "Mobile_Number");
       var deptColIndex = findHeaderIndex(dbHeaders, "Department");
       var statusColIndex = findHeaderIndex(dbHeaders, "Current_Status");
       var sysLastModIdx = findHeaderIndex(dbHeaders, "System_Last_Modified");
       
       dbValues.forEach(function(row) {
-        var cid = capidColIndex !== -1 && row[capidColIndex] ? row[capidColIndex].toString().trim().toLowerCase() : "";
+        var k = keyColIndex !== -1 && row[keyColIndex] ? row[keyColIndex].toString().trim().toLowerCase() : "";
         var dept = deptColIndex !== -1 && row[deptColIndex] ? row[deptColIndex].toString().trim().toLowerCase() : "";
         
-        if (deltaCapids) {
+        if (deltaKeys) {
           var modTime = (sysLastModIdx !== -1 && row[sysLastModIdx]) ? parseFloat(row[sysLastModIdx]) : 0;
           if (modTime && modTime > parseInt(lastSyncTime, 10)) {
-            if (cid) deltaCapids[cid] = true;
+            if (k) deltaKeys[k] = true;
           }
         }
         
-        if (cid && dept) {
+        if (k && dept) {
           var rowObj = {};
           for (var c = 0; c < dbHeaders.length; c++) {
             rowObj[dbHeaders[c]] = row[c];
           }
-          dbData[cid + "|" + dept] = rowObj;
+          dbData[k + "|" + dept] = rowObj;
           
-          if (!dbDataListByCid[cid]) {
-            dbDataListByCid[cid] = [];
+          if (!dbDataListByKey[k]) {
+            dbDataListByKey[k] = [];
           }
-          dbDataListByCid[cid].push(rowObj);
+          dbDataListByKey[k].push(rowObj);
         }
       });
     }
     
     // Reconstruct student profiles for the department
     var combinedData = [];
-    var processedCapids = {};
+    var processedKeys = {};
     
-    // Map master values by CAPID for quick lookup
-    var masterMapByCapid = {};
+    // Map master values by Mobile Number for quick lookup
+    var masterMapByKey = {};
     masterValues.forEach(function(row) {
-      var capid = row[capidIndex] ? row[capidIndex].toString().trim().toLowerCase() : "";
-      if (capid) {
-        masterMapByCapid[capid] = row;
+      var k = row[keyIndex] ? row[keyIndex].toString().trim().toLowerCase() : "";
+      if (k) {
+        masterMapByKey[k] = row;
       }
     });
 
     masterValues.forEach(function(row) {
       var studentDept = row[deptIndex] ? row[deptIndex].toString().trim() : "";
       if (studentDept.toLowerCase() === department.toLowerCase()) {
-        var capid = row[capidIndex] ? row[capidIndex].toString().trim() : "";
-        processedCapids[capid.toLowerCase()] = true;
+        var k = row[keyIndex] ? row[keyIndex].toString().trim() : "";
+        processedKeys[k.toLowerCase()] = true;
         
-        if (deltaCapids && !deltaCapids[capid.toLowerCase()]) {
+        if (deltaKeys && !deltaKeys[k.toLowerCase()]) {
           return; // Skip unmodified profile
         }
         
@@ -430,10 +441,10 @@ function getDepartmentData(department, lastSyncTime) {
         }
         
         // 2. Mix in system state details from System_DB
-        var systemState = dbData[capid.toLowerCase() + "|" + studentDept.toLowerCase()];
+        var systemState = dbData[k.toLowerCase() + "|" + studentDept.toLowerCase()];
         dbHeaders.forEach(function(h) {
           var cleanH = h ? h.toString().trim() : "";
-          if (cleanH && cleanH !== "Student_Key" && cleanH !== "CAPID" && cleanH !== "Email" && cleanH !== "Program") {
+          if (cleanH && cleanH !== "Student_Key" && cleanH !== "CAPID" && cleanH !== "Mobile_Number" && cleanH !== "Email" && cleanH !== "Program") {
             if (cleanH === "Department") {
               profile["System_Department"] = systemState ? systemState[h] : "";
             } else {
@@ -443,7 +454,7 @@ function getDepartmentData(department, lastSyncTime) {
         });
         
         // 3. Match with other department records for transfer tags
-        var otherDbRows = dbDataListByCid[capid.toLowerCase()] || [];
+        var otherDbRows = dbDataListByKey[k.toLowerCase()] || [];
         otherDbRows.forEach(function(otherRow) {
           var otherDept = otherRow["Department"] ? otherRow["Department"].toString().trim() : "";
           if (otherDept.toLowerCase() !== studentDept.toLowerCase()) {
@@ -870,15 +881,24 @@ function getDepartmentsList() {
 }
 
 // Update student workflow attributes inside System_DB only
-function updateStudentData(department, capid, email, updatedData, operatorRole, operatorDept, studentName, programName, formIndexMark, programType) {
+function updateStudentData(department, mobileNumber, email, updatedData, operatorRole, operatorDept, studentName, programName, formIndexMark, programType) {
   var lock = LockService.getScriptLock();
   try {
-    lock.waitLock(15000);
+    lock.waitLock(30000); // Increased lock wait to 30 seconds
   } catch (e) {
     return JSON.stringify({ success: false, message: "System is busy. Please try again." });
   }
   
   try {
+    var userEmail = Session.getActiveUser().getEmail();
+    var verifiedIdentity = verifyOperatorIdentity(userEmail);
+    if (!verifiedIdentity) {
+      return JSON.stringify({ success: false, message: "Unauthorized. Your email is not registered in the Credentials sheet." });
+    }
+    
+    // Override the client's self-asserted role with the server-verified role
+    operatorRole = verifiedIdentity.role;
+    
     var sheet = SpreadsheetApp.getActiveSpreadsheet();
     var dbSheet = getOrCreateSystemDBSheet(sheet);
     var lastRow = dbSheet.getLastRow();
@@ -888,20 +908,20 @@ function updateStudentData(department, capid, email, updatedData, operatorRole, 
     }
     
     var dbHeaders = dbSheet.getRange(1, 1, 1, dbSheet.getLastColumn()).getValues()[0];
-    var capidIndex = findHeaderIndex(dbHeaders, "CAPID");
+    var mobileIndex = findHeaderIndex(dbHeaders, "Mobile_Number");
     var deptIndex = findHeaderIndex(dbHeaders, "Department");
     
     var dbValuesAll = (lastRow > 1) ? dbSheet.getRange(2, 1, lastRow - 1, dbHeaders.length).getValues() : [];
-    var studentKey = capid + "|" + department;
+    var studentKey = mobileNumber + "|" + department;
     var targetRowIndex = -1;
     
-    var capidLower = capid.toString().trim().toLowerCase();
+    var mobileLower = mobileNumber.toString().trim().toLowerCase();
     var deptLower = department.toString().trim().toLowerCase();
     
     for (var i = 0; i < dbValuesAll.length; i++) {
-      var rowCid = dbValuesAll[i][capidIndex] ? dbValuesAll[i][capidIndex].toString().trim().toLowerCase() : "";
+      var rowMob = dbValuesAll[i][mobileIndex] ? dbValuesAll[i][mobileIndex].toString().trim().toLowerCase() : "";
       var rowDept = dbValuesAll[i][deptIndex] ? dbValuesAll[i][deptIndex].toString().trim().toLowerCase() : "";
-      if (rowCid === capidLower && rowDept === deptLower) {
+      if (rowMob === mobileLower && rowDept === deptLower) {
         targetRowIndex = i + 2;
         break;
       }
@@ -917,7 +937,7 @@ function updateStudentData(department, capid, email, updatedData, operatorRole, 
       var newRow = [];
       dbHeaders.forEach(function(header) {
         if (header === "Student_Key") newRow.push(studentKey);
-        else if (header === "CAPID") newRow.push(capid);
+        else if (header === "Mobile_Number") newRow.push(mobileNumber);
         else if (header === "Email") newRow.push(email);
         else if (header === "Department") newRow.push(department);
         else if (header === "Program") newRow.push(programName);
@@ -938,8 +958,23 @@ function updateStudentData(department, capid, email, updatedData, operatorRole, 
     
     var prevStatus = currentStatusIndex !== -1 ? existingRow[currentStatusIndex] : "";
     var existingToken = tokenIndex !== -1 ? existingRow[tokenIndex] : "";
-    var nextStatus = updatedData["Current_Status"] || prevStatus;
+    var nextStatus = updatedData.hasOwnProperty("Current_Status") ? updatedData["Current_Status"] : prevStatus;
     var tokenGenerated = existingToken;
+    
+    // State Machine IDOR Validation
+    if (updatedData.hasOwnProperty("Current_Status") && nextStatus !== prevStatus) {
+      var allowedTransitions = {
+        "Faculty": ["Pending_Faculty", "Pending_Nodal", "Rejected_Faculty"],
+        "Nodal Officer": ["Pending_Nodal", "Approved_Nodal", "Rejected_Nodal"],
+        "Principal": ["Approved_Nodal", "Approved_Principal", "Rejected_Principal"],
+        "PTA": ["Approved_Nodal", "Approved_Principal"] // Let PTA run logic as needed but usually Nodal/Principal handles status
+      };
+      
+      var allowed = allowedTransitions[operatorRole] || [];
+      if (allowed.indexOf(nextStatus) === -1 && operatorRole !== "System") {
+        return JSON.stringify({ success: false, message: "Unauthorized state transition (" + nextStatus + ") for your role (" + operatorRole + ")." });
+      }
+    }
     
     if (nextStatus === "Pending_Nodal" && !existingToken && tokenIndex !== -1) {
       var prefix = "T";
@@ -1061,18 +1096,18 @@ function updateStudentData(department, capid, email, updatedData, operatorRole, 
     
     // Auto-release student from old department if newly Admitted here
     if (nextStatus === "Admitted") {
-      var capidLower = capid.toString().trim().toLowerCase();
+      var mobileLower = mobileNumber.toString().trim().toLowerCase();
       var deptLower = department.toString().trim().toLowerCase();
       var statusColIdx = findHeaderIndex(dbHeaders, "Current_Status");
       var deptColIdx = findHeaderIndex(dbHeaders, "Department");
-      var capidColIdx = findHeaderIndex(dbHeaders, "CAPID");
+      var mobileColIdx = findHeaderIndex(dbHeaders, "Mobile_Number");
       
       for (var r = 0; r < dbValuesAll.length; r++) {
-        var rowCid = dbValuesAll[r][capidColIdx] ? dbValuesAll[r][capidColIdx].toString().trim().toLowerCase() : "";
+        var rowMobile = dbValuesAll[r][mobileColIdx] ? dbValuesAll[r][mobileColIdx].toString().trim().toLowerCase() : "";
         var rowDept = dbValuesAll[r][deptColIdx] ? dbValuesAll[r][deptColIdx].toString().trim().toLowerCase() : "";
         var rowStatus = dbValuesAll[r][statusColIdx] ? dbValuesAll[r][statusColIdx].toString().trim() : "";
         
-        if (rowCid === capidLower && rowDept !== deptLower && rowStatus === "Admitted") {
+        if (rowMobile === mobileLower && rowDept !== deptLower && rowStatus === "Admitted") {
           var otherRowIdx = r + 2;
           var otherRowRange = dbSheet.getRange(otherRowIdx, 1, 1, dbHeaders.length);
           var otherRowVals = otherRowRange.getValues()[0];
@@ -1087,7 +1122,7 @@ function updateStudentData(department, capid, email, updatedData, operatorRole, 
           if (otherTransferCol !== -1) otherRowVals[otherTransferCol] = dateFormatted;
           
           otherRowRange.setValues([otherRowVals]);
-          logActivity(capid, email, studentName, rowDept, "Admitted", "Transferred Out", "System (Transfer)", operatorDept, "Record archived as Transferred Out due to transfer to " + department);
+          logActivity(mobileNumber, email, studentName, rowDept, "Admitted", "Transferred Out", "System (Transfer)", operatorDept, "Record archived as Transferred Out due to transfer to " + department);
           break;
         }
       }
@@ -1095,7 +1130,7 @@ function updateStudentData(department, capid, email, updatedData, operatorRole, 
     
     // Write audit log entry
     var changesStr = changes.join(", ");
-    logActivity(capid, email, studentName, department, prevStatus, nextStatus, operatorRole, operatorDept, changesStr);
+    logActivity(mobileNumber, email, studentName, department, prevStatus, nextStatus, operatorRole, operatorDept, changesStr);
     
     return JSON.stringify({ 
       success: true, 
@@ -1111,7 +1146,7 @@ function updateStudentData(department, capid, email, updatedData, operatorRole, 
 }
 
 // Log admin/faculty actions to an Audit_Logs sheet
-function logActivity(capid, email, studentName, department, prevStatus, nextStatus, operatorRole, operatorDept, changesStr) {
+function logActivity(mobileNumber, email, studentName, department, prevStatus, nextStatus, operatorRole, operatorDept, changesStr) {
   try {
     var sheet = SpreadsheetApp.getActiveSpreadsheet();
     var logSheet = sheet.getSheetByName("Audit_Logs");
@@ -1130,7 +1165,7 @@ function logActivity(capid, email, studentName, department, prevStatus, nextStat
     var row = [
       new Date(),
       email || "",
-      capid || "",
+      mobileNumber || "",
       studentName || "",
       department || "",
       operatorRole || "System",
@@ -1179,18 +1214,18 @@ function validateCredentials(role, department, password) {
     
     if (needInit) {
       credSheet.clear();
-      var headers = ["Role", "Department", "Password"];
+      var headers = ["Role", "Department", "Password", "Email"];
       credSheet.appendRow(headers);
       
       var defaults = [
-        ["Principal", "", "principal123"],
-        ["Nodal Officer", "", "nodal123"],
-        ["PTA", "", "pta123"]
+        ["Principal", "", "principal123", "principal@example.com"],
+        ["Nodal Officer", "", "nodal123", "nodal@example.com"],
+        ["PTA", "", "pta123", "pta@example.com"]
       ];
       
       departmentsList.forEach(function(d) {
         var cleanCode = getDeptCode(d).toLowerCase();
-        defaults.push(["Faculty", d, "faculty" + cleanCode + "123"]);
+        defaults.push(["Faculty", d, "faculty" + cleanCode + "123", "faculty_" + cleanCode + "@example.com"]);
       });
       
       defaults.forEach(function(row) {
@@ -1269,8 +1304,43 @@ function validateCredentials(role, department, password) {
     } else {
       return JSON.stringify({ success: false, message: "Invalid credentials or password." });
     }
-  } catch (error) {
-    return JSON.stringify({ success: false, message: error.toString() });
+  } catch (e) {
+    Logger.log(e);
+    return JSON.stringify({ success: false, message: "Error validating credentials." });
+  }
+}
+
+// Server-side identity verification based on logged-in email and Credentials sheet
+function verifyOperatorIdentity(userEmail) {
+  try {
+    if (!userEmail) return null;
+    var sheet = SpreadsheetApp.getActiveSpreadsheet();
+    var credSheet = sheet.getSheetByName(CREDENTIALS_SHEET_NAME);
+    if (!credSheet) return null;
+    
+    var data = credSheet.getDataRange().getValues();
+    if (data.length < 2) return null;
+    
+    var headers = data[0];
+    var roleCol = headers.indexOf("Role");
+    var deptCol = headers.indexOf("Department");
+    var emailCol = headers.indexOf("Email");
+    
+    if (roleCol === -1 || emailCol === -1) return null;
+    
+    for (var i = 1; i < data.length; i++) {
+      var rowEmail = data[i][emailCol] ? data[i][emailCol].toString().trim().toLowerCase() : "";
+      if (rowEmail && rowEmail === userEmail.toLowerCase()) {
+        return {
+          role: data[i][roleCol] ? data[i][roleCol].toString().trim() : "",
+          department: deptCol !== -1 && data[i][deptCol] ? data[i][deptCol].toString().trim() : ""
+        };
+      }
+    }
+    return null;
+  } catch (e) {
+    Logger.log("Identity verification error: " + e.toString());
+    return null;
   }
 }
 
@@ -1488,7 +1558,7 @@ function updateSeatMatrix(matrixData, type) {
 }
 
 // Send stylized PTA receipt email to student
-function emailPTAReceipt(capid, email) {
+function emailPTAReceipt(mobile, email) {
   try {
     var sheet = SpreadsheetApp.getActiveSpreadsheet();
     var masterSheet = getMasterSheet(sheet);
@@ -1502,7 +1572,7 @@ function emailPTAReceipt(capid, email) {
     var masterLastRow = masterSheet.getLastRow();
     var masterValues = masterSheet.getRange(2, 1, masterLastRow - 1, masterSheet.getLastColumn()).getValues();
     
-    var capidIndex = findHeaderIndex(masterHeaders, KEY_HEADER);
+    var mobileIndex = findHeaderIndex(masterHeaders, KEY_HEADER);
     var emailIndex = findHeaderIndex(masterHeaders, EMAIL_HEADER);
     var emailFallbackIndex = findHeaderIndex(masterHeaders, EMAIL_FALLBACK_HEADER);
     var nameIndex = findHeaderIndex(masterHeaders, "Name (As per your certificate)");
@@ -1511,7 +1581,7 @@ function emailPTAReceipt(capid, email) {
     var studentRow = null;
     var studentEmail = email;
     for (var i = 0; i < masterValues.length; i++) {
-      var cId = (capidIndex !== -1 && masterValues[i][capidIndex]) ? masterValues[i][capidIndex].toString().trim() : "";
+      var mId = (mobileIndex !== -1 && masterValues[i][mobileIndex]) ? masterValues[i][mobileIndex].toString().trim() : "";
       var eId = "";
       if (emailIndex !== -1 && masterValues[i][emailIndex]) {
         eId = masterValues[i][emailIndex].toString().trim();
@@ -1519,7 +1589,7 @@ function emailPTAReceipt(capid, email) {
         eId = masterValues[i][emailFallbackIndex].toString().trim();
       }
       
-      if (cId === capid && eId === email) {
+      if (mId === mobile && eId === email) {
         studentRow = masterValues[i];
         if (!studentEmail) studentEmail = eId;
         break;
@@ -1539,7 +1609,7 @@ function emailPTAReceipt(capid, email) {
     var dbValues = dbSheet.getRange(2, 1, dbLastRow - 1, dbSheet.getLastColumn()).getValues();
     
     var keyCol = findHeaderIndex(dbHeaders, "Student_Key");
-    var studentKey = capid + "|" + studentDept;
+    var studentKey = mobile + "|" + studentDept;
     var dbRow = null;
     
     if (keyCol !== -1) {
@@ -1595,7 +1665,7 @@ function emailPTAReceipt(capid, email) {
         "</div>" +
         "<div style='margin-bottom: 20px; background: #f8fafc; padding: 15px; border-radius: 8px; border: 1px solid #edf2f7; font-size: 13px; line-height: 1.6;'>" +
           "<div><strong>Receipt / Token No:</strong> " + token + "</div>" +
-          "<div><strong>CAP ID:</strong> " + capid + "</div>" +
+          "<div><strong>CAP ID:</strong> " + mobile + "</div>" +
           "<div><strong>Student Name:</strong> " + studentName.toString().toUpperCase() + "</div>" +
           "<div><strong>Department / Program:</strong> " + studentDept + " (" + progType + ")</div>" +
           "<div><strong>Email Address:</strong> " + studentEmail + "</div>" +
@@ -1699,7 +1769,7 @@ function doPost(e) {
     } else if (action === "updateSeatMatrix") {
       result = JSON.parse(updateSeatMatrix(requestData.matrixData, requestData.type));
     } else if (action === "emailPTAReceipt") {
-      result = JSON.parse(emailPTAReceipt(requestData.capid, requestData.email));
+      result = JSON.parse(emailPTAReceipt(requestData.mobile, requestData.email));
     } else if (action === "getDriveImageAsBase64") {
       result = { success: true, data: getDriveImageAsBase64(requestData.fileId) };
     } else {
@@ -1753,20 +1823,24 @@ function deduplicateSystemDB(dbSheet) {
   if (lastRow < 2) return;
   
   var dbHeaders = dbSheet.getRange(1, 1, 1, dbSheet.getLastColumn()).getValues()[0];
-  var capidCol = findHeaderIndex(dbHeaders, "CAPID");
-  if (capidCol === -1) return;
+  var mobileCol = findHeaderIndex(dbHeaders, "Mobile_Number");
+  var deptCol = findHeaderIndex(dbHeaders, "Department");
+  if (mobileCol === -1 || deptCol === -1) return;
   
-  var capids = dbSheet.getRange(2, capidCol + 1, lastRow - 1, 1).getValues();
-  var seenCapids = {};
+  var dbValues = dbSheet.getRange(2, 1, lastRow - 1, dbHeaders.length).getValues();
+  var seenKeys = {};
   var rowsToDelete = [];
   
-  for (var i = 0; i < capids.length; i++) {
-    var cid = capids[i][0] ? capids[i][0].toString().trim().toLowerCase() : "";
-    if (cid) {
-      if (seenCapids[cid]) {
+  for (var i = 0; i < dbValues.length; i++) {
+    var mob = dbValues[i][mobileCol] ? dbValues[i][mobileCol].toString().trim().toLowerCase() : "";
+    var dept = dbValues[i][deptCol] ? dbValues[i][deptCol].toString().trim().toLowerCase() : "";
+    var key = mob + "|" + dept;
+    
+    if (mob && dept) {
+      if (seenKeys[key]) {
         rowsToDelete.push(i + 2); // 2-indexed row number
       } else {
-        seenCapids[cid] = true;
+        seenKeys[key] = true;
       }
     }
   }
