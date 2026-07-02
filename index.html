@@ -5689,17 +5689,31 @@
           }
         }
 
+        var slotPalette = [
+          "rgba(59, 130, 246, 0.15)",  // blue
+          "rgba(16, 185, 129, 0.15)",  // green
+          "rgba(245, 158, 11, 0.15)",  // yellow
+          "rgba(139, 92, 246, 0.15)",  // purple
+          "rgba(236, 72, 153, 0.15)",  // pink
+          "rgba(14, 165, 233, 0.15)",  // cyan
+          "rgba(249, 115, 22, 0.15)",  // orange
+          "rgba(99, 102, 241, 0.15)",  // indigo
+          "rgba(20, 184, 166, 0.15)"   // teal
+        ];
+
         // Pass 2: Render DOM
-        slots.forEach(function(slot) {
+        slots.forEach(function(slot, slotIdx) {
           if (!slotData[slot]) return;
           var quota = slotData[slot].quota;
           var matchedStudents = slotData[slot].students;
+          var slotColor = slotPalette[slotIdx % slotPalette.length];
 
           for (var q = 0; q < quota; q++) {
             if (q < matchedStudents.length) {
               var st = matchedStudents[q];
               var tr = document.createElement("tr");
               tr.style.cursor = "pointer";
+              tr.style.backgroundColor = slotColor;
               (function(studentObj) {
                 tr.onclick = function() { openStudentDetails(studentObj); };
               })(st);
@@ -5729,7 +5743,7 @@
               tbody.appendChild(tr);
             } else {
               var trBlank = document.createElement("tr");
-              trBlank.style.backgroundColor = "rgba(0,0,0,0.02)";
+              trBlank.style.backgroundColor = slotColor;
               trBlank.innerHTML = "<td data-label='Sl' style='color: var(--text-muted);'>" + slNoGlobal++ + "</td>" +
                 "<td data-label='Slot' style='color: var(--text-muted);'><strong>" + slot + "</strong></td>" +
                 "<td data-label='Info' colspan='5' style='text-align: center; color: var(--text-muted); font-style: italic;'>--- Vacant / Not Filled ---</td>";
