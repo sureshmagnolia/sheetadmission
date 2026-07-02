@@ -179,6 +179,9 @@ function processFormSubmission(formData) {
           var dbHeaders = dbData[0];
           var dbCapIdx = dbHeaders.indexOf('CAPID');
           dbAllowEditIdx = dbHeaders.indexOf('Allow_Edit');
+          var dbMobIdx = dbHeaders.indexOf('Mobile_Number');
+          if (dbMobIdx === -1) dbMobIdx = dbHeaders.indexOf('Parent_Mobile');
+          var dbDeptIdx = dbHeaders.indexOf('Department');
           
           if (dbCapIdx !== -1 && dbAllowEditIdx !== -1) {
              for (var k = 1; k < dbData.length; k++) {
@@ -238,7 +241,7 @@ function processFormSubmission(formData) {
          }
       }
       var cache = CacheService.getScriptCache();
-      cache.remove('submission_' + email);
+      cache.remove('submission_' + capId);
       return { success: true, message: 'Submission updated successfully!' };
     } else {
       sheet.appendRow(rowData);
