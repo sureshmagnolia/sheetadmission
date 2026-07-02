@@ -2028,6 +2028,7 @@
     var userDept = "";
     var currentSelectedDept = "";
     var allStudents = [];
+    var pendingMatrixChanges = {};
     var activeStudent = null;
     var editMode = false;
     var captchaAnswer = null;
@@ -5563,6 +5564,14 @@
       if (!container) return;
       container.innerHTML = "";
       
+      if (Object.keys(pendingMatrixChanges).length > 0) {
+         var saveDiv = document.createElement("div");
+         saveDiv.style.textAlign = "right";
+         saveDiv.style.marginBottom = "15px";
+         saveDiv.innerHTML = "<button class='btn btn-success' style='box-shadow: 0 0 10px var(--accent-green); font-weight: bold;' onclick='saveMatrixChanges()'>Save Matrix Changes (" + Object.keys(pendingMatrixChanges).length + " pending)</button>";
+         container.appendChild(saveDiv);
+      }
+      
       if (currentTab !== 'completed-ug' && currentTab !== 'completed-pg') return;
 
       var matrix = (currentTab === 'completed-pg') ? seatMatrixPG : seatMatrixUG;
@@ -5638,8 +5647,17 @@
           "</tr>";
         table.appendChild(thead);
         
-        var tbody = document.createElement("tbody");
-        var unallocatedStudents = [].concat(deptStudents);
+        var activeStudents = [];
+        var tcBasket = [];
+        deptStudents.forEach(function(s) {
+          if ((s["Current_Status"] || "") === "TC Issued") {
+            tcBasket.push(s);
+          } else {
+            activeStudents.push(s);
+          }
+        });
+        
+        var unallocatedStudents = [].concat(activeStudents);
         var slotData = {};
         
         // Pass 1: Extract and sort students per slot
@@ -5655,7 +5673,13 @@
 
           var matchedStudents = [];
           for (var i = unallocatedStudents.length - 1; i >= 0; i--) {
-            var sCat = (unallocatedStudents[i]["Assigned_Slot"] || unallocatedStudents[i]["Allotted_Category"] || "").toString().trim().toUpperCase();
+            var st = unallocatedStudents[i];
+            var capId = st["CAP id (Enter the full cap id without any spaces)"] || st["CAPID"] || "-";
+            var rawSlot = st["Assigned_Slot"] || st["Allotted_Category"] || "";
+            if (pendingMatrixChanges[capId]) {
+              rawSlot = pendingMatrixChanges[capId];
+            }
+            var sCat = rawSlot.toString().trim().toUpperCase();
             var targetSlot = slot.toString().trim().toUpperCase();
             if (sCat === targetSlot) {
               matchedStudents.push(unallocatedStudents[i]);
@@ -5672,21 +5696,28 @@
           slotData[slot] = { quota: quota, students: matchedStudents };
         });
 
-        // Find max index mark among all reservation (non-OPEN) admitted candidates
         var maxResIndex = -1;
         var maxResCategory = "";
+        var maxResCap = "";
         for (var sl in slotData) {
           if (sl !== "OPEN") {
             var q = slotData[sl].quota;
             var stds = slotData[sl].students;
             for (var i = 0; i < q && i < stds.length; i++) {
+               var cap = stds[i]["CAP id (Enter the full cap id without any spaces)"] || stds[i]["CAPID"] || "-";
                var mark = parseFloat(stds[i]["Verified_Index_Mark"] || stds[i]["Index Marks (as per admit/allotment card)"] || stds[i]["Index Mark"] || 0);
                if (mark > maxResIndex) {
                  maxResIndex = mark;
                  maxResCategory = sl;
+                 maxResCap = cap;
                }
             }
           }
+        }
+        
+        var openVacancies = 0;
+        if (slotData["OPEN"]) {
+           openVacancies = slotData["OPEN"].quota - slotData["OPEN"].students.length;
         }
 
         var slotPalette = [
@@ -5727,10 +5758,18 @@
               
               var nameHtml = "<strong>" + name + "</strong>";
               
-              // Check anomaly for OPEN slot
               if (slot === "OPEN" && maxResIndex > -1 && markNum < maxResIndex) {
                 tr.style.backgroundColor = "rgba(239, 68, 68, 0.1)"; // Red tint
                 nameHtml += "<br><span style='font-size: 0.8rem; color: #b91c1c; font-style: italic;'>Warning: Student in " + maxResCategory + " has a higher index mark (" + maxResIndex + ")</span>";
+              }
+              
+              if (slot !== "OPEN" && cap === maxResCap && openVacancies > 0) {
+                 tr.style.borderLeft = "4px solid var(--accent-green)";
+                 nameHtml += "<br><span style='font-size: 0.8rem; background-color: var(--accent-green); color: white; padding: 2px 6px; border-radius: 4px; font-weight: bold;'>Next Eligible for OPEN</span>";
+              }
+              
+              if (slot !== "OPEN" && (userRole === "Principal" || userRole === "Faculty" || userRole === "Nodal Officer")) {
+                 nameHtml += "<br><button class='btn btn-primary' style='padding: 2px 8px; font-size: 0.7rem; margin-top: 5px;' onclick='moveToOpen(event, \"" + cap + "\", " + markNum + ", " + maxResIndex + ")'>Move to OPEN</button>";
               }
               
               tr.innerHTML = "<td data-label='Sl'>" + slNoGlobal++ + "</td>" +
@@ -5809,8 +5848,149 @@
         table.appendChild(tbody);
         tableWrapper.appendChild(table);
         deptWrapper.appendChild(tableWrapper);
+        
+        if (tcBasket.length > 0) {
+           var tcTitle = document.createElement("div");
+           tcTitle.innerHTML = "<h4 style='color: var(--accent-red); margin-top: 20px; border-bottom: 1px solid var(--accent-red); display: inline-block; padding-bottom: 2px;'>TC Issued Basket</h4>";
+           deptWrapper.appendChild(tcTitle);
+           
+           var tcTableWrap = document.createElement("div");
+           tcTableWrap.className = "table-responsive mobile-card-table";
+           var tcTable = document.createElement("table");
+           tcTable.innerHTML = "<thead><tr><th>Sl</th><th>Admission No</th><th>Student Name</th><th>CAPID</th><th>Index Mark</th><th>Status</th></tr></thead>";
+           var tcTbody = document.createElement("tbody");
+           var tcSl = 1;
+           tcBasket.forEach(function(tSt) {
+              var tTr = document.createElement("tr");
+              tTr.style.cursor = "pointer";
+              (function(studentObj) {
+                 tTr.onclick = function() { openStudentDetails(studentObj); };
+              })(tSt);
+              
+              var tName = tSt["Name (As per your certificate)"] || tSt["Name"] || "-";
+              var tAdm = tSt["Admission_Number"] || "-";
+              var tCap = tSt["CAP id (Enter the full cap id without any spaces)"] || tSt["CAPID"] || "-";
+              var tMark = tSt["Verified_Index_Mark"] || tSt["Index Marks (as per admit/allotment card)"] || tSt["Index Mark"] || "-";
+              var tStat = tSt["Current_Status"] || "-";
+              
+              tTr.innerHTML = "<td data-label='Sl'>" + tcSl++ + "</td>" +
+                 "<td data-label='Adm No'>" + tAdm + "</td>" +
+                 "<td data-label='Name'><strong>" + tName + "</strong></td>" +
+                 "<td data-label='CAPID'>" + tCap + "</td>" +
+                 "<td data-label='Index Mark'>" + tMark + "</td>" +
+                 "<td data-label='Status'>" + tStat + "</td>";
+              tcTbody.appendChild(tTr);
+           });
+           tcTable.appendChild(tcTbody);
+           tcTableWrap.appendChild(tcTable);
+           deptWrapper.appendChild(tcTableWrap);
+        }
+        
         container.appendChild(deptWrapper);
       });
+    }
+
+    function moveToOpen(event, cap, mark, maxMark) {
+      if (event) event.stopPropagation();
+      if (mark < maxMark) {
+         if (!confirm("Wait! Another student in a reservation category has a higher index mark (" + maxMark + "). Are you sure you want to move this student to OPEN?")) {
+            return;
+         }
+      }
+      pendingMatrixChanges[cap] = "OPEN";
+      renderLiveMatrix();
+      showToast("Student moved to OPEN locally. <a href='#' style='color: #fbbf24; text-decoration: underline;' onclick='undoMatrixChange(\"" + cap + "\"); return false;'>Undo</a>", false);
+    }
+    
+    function undoMatrixChange(cap) {
+      if (pendingMatrixChanges[cap]) {
+         delete pendingMatrixChanges[cap];
+         renderLiveMatrix();
+         showToast("Slot change undone.", false);
+      }
+    }
+    
+    function saveMatrixChanges() {
+       var caps = Object.keys(pendingMatrixChanges);
+       if (caps.length === 0) return;
+       
+       var confirmMsg = "Are you sure you want to save " + caps.length + " slot changes to the server?";
+       if (!confirm(confirmMsg)) return;
+       
+       var btn = document.querySelector("#live-matrix-container button.btn-success");
+       if (btn) {
+          btn.innerText = "Saving " + caps.length + " changes...";
+          btn.disabled = true;
+       }
+       
+       var currentIndex = 0;
+       
+       function processNext() {
+          if (currentIndex >= caps.length) {
+             pendingMatrixChanges = {};
+             activeStudent = null; // Reset active student
+             renderLiveMatrix();
+             showToast("All matrix changes saved successfully!");
+             // Refresh data to ensure all UI components are perfectly in sync
+             setTimeout(function() { loadDepartmentData(); }, 1000);
+             return;
+          }
+          
+          var cap = caps[currentIndex];
+          var newSlot = pendingMatrixChanges[cap];
+          var student = allStudents.find(function(s) {
+             return (s["CAP id (Enter the full cap id without any spaces)"] || s["CAPID"] || "") === cap;
+          });
+          
+          if (!student) {
+             currentIndex++;
+             processNext();
+             return;
+          }
+          
+          // Set activeStudent so sendUpdate can extract required CAPID, Dept, etc.
+          activeStudent = student;
+          
+          var dataToUpdate = {
+             "Admission_Number": student["Admission_Number"] || "",
+             "CAPID": cap,
+             "Assigned_Slot": newSlot
+          };
+          
+          var studentDept = student["Department"] || currentSelectedDept;
+          var email = student["Email Address"] || student["Email id"] || "";
+          
+          google.script.run
+            .withSuccessHandler(function(resStr) {
+               var res = JSON.parse(resStr);
+               if (res.success) {
+                 student["Assigned_Slot"] = newSlot;
+               } else {
+                 console.error("Failed to update " + cap + ": " + res.message);
+               }
+               currentIndex++;
+               processNext();
+            })
+            .withFailureHandler(function(err) {
+               console.error("Failed to update " + cap + ": " + err.toString());
+               currentIndex++;
+               processNext();
+            })
+            .updateStudentData(
+               studentDept, 
+               cap, 
+               email, 
+               dataToUpdate, 
+               typeof userRole !== 'undefined' ? userRole : "System", 
+               typeof userDept !== 'undefined' ? userDept : "System",
+               student["Name (As per your certificate)"] || student["Name"] || "",
+               student["Admission to the Programme"] || student["Program_Type"] || "",
+               student["Verified_Index_Mark"] || student["Index Mark"] || 0,
+               student["Program_Type"] || ""
+            );
+       }
+       
+       processNext();
     }
 
     // Modal control and generator logic for ID Cards
