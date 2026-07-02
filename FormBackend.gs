@@ -1,8 +1,8 @@
 var MASTER_DATA_SHEET_NAME = 'MasterData';
 
 function getStudentData(capId, email) {
-  if (email) {
-    var sub = getUserSubmission(email);
+  if (capId) {
+    var sub = getUserSubmissionByCapId(capId);
     if (sub.found) {
       return { success: true, isReturning: true, submissionData: sub.data, isEditable: sub.isEditable };
     }
@@ -53,11 +53,11 @@ function getStudentData(capId, email) {
   return { success: false, error: 'CAP ID not found in MasterData' };
 }
 
-function getUserSubmission(email) {
-    if (!email) return { found: false };
+function getUserSubmissionByCapId(capId) {
+    if (!capId) return { found: false };
     
     var cache = CacheService.getScriptCache();
-    var cacheKey = 'submission_' + email;
+    var cacheKey = 'submission_' + capId;
     var cached = cache.get(cacheKey);
     if (cached) {
       return JSON.parse(cached);
@@ -70,9 +70,8 @@ function getUserSubmission(email) {
     if (data.length < 2) return { found: false };
     
     var headers = data[0];
-    var emailColIdx = headers.indexOf('Email address'); 
-    if (emailColIdx === -1) emailColIdx = headers.indexOf('Email id');
-    if (emailColIdx === -1) return { found: false, error: 'Email column not found' };
+    var capIdColIdx = headers.indexOf('CAP id (Enter the full cap id without any spaces)'); 
+    if (capIdColIdx === -1) return { found: false, error: 'CAP ID column not found in Responses' };
     
     var isEditable = false;
     var dbSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("System_DB");
@@ -80,11 +79,11 @@ function getUserSubmission(email) {
        var dbData = dbSheet.getDataRange().getValues();
        if (dbData.length > 1) {
           var dbHeaders = dbData[0];
-          var dbEmailIdx = dbHeaders.indexOf('Email');
+          var dbCapIdx = dbHeaders.indexOf('CAPID');
           var dbAllowEditIdx = dbHeaders.indexOf('Allow_Edit');
-          if (dbEmailIdx !== -1 && dbAllowEditIdx !== -1) {
+          if (dbCapIdx !== -1 && dbAllowEditIdx !== -1) {
              for (var k = 1; k < dbData.length; k++) {
-                if (dbData[k][dbEmailIdx] && dbData[k][dbEmailIdx].toString().toLowerCase() === email.toLowerCase()) {
+                if (dbData[k][dbCapIdx] && dbData[k][dbCapIdx].toString().trim().toUpperCase() === capId.trim().toUpperCase()) {
                    var permVal = dbData[k][dbAllowEditIdx];
                    if (permVal === true || String(permVal).toUpperCase() === 'TRUE') {
                       isEditable = true;
@@ -97,7 +96,7 @@ function getUserSubmission(email) {
     }
     
     for (var i = 1; i < data.length; i++) {
-      if (data[i][emailColIdx] && data[i][emailColIdx].toString().toLowerCase() === email.toLowerCase()) {
+      if (data[i][capIdColIdx] && data[i][capIdColIdx].toString().trim().toUpperCase() === capId.trim().toUpperCase()) {
         var rowObj = {};
         for (var j = 0; j < headers.length; j++) {
           rowObj[headers[j]] = data[i][j];
@@ -128,8 +127,11 @@ function processFormSubmission(formData) {
       return { success: false, error: 'Incorrect Captcha. Please try again.' };
     }
     
-    var email = formData.email || Session.getActiveUser().getEmail();
-    if (!email) return { success: false, error: 'Email address is required.' };
+    var capIdKey = 'CAP id (Enter the full cap id without any spaces)';
+    var capId = formData[capIdKey] ? formData[capIdKey].toString().trim().toUpperCase() : null;
+    if (!capId) return { success: false, error: 'CAP ID is missing from submission.' };
+    
+    var email = formData['Email address'] || formData.email || Session.getActiveUser().getEmail();
     
     var sheet = getMasterSheet(SpreadsheetApp.getActiveSpreadsheet());
     if (!sheet) return { success: false, error: 'Responses sheet not found.' };
@@ -144,9 +146,10 @@ function processFormSubmission(formData) {
     }
     
     var headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+    var capIdColIdx = headers.indexOf(capIdKey);
+    if (capIdColIdx === -1) return { success: false, error: 'CAP ID column not found in Responses.' };
     var emailColIdx = headers.indexOf('Email address');
     if (emailColIdx === -1) emailColIdx = headers.indexOf('Email id');
-    if (emailColIdx === -1) return { success: false, error: 'Email address column not found.' };
     
     var photoUrl = formData.existingPhotoUrl || "";
     if (formData.photoData && formData.photoMimeType && formData.photoFileName) {
@@ -174,15 +177,12 @@ function processFormSubmission(formData) {
        var dbData = dbSheet.getDataRange().getValues();
        if (dbData.length > 1) {
           var dbHeaders = dbData[0];
-          var dbEmailIdx = dbHeaders.indexOf('Email');
+          var dbCapIdx = dbHeaders.indexOf('CAPID');
           dbAllowEditIdx = dbHeaders.indexOf('Allow_Edit');
-          var dbMobIdx = dbHeaders.indexOf('Mobile_Number');
-          if (dbMobIdx === -1) dbMobIdx = dbHeaders.indexOf('Parent_Mobile');
-          var dbDeptIdx = dbHeaders.indexOf('Department');
           
-          if (dbEmailIdx !== -1 && dbAllowEditIdx !== -1) {
+          if (dbCapIdx !== -1 && dbAllowEditIdx !== -1) {
              for (var k = 1; k < dbData.length; k++) {
-                if (dbData[k][dbEmailIdx] && dbData[k][dbEmailIdx].toString().toLowerCase() === email.toLowerCase()) {
+                if (dbData[k][dbCapIdx] && dbData[k][dbCapIdx].toString().trim().toUpperCase() === capId) {
                    dbRowToUpdate = k + 1;
                    var permVal = dbData[k][dbAllowEditIdx];
                    if (permVal === true || String(permVal).toUpperCase() === 'TRUE') {
@@ -196,7 +196,7 @@ function processFormSubmission(formData) {
     }
     
     for (var i = 1; i < data.length; i++) {
-      if (data[i][emailColIdx] && data[i][emailColIdx].toString().toLowerCase() === email.toLowerCase()) {
+      if (data[i][capIdColIdx] && data[i][capIdColIdx].toString().trim().toUpperCase() === capId) {
         rowIndexToUpdate = i + 1; 
         if (!isEditable) {
            return { success: false, error: 'You do not have permission to edit this submission.' };
