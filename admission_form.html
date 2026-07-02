@@ -53,7 +53,27 @@
           <!-- Section 1: CAP ID Lookup -->
           <div class="bg-gray-50 p-6 rounded-lg border border-gray-200">
             <h2 class="text-lg font-medium text-gray-900 mb-4 border-b pb-2">1. Official Verification (CAP ID)</h2>
+            
+            <div class="mb-4 bg-white p-3 border rounded shadow-sm">
+              <label class="inline-flex items-center mr-6 cursor-pointer">
+                <input type="radio" name="admissionType" value="new" class="form-radio h-5 w-5 text-indigo-600" checked>
+                <span class="ml-2 font-medium">New Admission</span>
+              </label>
+              <label class="inline-flex items-center cursor-pointer">
+                <input type="radio" name="admissionType" value="existing" class="form-radio h-5 w-5 text-indigo-600">
+                <span class="ml-2 font-medium">Already Admitted (Update Data)</span>
+              </label>
+            </div>
+
             <div class="flex flex-col sm:flex-row gap-4">
+              <div class="flex-grow w-1/4">
+                <label class="block text-sm font-medium text-gray-700">Program <span class="text-red-500">*</span></label>
+                <select id="programSelect" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm p-2 border">
+                  <option value="">Select</option>
+                  <option value="UG">UG (Undergraduate)</option>
+                  <option value="PG">PG (Postgraduate)</option>
+                </select>
+              </div>
               <div class="flex-grow">
                 <label class="block text-sm font-medium text-gray-700">Enter your CAP ID <span class="text-red-500">*</span></label>
                 <input type="text" id="capId" name="CAP id (Enter the full cap id without any spaces)" 
@@ -77,6 +97,48 @@
             </div>
             
             <!-- Auto-populated Read Only -->
+            <datalist id="progList">
+              <option value="BSc Computer Science">
+              <option value="BSc Mathematics">
+              <option value="BSc Physics">
+              <option value="BSc Chemistry">
+              <option value="BSc Zoology">
+              <option value="BSc Botany">
+              <option value="BA English">
+              <option value="BA Economics">
+              <option value="BA History">
+              <option value="BCom">
+              <option value="MA English">
+              <option value="MSc Computer Science">
+              <option value="MSc Physics">
+            </datalist>
+            <datalist id="deptList">
+              <option value="Computer Science">
+              <option value="Mathematics">
+              <option value="Physics">
+              <option value="Chemistry">
+              <option value="Zoology">
+              <option value="Botany">
+              <option value="English">
+              <option value="Economics">
+              <option value="History">
+              <option value="Commerce">
+            </datalist>
+            <datalist id="catList">
+              <option value="OPEN">
+              <option value="OBH">
+              <option value="OBX">
+              <option value="LC">
+              <option value="MUSLIM">
+              <option value="ETB">
+              <option value="SC">
+              <option value="ST">
+              <option value="EWS">
+              <option value="SPORTS">
+              <option value="PWD">
+              <option value="TLM">
+            </datalist>
+
             <div class="grid grid-cols-1 gap-y-6 gap-x-4 sm:grid-cols-2 mt-6">
               <div>
                 <label class="block text-sm font-medium text-gray-700">Name (As per your certificate)</label>
@@ -84,15 +146,15 @@
               </div>
               <div>
                 <label class="block text-sm font-medium text-gray-700">Admission to the Programme</label>
-                <input type="text" id="Programme" name="Admission to the Programme" readonly class="mt-1 block w-full bg-gray-100 border-gray-300 rounded-md shadow-sm p-2 border">
+                <input type="text" id="Programme" name="Admission to the Programme" list="progList" readonly class="mt-1 block w-full bg-gray-100 border-gray-300 rounded-md shadow-sm p-2 border">
               </div>
               <div>
                 <label class="block text-sm font-medium text-gray-700">Admission to the Department</label>
-                <input type="text" id="Department" name="Admission to the Department" readonly class="mt-1 block w-full bg-gray-100 border-gray-300 rounded-md shadow-sm p-2 border">
+                <input type="text" id="Department" name="Admission to the Department" list="deptList" readonly class="mt-1 block w-full bg-gray-100 border-gray-300 rounded-md shadow-sm p-2 border">
               </div>
               <div>
                 <label class="block text-sm font-medium text-gray-700">Admitted Category</label>
-                <input type="text" id="Category" name="Admitted Category (As per your admit/allotment card)" readonly class="mt-1 block w-full bg-gray-100 border-gray-300 rounded-md shadow-sm p-2 border">
+                <input type="text" id="Category" name="Admitted Category (As per your admit/allotment card)" list="catList" readonly class="mt-1 block w-full bg-gray-100 border-gray-300 rounded-md shadow-sm p-2 border">
               </div>
               <div>
                 <label class="block text-sm font-medium text-gray-700">Index Marks</label>
@@ -266,25 +328,46 @@
     function fetchCapIdDetails() {
       var capId = document.getElementById('capId').value.trim();
       var visibleEmail = document.getElementById('userEmail').value.trim();
+      var admissionType = document.querySelector('input[name="admissionType"]:checked').value;
+      var progSelect = document.getElementById('programSelect').value;
       
+      if (!progSelect) {
+        Swal.fire('Program Required', 'Please select your Program (UG or PG).', 'warning');
+        return;
+      }
       if (!visibleEmail) {
         Swal.fire('Email Required', 'Please enter your email address to fetch details.', 'warning');
         return;
       }
 
-      // Validate
-      if (!/^[A-Z0-9]{13,15}$/.test(capId) || capId.indexOf(' ') >= 0) {
-        Swal.fire('Invalid CAP ID', 'Must be 13 (PG) or 15 (UG) characters, all uppercase, no spaces.', 'warning');
+      // Validate CAP ID Length based on Program
+      var expectedLength = (progSelect === 'UG') ? 15 : 13;
+      if (!new RegExp("^[A-Z0-9]{" + expectedLength + "}$").test(capId) || capId.indexOf(' ') >= 0) {
+        Swal.fire('Invalid CAP ID', 'For ' + progSelect + ', CAP ID must be ' + expectedLength + ' characters long, all uppercase, with no spaces.', 'warning');
         return;
       }
 
-      showLoader('Fetching Details...');
+      showLoader('Verifying Details...');
       google.script.run
         .withSuccessHandler(function(res) {
           hideLoader();
+          
           if (res.success) {
+            // Record exists
+            if (admissionType === 'new') {
+              Swal.fire({
+                title: 'Record Found',
+                text: 'Your CAP ID already exists in the system. Switching to Existing Admission mode and fetching your data...',
+                icon: 'info',
+                timer: 4000,
+                showConfirmButton: false
+              });
+              document.querySelector('input[name="admissionType"][value="existing"]').checked = true;
+            } else {
+              Swal.fire('Success', 'Details fetched automatically!', 'success');
+            }
+            
             if (res.isReturning) {
-              // If they already submitted, treat it as an initial check load
               handleInitialCheck({ found: true, isEditable: res.isEditable, data: res.submissionData });
             } else {
               document.getElementById('Name').value = res.data.name;
@@ -293,13 +376,49 @@
               document.getElementById('Category').value = res.data.category;
               document.getElementById('IndexMark').value = res.data.indexMark;
               
-              // Unlock rest of the form
+              // Reset readonly if it was removed previously
+              ['Name', 'Programme', 'Department', 'Category', 'IndexMark'].forEach(function(id) {
+                var el = document.getElementById(id);
+                el.readOnly = true;
+                el.classList.add('bg-gray-100');
+              });
+
               unlockFormSections();
               buildConditionalDocs(res.data.category);
-              Swal.fire('Success', 'Details fetched automatically!', 'success');
             }
           } else {
-            Swal.fire('Error', res.error || 'CAP ID not found in Master Data.', 'error');
+            // Record DOES NOT exist
+            if (admissionType === 'existing') {
+              Swal.fire('Not Found', 'Your CAP ID was not found. If you are a new applicant, please select "New Admission".', 'error');
+            } else {
+              // New Admission - Unlock for manual entry
+              Swal.fire({
+                title: 'New Admission',
+                text: 'CAP ID verified. Please fill in your details manually.',
+                icon: 'success',
+                toast: true,
+                position: 'top-end',
+                timer: 4000,
+                showConfirmButton: false
+              });
+              
+              // Remove readonly for manual entry
+              ['Name', 'Programme', 'Department', 'Category', 'IndexMark'].forEach(function(id) {
+                var el = document.getElementById(id);
+                el.readOnly = false;
+                el.classList.remove('bg-gray-100');
+                el.value = ''; // clear any old data
+                el.required = true;
+              });
+              
+              unlockFormSections();
+              buildConditionalDocs(''); // Start with basic docs
+              
+              // Add a listener to Category to rebuild conditional docs when typed
+              document.getElementById('Category').addEventListener('input', function(e) {
+                buildConditionalDocs(e.target.value);
+              });
+            }
           }
         })
         .withFailureHandler(showError)
