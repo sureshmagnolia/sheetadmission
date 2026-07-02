@@ -200,6 +200,93 @@
                 <label class="block text-sm font-medium text-gray-700">Parent/Guardian Contact No.</label>
                 <input type="tel" name="Parent/Guardian contact number" pattern="^[0-9]{10}$" maxlength="10" title="Please enter exactly 10 digits" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm p-2 border">
               </div>
+              
+              <!-- Additional Information -->
+              <div class="sm:col-span-2 mt-4 border-t pt-4">
+                <h3 class="text-md font-medium text-gray-900 mb-2">Additional Information</h3>
+              </div>
+              
+              <div>
+                <label class="block text-sm font-medium text-gray-700">Whether admitted in open category</label>
+                <select name="Whether admitted in open category" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm p-2 border bg-white">
+                  <option value="">Select</option>
+                  <option value="Yes">Yes</option>
+                  <option value="No">No</option>
+                </select>
+              </div>
+              
+              <div>
+                <label class="block text-sm font-medium text-gray-700">Reservation Category</label>
+                <input type="text" name="Reservation Category" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm p-2 border">
+              </div>
+
+              <div>
+                <label class="block text-sm font-medium text-gray-700">Blood Group</label>
+                <select name="Blood Group" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm p-2 border bg-white">
+                  <option value="">Select</option>
+                  <option value="A+">A+</option>
+                  <option value="A-">A-</option>
+                  <option value="B+">B+</option>
+                  <option value="B-">B-</option>
+                  <option value="AB+">AB+</option>
+                  <option value="AB-">AB-</option>
+                  <option value="O+">O+</option>
+                  <option value="O-">O-</option>
+                </select>
+              </div>
+
+              <div>
+                <label class="block text-sm font-medium text-gray-700">Second Language</label>
+                <select name="Second Language" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm p-2 border bg-white">
+                  <option value="">Select</option>
+                  <option value="Hindi">Hindi</option>
+                  <option value="Malayalam">Malayalam</option>
+                  <option value="Sanskrit">Sanskrit</option>
+                  <option value="Arabic">Arabic</option>
+                  <option value="Syriac">Syriac</option>
+                  <option value="None">None</option>
+                </select>
+              </div>
+
+              <div>
+                <label class="block text-sm font-medium text-gray-700">NCC/NSS/SPC</label>
+                <select name="NCC/NSS/SPC.  Select any one of the following" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm p-2 border bg-white">
+                  <option value="">Select</option>
+                  <option value="None">None</option>
+                  <option value="NCC">NCC</option>
+                  <option value="NSS">NSS</option>
+                  <option value="SPC">SPC</option>
+                </select>
+              </div>
+
+              <div>
+                <label class="block text-sm font-medium text-gray-700">NCC A/B/C certificate</label>
+                <select name="NCC A/B/C certificate if any" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm p-2 border bg-white">
+                  <option value="">Select</option>
+                  <option value="None">None</option>
+                  <option value="A">A</option>
+                  <option value="B">B</option>
+                  <option value="C">C</option>
+                </select>
+              </div>
+
+              <div>
+                <label class="block text-sm font-medium text-gray-700">Dependent of Ex-service men</label>
+                <select name="Dependent of Ex-service men" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm p-2 border bg-white">
+                  <option value="">Select</option>
+                  <option value="Yes">Yes</option>
+                  <option value="No">No</option>
+                </select>
+              </div>
+
+              <div>
+                <label class="block text-sm font-medium text-gray-700">A - grade in state level arts festival</label>
+                <select name="A - grade in state level arts festival" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm p-2 border bg-white">
+                  <option value="">Select</option>
+                  <option value="Yes">Yes</option>
+                  <option value="No">No</option>
+                </select>
+              </div>
             </div>
           </div>
 
@@ -442,20 +529,23 @@
                  </div>`;
       }
 
-      if (cat.indexOf('OPEN') === -1) {
+      if (cat.indexOf('OPEN') === -1 && cat !== '') {
+        addYesNo('Nativity Certificate (For candidates admitted in any of the reservation categories)', 'Nativity Certificate');
+        
         if (cat.indexOf('EWS') > -1) {
-          addYesNo('EWS Certificate', 'EWS Certificate');
+          addYesNo('EWS Certificate (If admitted in EWS category). As per university format provided in the prospectus. Issued for the financial year 2025-26', 'EWS Certificate');
         } else if (cat.indexOf('OBC') > -1 || cat.indexOf('ETB') > -1 || cat.indexOf('MUSLIM') > -1 || cat.indexOf('LC') > -1 || cat.indexOf('OBH') > -1 || cat.indexOf('OBX') > -1) {
-          addYesNo('Non-Creamy Layer Certificate', 'Non-Creamy Layer Certificate');
-          addYesNo('Community Certificate', 'Community Certificate');
+          addYesNo('Non-Creamy Layer Certificate (For ETB/Muslim/OBX/OBH/LC admission category). Validity 1 year', 'Non-Creamy Layer Certificate');
+          addYesNo('Community Certificate (For SC/ST/OBC candidates). Validity 3 years', 'Community Certificate');
+          addYesNo('Income certificate (For OBC admission category). Validity 1 year', 'Income Certificate');
         } else if (cat.indexOf('SC') > -1 || cat.indexOf('ST') > -1) {
-          addYesNo('Community Certificate', 'Community Certificate');
+          addYesNo('Community Certificate (For SC/ST/OBC candidates). Validity 3 years', 'Community Certificate');
         }
       }
       
-      if (cat.indexOf('SPORTS') > -1) addYesNo('Sports Certificate', 'Sports Certificate');
-      if (cat.indexOf('PWD') > -1) addYesNo('Person with Disabilities Certificate', 'PwD Certificate');
-      if (cat.indexOf('TLM') > -1) addYesNo('TLM certificate', 'TLM Certificate');
+      if (cat.indexOf('SPORTS') > -1) addYesNo('Sports Certificate (If admitted in Sports quota)', 'Sports Certificate');
+      if (cat.indexOf('PWD') > -1) addYesNo('Person with Disabilities Certificate (If admitted in PwD category)', 'PwD Certificate');
+      if (cat.indexOf('TLM') > -1) addYesNo('TLM certificate (If admitted in TLM category) issued by Village officer', 'TLM Certificate');
       
       html += '</div>';
       container.innerHTML = html;
