@@ -154,7 +154,7 @@
               </div>
               <div>
                 <label class="block text-sm font-medium text-gray-700">Admitted Category</label>
-                <input type="text" id="Category" name="Admitted Category (As per your admit/allotment card)" list="catList" readonly class="mt-1 block w-full bg-gray-100 border-gray-300 rounded-md shadow-sm p-2 border">
+                <input type="text" id="Category" name="Admitted Category (As per your admit/allotment card)" list="catList" readonly class="mt-1 block w-full bg-gray-100 border-gray-300 rounded-md shadow-sm p-2 border" oninput="buildConditionalDocs(this.value)">
               </div>
               <div>
                 <label class="block text-sm font-medium text-gray-700">Index Marks</label>
@@ -413,11 +413,6 @@
               
               unlockFormSections();
               buildConditionalDocs(''); // Start with basic docs
-              
-              // Add a listener to Category to rebuild conditional docs when typed
-              document.getElementById('Category').addEventListener('input', function(e) {
-                buildConditionalDocs(e.target.value);
-              });
             }
           }
         })
