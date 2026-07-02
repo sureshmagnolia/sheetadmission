@@ -1061,13 +1061,15 @@
       </div>
 
       <!-- Search Container -->
-      <div id="search-container" style="margin-bottom: 1.25rem;">
-        <div class="search-wrapper" style="position: relative; max-width: 450px;">
+      <div id="search-container" style="margin-bottom: 1.25rem; display: flex; flex-wrap: wrap; gap: 15px; align-items: center;">
+        <div class="search-wrapper" style="position: relative; max-width: 450px; flex: 1; min-width: 250px;">
           <input type="text" class="form-control search-box" id="search-bar" placeholder="Search by CAPID, Email, or Name..." onkeyup="filterTable()" style="padding-left: 40px; width: 100%;">
           <span style="position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: var(--text-muted); pointer-events: none; display: flex; align-items: center;">
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" style="width: 14px; height: 14px; fill: currentColor;"><path d="M416 208c0 45.9-14.9 88.3-40 122.7L502.6 457.4c12.5 12.5 12.5 32.8 0 45.3s-32.8 12.5-45.3 0L330.7 376c-34.4 25.2-76.8 40-122.7 40C93.1 416 0 322.9 0 208S93.1 0 208 0S416 93.1 416 208zM208 352a144 144 0 1 0 0-288 144 144 0 1 0 0 288z"/></svg>
           </span>
         </div>
+        
+
       </div>
 
       <!-- Tabs for Central Verification Teams & Departments -->
@@ -1109,6 +1111,23 @@
       </div>
 
       <div class="card" id="student-table-card">
+        <!-- Nodal Officer Filters (Moved inside the table card so it's tied to the tab content) -->
+        <div id="nodal-filters-container" style="display: none; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 15px; padding-bottom: 15px; border-bottom: 1px solid var(--card-border);">
+          <select id="nodal-dept-filter" class="form-control" onchange="filterTable()" style="width: auto; min-width: 160px; font-weight: 500;">
+            <option value="">All Departments</option>
+          </select>
+          <select id="nodal-status-filter" class="form-control" onchange="filterTable()" style="width: auto; min-width: 160px; font-weight: 500;">
+            <option value="">All Statuses</option>
+            <option value="Admitted">Admitted</option>
+            <option value="Pending_Faculty">Pending Faculty</option>
+            <option value="Pending_Faculty (Reverted)">Reverted to Faculty</option>
+            <option value="Pending_Nodal">Pending Nodal</option>
+            <option value="Pending_PTA">Pending PTA</option>
+            <option value="Pending_Principal">Pending Principal</option>
+            <option value="TC Issued">TC Issued</option>
+          </select>
+          <span id="nodal-filter-count" style="color: var(--accent-yellow); font-weight: 600; font-size: 0.95rem; margin-left: 5px;"></span>
+        </div>
         <div class="table-responsive mobile-card-table">
           <table>
             <thead>
@@ -2152,6 +2171,23 @@
         if (statsBtn) statsBtn.style.display = "block";
         var revertedBtn = document.getElementById("tab-reverted-btn");
         if (revertedBtn) revertedBtn.style.display = "block";
+        
+        var nodalFilters = document.getElementById("nodal-filters-container");
+        if (nodalFilters) {
+          // Visibility is managed by switchTab() now, just populate the department filter
+          var deptFilter = document.getElementById("nodal-dept-filter");
+          var loginDept = document.getElementById("login-dept");
+          if (deptFilter && deptFilter.options.length <= 1 && loginDept) {
+            for (var i = 0; i < loginDept.options.length; i++) {
+              if (loginDept.options[i].value) {
+                var opt = document.createElement("option");
+                opt.value = loginDept.options[i].value;
+                opt.text = loginDept.options[i].text;
+                deptFilter.appendChild(opt);
+              }
+            }
+          }
+        }
       } else if (userRole === "Principal") {
         if (dashboardTabs) dashboardTabs.style.display = "flex";
         if (idCardsBtn) idCardsBtn.style.display = "inline-block";
@@ -2463,6 +2499,10 @@
             return status !== "Pending_Faculty" && !status.includes("Reverted");
           }
         } else if (userRole === "Nodal Officer") {
+          var nodalStatusVal = document.getElementById("nodal-status-filter") ? document.getElementById("nodal-status-filter").value : "";
+          if (nodalStatusVal) {
+            return true; // We bypass tab filtering if a specific status is chosen, so they can search globally
+          }
           if (currentTab === "pending") {
             return status === "Pending_Nodal";
           } else if (currentTab === "reverted") {
@@ -2549,9 +2589,42 @@
         });
       }
       
+      // 4. Apply Nodal Officer specific filters
+      if (userRole === "Nodal Officer") {
+        var nodalDeptVal = document.getElementById("nodal-dept-filter") ? document.getElementById("nodal-dept-filter").value : "";
+        var nodalStatusVal = document.getElementById("nodal-status-filter") ? document.getElementById("nodal-status-filter").value : "";
+        
+        if (nodalDeptVal || nodalStatusVal) {
+          filtered = filtered.filter(function(s) {
+            var progType = (s["Program_Type"] || s["Admission to the Programme"] || "").toString().trim().toUpperCase();
+            var isUG = (progType.indexOf("B") === 0 || progType === "UG");
+            var dept = (s["Department"] || "").toString();
+            
+            // Dept Filter logic
+            if (nodalDeptVal) {
+              if (dept !== nodalDeptVal) return false;
+            }
+            
+            // Status Filter logic
+            if (nodalStatusVal) {
+              var status = s["Current_Status"] || "Pending_Faculty";
+              if (status !== nodalStatusVal) return false;
+            }
+            return true;
+          });
+        }
+      }
+      
       currentPage = 1;
       filteredStudents = filtered;
       renderCurrentPage();
+      
+      if (userRole === "Nodal Officer") {
+        var countEl = document.getElementById("nodal-filter-count");
+        if (countEl) {
+          countEl.innerText = "Total: " + filteredStudents.length;
+        }
+      }
       
       if (userRole === "PTA") {
         updatePTASummary(allStudents);
@@ -4806,6 +4879,22 @@
             activeBtn.style.fontWeight = "600";
             activeBtn.style.borderBottomColor = "var(--primary)";
           }
+          
+          if (userRole === "Nodal Officer") {
+            var nFilters = document.getElementById("nodal-filters-container");
+            var dFilter = document.getElementById("nodal-dept-filter");
+            var sFilter = document.getElementById("nodal-status-filter");
+            if (nFilters) {
+              if (tab === 'completed-ug' || tab === 'completed-pg') {
+                nFilters.style.display = "flex";
+              } else {
+                nFilters.style.display = "none";
+                if (dFilter) dFilter.value = "";
+                if (sFilter) sFilter.value = "";
+              }
+            }
+          }
+          
           filterTable();
         }
       }
@@ -5302,75 +5391,8 @@
 
     // Print Stylized Student List reports
     function printStudentList() {
-      var query = document.getElementById("search-bar").value.toLowerCase();
-      var filtered = [].concat(allStudents);
-      
-      filtered = filtered.filter(function(s) {
-        var status = s["Current_Status"] || "Pending_Faculty";
-        if (userRole === "Faculty" || userRole === "HOD") {
-          if (currentTab === "pending") {
-            return status === "Pending_Faculty" || status.includes("Reverted");
-          } else {
-            return status !== "Pending_Faculty" && !status.includes("Reverted");
-          }
-        } else if (userRole === "Nodal Officer") {
-          if (currentTab === "pending") {
-            return status === "Pending_Nodal";
-          } else if (currentTab === "reverted") {
-            return status === "Pending_Faculty (Reverted)";
-          } else {
-            return status === "Pending_PTA" || status === "Pending_Principal" || status === "Admitted" || status === "TC Issued";
-          }
-        } else if (userRole === "PTA") {
-          if (currentTab === "pending") {
-            return status === "Pending_PTA";
-          } else {
-            return status === "Pending_Principal" || status === "Admitted" || status === "TC Issued";
-          }
-        } else if (userRole === "Principal") {
-          if (currentTab === "pending") {
-            return status === "Pending_Principal";
-          } else {
-            return status === "Admitted" || status === "TC Issued";
-          }
-        }
-        return true;
-      });
-      
-      if (currentTab === "pending") {
-        filtered.sort(function(a, b) {
-          var tokA = (a["Token_Number"] || "").toString().trim();
-          var tokB = (b["Token_Number"] || "").toString().trim();
-          var numA = parseInt(tokA.replace(/\D/g, ''), 10);
-          var numB = parseInt(tokB.replace(/\D/g, ''), 10);
-          if (!isNaN(numA) && !isNaN(numB)) {
-            if (numA !== numB) return numA - numB;
-          }
-          if (tokA !== tokB) return tokA.localeCompare(tokB);
-          return 0;
-        });
-      } else if (currentTab !== "admission-register") {
-        filtered.sort(function(a, b) {
-          var tokA = (a["Token_Number"] || "").toString().trim();
-          var tokB = (b["Token_Number"] || "").toString().trim();
-          var numA = parseInt(tokA.replace(/\D/g, ''), 10);
-          var numB = parseInt(tokB.replace(/\D/g, ''), 10);
-          if (!isNaN(numA) && !isNaN(numB)) {
-            if (numA !== numB) return numB - numA;
-          }
-          if (tokA !== tokB) return tokB.localeCompare(tokA);
-          return 0;
-        });
-      }
-      
-      if (query) {
-        filtered = filtered.filter(function(s) {
-          var cap = (s["CAP id (Enter the full cap id without any spaces)"] || s["CAPID"] || "").toString().toLowerCase();
-          var email = (s["Email Address"] || s["Email id"] || s["Email"] || "").toString().toLowerCase();
-          var name = (s["Name (As per your certificate)"] || s["Name"] || "").toString().toLowerCase();
-          return cap.includes(query) || email.includes(query) || name.includes(query);
-        });
-      }
+      // Use the globally maintained filtered array so the print list exactly matches what is on screen
+      var filtered = [].concat(filteredStudents);
       
       if (filtered.length === 0) {
         showToast("No student records to print.", true);
