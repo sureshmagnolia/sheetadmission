@@ -370,6 +370,7 @@
 
       window.onload = function() {
         generateCaptcha();
+        document.getElementById('admissionForm').classList.remove('hidden');
         hideLoader(); // Just show the form, initial lookup is obsolete now that we use CAP ID
       };
 
