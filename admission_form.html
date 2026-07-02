@@ -370,16 +370,7 @@
 
       window.onload = function() {
         generateCaptcha();
-        // 1. Check if user already submitted via Google Auth (if available)
-        if (hiddenEmail) {
-          showLoader('Checking existing submissions...');
-          google.script.run
-            .withSuccessHandler(handleInitialCheck)
-            .withFailureHandler(showError)
-            .getUserSubmission(hiddenEmail);
-        } else {
-          hideLoader(); // Just show the form
-        }
+        hideLoader(); // Just show the form, initial lookup is obsolete now that we use CAP ID
       };
 
     function handleInitialCheck(res) {
